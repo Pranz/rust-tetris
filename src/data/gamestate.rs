@@ -32,14 +32,14 @@ impl GameState {
         let square = rectangle::square(0.0, 0.0, 16.0);
 
         gl.draw(args.viewport(), |c, g| {
-            clear(WHITE, g);
+            clear(BLACK, g);
 
             // Draw a box rotating around the middle of the screen.
             for i in 0..WIDTH {
                 for j in 0..HEIGHT {
                     if self.map[i][j] {
                     	let transform = c.transform.trans(i as f64 * 16.0, j as f64 * 16.0);
-                    	rectangle(BLUE, square, transform, g);
+                    	rectangle(WHITE, square, transform, g);
                     }
                 }
             }

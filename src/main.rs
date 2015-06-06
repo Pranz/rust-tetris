@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+#![allow(dead_code)]
 extern crate piston;
 extern crate graphics;
 extern crate glutin_window;
