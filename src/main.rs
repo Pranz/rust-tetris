@@ -10,8 +10,8 @@ use piston::event::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
-mod data;
-use data::gamestate::{GameState};
+pub mod data;
+use data::gamestate::GameState;
 use data::colors::*;
 
 pub struct App {
@@ -26,7 +26,7 @@ impl App {
     }
 
     fn update(&mut self, args: &UpdateArgs) {
-
+        self.tetris.update(args);
     }
 }
 
