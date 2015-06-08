@@ -1,41 +1,41 @@
-extern crate piston;
-extern crate graphics;
 extern crate glutin_window;
+extern crate graphics;
 extern crate opengl_graphics;
+extern crate piston;
 
-use piston::window::WindowSettings;
-use piston::event::*;
-use piston::input::Key;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
+use piston::event::*;
+use piston::input::Key;
+use piston::window::WindowSettings;
 
-use data::shapes::{l_block, BlockType, Block, square_block, l_block_mirrored, BLOCK_SIZE, block_intersects, imprint_block};
 use data::colors::*;
+use data::shapes::{l_block, BlockType, Block, square_block, l_block_mirrored, BLOCK_SIZE, block_intersects, imprint_block};
 
 pub const WIDTH : usize = 10;
-pub const HEIGHT : usize = 20;
+pub const HEIGHT: usize = 20;
 
 
 pub struct GameState {
-	pub map               : [[bool; HEIGHT]; WIDTH],
-    pub frames_until_move : u16,
-    pub frames_passed     : u16,
-    pub block             : &'static [Block],
-    pub block_rotation    : u8,
-    pub block_x           : i16,
-    pub block_y           : i16,
+	pub map              : [[bool; HEIGHT]; WIDTH],
+    pub frames_until_move: u16,
+    pub frames_passed    : u16,
+    pub block            : &'static [Block],
+    pub block_rotation   : u8,
+    pub block_x          : i16,
+    pub block_y          : i16,
 }
 
 impl GameState {
     pub fn new() -> Self {
         let mut state = GameState {
-    	    map : [[false; HEIGHT]; WIDTH],
-            frames_until_move : 60,
-            frames_passed     : 0,
-            block             : &l_block,
-            block_rotation    : 0,
-            block_x           : 0,
-            block_y           : 0,
+    	    map: [[false; HEIGHT]; WIDTH],
+            frames_until_move: 60,
+            frames_passed    : 0,
+            block            : &l_block,
+            block_rotation   : 0,
+            block_x          : 0,
+            block_y          : 0,
 		};
 		state
 	}
@@ -67,7 +67,7 @@ impl GameState {
             }
         });
     }
-    
+
     pub fn update(&mut self, args: &UpdateArgs) {
         self.frames_passed += 1;
         if self.frames_passed == self.frames_until_move {
@@ -84,7 +84,7 @@ impl GameState {
         }
     }
 
-    pub fn on_key_press(&mut self, key : Key) {
+    pub fn on_key_press(&mut self, key: Key) {
         match key {
             Key::Right => self.move_block(1, 0),
             Key::Left  => self.move_block(-1, 0),
@@ -97,12 +97,10 @@ impl GameState {
         self.block_rotation = (self.block_rotation + 1) % self.block.len() as u8;
     }
 
-    pub fn move_block(&mut self, dx : i16, dy : i16) {
+    pub fn move_block(&mut self, dx: i16, dy: i16) {
         if !block_intersects(&self, self.block_x + dx, self.block_y + dy) {
             self.block_x += dx;
             self.block_y += dy;
         }
     }
 }
-
-

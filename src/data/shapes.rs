@@ -1,7 +1,6 @@
-
 use data::gamestate::{GameState, WIDTH, HEIGHT};
 
-pub const BLOCK_SIZE : u8 = 4;
+pub const BLOCK_SIZE: u8 = 4;
 pub type Block = [[bool; BLOCK_SIZE as usize]; BLOCK_SIZE as usize];
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -12,14 +11,14 @@ pub enum BlockType {
     PyramidBlock
 }
 
-pub static square_block : [Block; 1] = [[
+pub static square_block: [Block; 1] = [[
 		[false, false, false, false],
 		[false, false, false, false],
 		[true , true , false, false],
 		[true , true , false, false]
 	]];
 
-pub static l_block : [Block; 4] = [
+pub static l_block: [Block; 4] = [
     [
 	    [false, true , false, false],
 	    [false, true , false, false],
@@ -43,7 +42,7 @@ pub static l_block : [Block; 4] = [
     ]
 ];
 
-pub static l_block_mirrored : [Block; 4] = [
+pub static l_block_mirrored: [Block; 4] = [
     [
 	    [false, false, true , false],
 	    [false, false, true , false],
@@ -67,7 +66,7 @@ pub static l_block_mirrored : [Block; 4] = [
     ]
 ];
 
-pub static line_block : [Block; 2] = [
+pub static line_block: [Block; 2] = [
     [
         [true , false, false, false],
         [true , false, false, false],
@@ -81,7 +80,7 @@ pub static line_block : [Block; 2] = [
     ]
 ];
 
-pub static pyramid_block : [Block; 4] = [
+pub static pyramid_block: [Block; 4] = [
     [
         [false, false, false, false],
         [false, false, false, false],
@@ -103,9 +102,9 @@ pub static pyramid_block : [Block; 4] = [
         [true , true , false, false],
         [false, true , false, false]
     ]
-]; 
+];
 
-pub fn block_intersects(gs : &GameState, x : i16, y : i16) -> bool {
+pub fn block_intersects(gs: &GameState, x: i16, y: i16) -> bool {
     for i in 0..BLOCK_SIZE {
         for j in 0..BLOCK_SIZE {
             if gs.block[gs.block_rotation as usize][i as usize][j as usize] {
@@ -121,7 +120,7 @@ pub fn block_intersects(gs : &GameState, x : i16, y : i16) -> bool {
     false
 }
 
-pub fn imprint_block(gs : &mut GameState, x : u8, y : u8) {
+pub fn imprint_block(gs: &mut GameState, x: u8, y: u8) {
     for i in 0..BLOCK_SIZE {
         for j in 0..BLOCK_SIZE {
             if gs.block[gs.block_rotation as usize][i as usize][j as usize] && (i+x) < WIDTH as u8 && (j+y) < HEIGHT as u8 {
