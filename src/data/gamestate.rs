@@ -8,7 +8,7 @@ use piston::event::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
-use data::shapes::{l_block, BlockType, Block, square_block, l_block_mirrored, BLOCK_SIZE};
+use data::shapes::{l_block, BlockType, Block, square_block, l_block_mirrored, BLOCK_SIZE, block_intersects, imprint_block};
 use data::colors::*;
 
 pub const WIDTH : usize = 10;
@@ -29,7 +29,7 @@ impl GameState {
     pub fn new() -> Self {
         let mut state = GameState {
     	    map : [[false; HEIGHT]; WIDTH],
-            frames_until_move : 60,
+            frames_until_move : 20,
             frames_passed     : 0,
             block             : &l_block,
             block_rotation    : 0,
@@ -70,9 +70,16 @@ impl GameState {
     pub fn update(&mut self, args: &UpdateArgs) {
         self.frames_passed += 1;
         if self.frames_passed == self.frames_until_move {
-            self.block_y += 1;
             self.frames_passed = 0;
-            self.next_rotation();
+            if block_intersects(&self, self.block_x, self.block_y + 1) {
+                let (x, y) = (self.block_x, self.block_y);
+                imprint_block(self, x, y);
+                self.block_x = 2;
+                self.block_y = 0;
+            }
+            else {
+                self.block_y += 1;
+            }
         }
     }
 

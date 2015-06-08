@@ -65,11 +65,11 @@ pub static l_block_mirrored : [Block; 4] = [
     ]
 ];
 
-pub fn block_intersects(gs : &GameState, block : &Block, x : u8, y : u8) -> bool {
+pub fn block_intersects(gs : &GameState, x : u8, y : u8) -> bool {
     for i in 0..BLOCK_SIZE {
         for j in 0..BLOCK_SIZE {
-            if block[i as usize][j as usize] {
-                if (i+x) >= WIDTH as u8 && (j+y) >= HEIGHT as u8 {
+            if gs.block[gs.block_rotation as usize][i as usize][j as usize] {
+                if (i+x) >= WIDTH as u8 || (j+y) >= HEIGHT as u8 {
                     return true;
                 }
                 else if gs.map[(i+x) as usize][(j+y) as usize] {
@@ -81,10 +81,10 @@ pub fn block_intersects(gs : &GameState, block : &Block, x : u8, y : u8) -> bool
     false
 }
 
-pub fn imprint_block(gs : &mut GameState, block : &Block, x : u8, y : u8) {
+pub fn imprint_block(gs : &mut GameState, x : u8, y : u8) {
     for i in 0..BLOCK_SIZE {
         for j in 0..BLOCK_SIZE {
-            if block[i as usize][j as usize] && (i+x) < WIDTH as u8 && (j+y) < HEIGHT as u8 {
+            if gs.block[gs.block_rotation as usize][i as usize][j as usize] && (i+x) < WIDTH as u8 && (j+y) < HEIGHT as u8 {
                 gs.map[(x+i) as usize][(y+j) as usize] = true;
             }
         }
