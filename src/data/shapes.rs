@@ -4,10 +4,12 @@ use data::gamestate::{GameState, WIDTH, HEIGHT};
 pub const BLOCK_SIZE : u8 = 4;
 pub type Block = [[bool; BLOCK_SIZE as usize]; BLOCK_SIZE as usize];
 
+#[derive(PartialEq, Eq, Copy, Clone)]
 pub enum BlockType {
     SquareBlock,
     LBlock,
-    LBlockMirrored
+    LBlockMirrored,
+    PyramidBlock
 }
 
 pub static square_block : [Block; 1] = [[
@@ -65,14 +67,52 @@ pub static l_block_mirrored : [Block; 4] = [
     ]
 ];
 
-pub fn block_intersects(gs : &GameState, x : u8, y : u8) -> bool {
+pub static line_block : [Block; 2] = [
+    [
+        [true , false, false, false],
+        [true , false, false, false],
+        [true , false, false, false],
+        [true , false, false, false]
+    ],[
+        [false, false, false, false],
+        [false, false, false, false],
+        [false, false, false, false],
+        [true , true , true , true ]
+    ]
+];
+
+pub static pyramid_block : [Block; 4] = [
+    [
+        [false, false, false, false],
+        [false, false, false, false],
+        [false, true , false, false],
+        [true , true , true , false]
+    ],[
+        [false, false, false, false],
+        [false, true , false, false],
+        [false, true , true , false],
+        [false, true , false, false]
+    ],[
+        [false, false, false, false],
+        [false, false, false, false],
+        [true , true , true , false],
+        [false, true , false, false]
+    ],[
+        [false, false, false, false],
+        [false, true , false, false],
+        [true , true , false, false],
+        [false, true , false, false]
+    ]
+]; 
+
+pub fn block_intersects(gs : &GameState, x : i16, y : i16) -> bool {
     for i in 0..BLOCK_SIZE {
         for j in 0..BLOCK_SIZE {
             if gs.block[gs.block_rotation as usize][i as usize][j as usize] {
-                if (i+x) >= WIDTH as u8 || (j+y) >= HEIGHT as u8 {
+                if (i as i16 + x) < 0 || (j as i16 + y) < 0 || (i as i16 + x) >= WIDTH as i16 || (j as i16 + y) >= HEIGHT as i16 {
                     return true;
                 }
-                else if gs.map[(i+x) as usize][(j+y) as usize] {
+                else if gs.map[(i as i16 + x) as usize][(j as i16 + y) as usize] {
                     return true;
                 }
             }

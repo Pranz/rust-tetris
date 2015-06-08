@@ -5,6 +5,7 @@ extern crate opengl_graphics;
 
 use piston::window::WindowSettings;
 use piston::event::*;
+use piston::input::Key;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
@@ -21,15 +22,15 @@ pub struct GameState {
     pub frames_passed     : u16,
     pub block             : &'static [Block],
     pub block_rotation    : u8,
-    pub block_x           : u8,
-    pub block_y           : u8,
+    pub block_x           : i16,
+    pub block_y           : i16,
 }
 
 impl GameState {
     pub fn new() -> Self {
         let mut state = GameState {
     	    map : [[false; HEIGHT]; WIDTH],
-            frames_until_move : 20,
+            frames_until_move : 60,
             frames_passed     : 0,
             block             : &l_block,
             block_rotation    : 0,
@@ -59,7 +60,7 @@ impl GameState {
             for i in 0..BLOCK_SIZE {
                 for j in 0..BLOCK_SIZE {
                     if self.block[self.block_rotation as usize][i as usize][j as usize] {
-                        let transform = c.transform.trans((i + self.block_x) as f64 * 16.0, (j + self.block_y) as f64 * 16.0);
+                        let transform = c.transform.trans((i as i16 + self.block_x) as f64 * 16.0, (j as i16 + self.block_y) as f64 * 16.0);
                         rectangle(WHITE, square, transform, g);
                     }
                 }
@@ -71,9 +72,9 @@ impl GameState {
         self.frames_passed += 1;
         if self.frames_passed == self.frames_until_move {
             self.frames_passed = 0;
-            if block_intersects(&self, self.block_x, self.block_y + 1) {
+            if block_intersects(&self, self.block_x as i16, self.block_y as i16 + 1) {
                 let (x, y) = (self.block_x, self.block_y);
-                imprint_block(self, x, y);
+                imprint_block(self, x as u8, y as u8);
                 self.block_x = 2;
                 self.block_y = 0;
             }
@@ -83,8 +84,24 @@ impl GameState {
         }
     }
 
+    pub fn on_key_press(&mut self, key : Key) {
+        match key {
+            Key::Right => self.move_block(1, 0),
+            Key::Left  => self.move_block(-1, 0),
+            Key::Up    => self.next_rotation(),
+            _ => {},
+        }
+    }
+
     pub fn next_rotation(&mut self) {
         self.block_rotation = (self.block_rotation + 1) % self.block.len() as u8;
+    }
+
+    pub fn move_block(&mut self, dx : i16, dy : i16) {
+        if !block_intersects(&self, self.block_x + dx, self.block_y + dy) {
+            self.block_x += dx;
+            self.block_y += dy;
+        }
     }
 }
 

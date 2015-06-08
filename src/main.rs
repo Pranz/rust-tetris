@@ -7,6 +7,7 @@ extern crate opengl_graphics;
 
 use piston::window::WindowSettings;
 use piston::event::*;
+use piston::input::{Button, Key};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
@@ -27,6 +28,10 @@ impl App {
 
     fn update(&mut self, args: &UpdateArgs) {
         self.tetris.update(args);
+    }
+
+    fn on_key_press(&mut self, key : Key) {
+        self.tetris.on_key_press(key);
     }
 }
 
@@ -56,6 +61,10 @@ fn main() {
 
         if let Some(u) = e.update_args() {
             app.update(&u);
+        }
+
+        if let Some(Button::Keyboard(k)) = e.press_args() {
+            app.on_key_press(k);
         }
     }
 }
