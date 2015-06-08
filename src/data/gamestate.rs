@@ -10,7 +10,7 @@ use piston::input::Key;
 use piston::window::WindowSettings;
 
 use data::colors::*;
-use data::shapes::{l_block, BlockType, Block, square_block, l_block_mirrored, BLOCK_SIZE, block_intersects, imprint_block};
+use data::shapes::{data,BlockType,BLOCK_SIZE,block_intersects,imprint_block};
 
 pub const WIDTH : usize = 10;
 pub const HEIGHT: usize = 20;
@@ -20,7 +20,7 @@ pub struct GameState {
 	pub map              : [[bool; HEIGHT]; WIDTH],
     pub frames_until_move: u16,
     pub frames_passed    : u16,
-    pub block            : &'static [Block],
+    pub block            : &'static [data::Block],
     pub block_rotation   : u8,
     pub block_x          : i16,
     pub block_y          : i16,
@@ -32,7 +32,7 @@ impl GameState {
     	    map: [[false; HEIGHT]; WIDTH],
             frames_until_move: 60,
             frames_passed    : 0,
-            block            : &l_block,
+            block            : &data::L,
             block_rotation   : 0,
             block_x          : 0,
             block_y          : 0,
@@ -68,7 +68,7 @@ impl GameState {
         });
     }
 
-    pub fn update(&mut self, args: &UpdateArgs) {
+    pub fn update(&mut self, _: &UpdateArgs) {
         self.frames_passed += 1;
         if self.frames_passed == self.frames_until_move {
             self.frames_passed = 0;

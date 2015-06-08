@@ -1,108 +1,119 @@
 use data::gamestate::{GameState, WIDTH, HEIGHT};
 
 pub const BLOCK_SIZE: u8 = 4;
-pub type Block = [[bool; BLOCK_SIZE as usize]; BLOCK_SIZE as usize];
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum BlockType {
-    SquareBlock,
-    LBlock,
-    LBlockMirrored,
-    PyramidBlock
+    I,
+    L,
+    O,
+    J,
+    T,
+    S,
+    Z,
 }
 
-pub static square_block: [Block; 1] = [[
-		[false, false, false, false],
-		[false, false, false, false],
-		[true , true , false, false],
-		[true , true , false, false]
-	]];
+pub mod data{
+    pub type Block = [[bool; super::BLOCK_SIZE as usize]; super::BLOCK_SIZE as usize];
 
-pub static l_block: [Block; 4] = [
-    [
-	    [false, true , false, false],
-	    [false, true , false, false],
-	    [false, true , false, false],
-	    [false, true , true , false]
-    ],[
-        [false, false, false, false],
-        [false, false, false, false],
-        [true , true , true , true ],
-        [true , false, false, false],
-    ],[
-        [false, true , true , false],
-        [false, false, true , false],
-        [false, false, true , false],
-        [false, false, true , false],
-    ],[
-        [false, false, false, false],
-        [false, false, false, false],
-        [true , true , true , true ],
-        [false, false, false, true ],
-    ]
-];
+    pub static I: [Block; 2] = [
+        [
+            [true , false, false, false],
+            [true , false, false, false],
+            [true , false, false, false],
+            [true , false, false, false]
+        ],[
+            [false, false, false, false],
+            [false, false, false, false],
+            [false, false, false, false],
+            [true , true , true , true ]
+        ]
+    ];
 
-pub static l_block_mirrored: [Block; 4] = [
-    [
-	    [false, false, true , false],
-	    [false, false, true , false],
-	    [false, false, true , false],
-	    [false, true , true , false]
-    ],[
-        [false, false, false, false],
-        [false, false, false, false],
-        [true , false, false, false],
-        [true , true , true , true ]
-    ],[
-        [false, true , true , false],
-        [false, true , false, false],
-        [false, true , false, false],
-        [false, true , false, false]
-    ],[
-        [false, false, false, false],
-        [false, false, false, false],
-        [true , true , true , true ],
-        [false, false, false, true ]
-    ]
-];
+    pub static L: [Block; 4] = [
+        [
+            [false, true , false, false],
+            [false, true , false, false],
+            [false, true , false, false],
+            [false, true , true , false]
+        ],[
+            [false, false, false, false],
+            [false, false, false, false],
+            [true , true , true , true ],
+            [true , false, false, false],
+        ],[
+            [false, true , true , false],
+            [false, false, true , false],
+            [false, false, true , false],
+            [false, false, true , false],
+        ],[
+            [false, false, false, false],
+            [false, false, false, false],
+            [true , true , true , true ],
+            [false, false, false, true ],
+        ]
+    ];
 
-pub static line_block: [Block; 2] = [
-    [
-        [true , false, false, false],
-        [true , false, false, false],
-        [true , false, false, false],
-        [true , false, false, false]
-    ],[
-        [false, false, false, false],
-        [false, false, false, false],
-        [false, false, false, false],
-        [true , true , true , true ]
-    ]
-];
+    pub static O: [Block; 1] = [
+        [
+            [false, false, false, false],
+            [false, false, false, false],
+            [true , true , false, false],
+            [true , true , false, false]
+        ]
+    ];
 
-pub static pyramid_block: [Block; 4] = [
-    [
-        [false, false, false, false],
-        [false, false, false, false],
-        [false, true , false, false],
-        [true , true , true , false]
-    ],[
-        [false, false, false, false],
-        [false, true , false, false],
-        [false, true , true , false],
-        [false, true , false, false]
-    ],[
-        [false, false, false, false],
-        [false, false, false, false],
-        [true , true , true , false],
-        [false, true , false, false]
-    ],[
-        [false, false, false, false],
-        [false, true , false, false],
-        [true , true , false, false],
-        [false, true , false, false]
-    ]
-];
+    pub static J: [Block; 4] = [
+        [
+            [false, false, true , false],
+            [false, false, true , false],
+            [false, false, true , false],
+            [false, true , true , false]
+        ],[
+            [false, false, false, false],
+            [false, false, false, false],
+            [true , false, false, false],
+            [true , true , true , true ]
+        ],[
+            [false, true , true , false],
+            [false, true , false, false],
+            [false, true , false, false],
+            [false, true , false, false]
+        ],[
+            [false, false, false, false],
+            [false, false, false, false],
+            [true , true , true , true ],
+            [false, false, false, true ]
+        ]
+    ];
+
+    pub static T: [Block; 4] = [
+        [
+            [false, false, false, false],
+            [false, false, false, false],
+            [false, true , false, false],
+            [true , true , true , false]
+        ],[
+            [false, false, false, false],
+            [false, true , false, false],
+            [false, true , true , false],
+            [false, true , false, false]
+        ],[
+            [false, false, false, false],
+            [false, false, false, false],
+            [true , true , true , false],
+            [false, true , false, false]
+        ],[
+            [false, false, false, false],
+            [false, true , false, false],
+            [true , true , false, false],
+            [false, true , false, false]
+        ]
+    ];
+
+    pub static S: [Block; 0] = [];
+    pub static Z: [Block; 0] = [];
+}
 
 pub fn block_intersects(gs: &GameState, x: i16, y: i16) -> bool {
     for i in 0..BLOCK_SIZE {
