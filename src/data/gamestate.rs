@@ -1,20 +1,15 @@
-extern crate glutin_window;
-extern crate graphics;
-extern crate opengl_graphics;
-extern crate piston;
-
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 use piston::event::*;
 use piston::input::Key;
 use piston::window::WindowSettings;
+use rand::{self,Rand};
 
-use data::colors::*;
-use data::shapes::{data,BlockType,BLOCK_SIZE,block_intersects,imprint_block};
+use super::colors;
+use super::shapes::{data,BlockType,BLOCK_SIZE,block_intersects,imprint_block};
 
 pub const WIDTH : usize = 10;
 pub const HEIGHT: usize = 20;
-
 
 pub struct GameState {
 	pub map              : [[bool; HEIGHT]; WIDTH],
@@ -46,13 +41,13 @@ impl GameState {
         let square = rectangle::square(0.0, 0.0, 16.0);
 
         gl.draw(args.viewport(), |c, g| {
-            clear(BLACK, g);
+            clear(colors::BLACK, g);
 
             for i in 0..WIDTH {
                 for j in 0..HEIGHT {
                     if self.map[i][j] {
                     	let transform = c.transform.trans(i as f64 * 16.0, j as f64 * 16.0);
-                    	rectangle(WHITE, square, transform, g);
+                    	rectangle(colors::WHITE, square, transform, g);
                     }
                 }
             }
@@ -61,7 +56,7 @@ impl GameState {
                 for j in 0..BLOCK_SIZE {
                     if self.block[self.block_rotation as usize][i as usize][j as usize] {
                         let transform = c.transform.trans((i as i16 + self.block_x) as f64 * 16.0, (j as i16 + self.block_y) as f64 * 16.0);
-                        rectangle(WHITE, square, transform, g);
+                        rectangle(colors::WHITE, square, transform, g);
                     }
                 }
             }
@@ -77,6 +72,7 @@ impl GameState {
                 imprint_block(self, x as u8, y as u8);
                 self.block_x = 2;
                 self.block_y = 0;
+                self.block = data::from_type(BlockType::rand(&mut rand::StdRng::new().unwrap()));
             }
             else {
                 self.block_y += 1;
@@ -88,13 +84,24 @@ impl GameState {
         match key {
             Key::Right => self.move_block(1, 0),
             Key::Left  => self.move_block(-1, 0),
+            Key::Down  => self.move_block(0, 1),
             Key::Up    => self.next_rotation(),
+            Key::X     => self.next_rotation(),
+            Key::Z     => self.previous_rotation(),
             _ => {},
         }
     }
 
     pub fn next_rotation(&mut self) {
         self.block_rotation = (self.block_rotation + 1) % self.block.len() as u8;
+    }
+
+    pub fn previous_rotation(&mut self) {
+        self.block_rotation = if self.block_rotation == 0{
+            self.block.len() as u8
+        }else{
+            self.block_rotation
+        } - 1;
     }
 
     pub fn move_block(&mut self, dx: i16, dy: i16) {

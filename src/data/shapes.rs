@@ -1,4 +1,5 @@
 use data::gamestate::{GameState, WIDTH, HEIGHT};
+use rand::{Rand,Rng};
 
 pub const BLOCK_SIZE: u8 = 4;
 
@@ -12,107 +13,164 @@ pub enum BlockType {
     S,
     Z,
 }
+impl BlockType{
+    const LEN: usize = 7;
+}
+impl Rand for BlockType{
+
+    fn rand<R: Rng>(rng: &mut R) -> Self{
+        use self::BlockType::*;
+
+        match rng.gen_range(0,BlockType::LEN as u8){
+            0 => I,
+            1 => L,
+            2 => O,
+            3 => J,
+            4 => T,
+            5 => S,
+            6 => Z,
+            _ => unreachable!()
+        }
+    }
+}
 
 pub mod data{
     pub type Block = [[bool; super::BLOCK_SIZE as usize]; super::BLOCK_SIZE as usize];
+
+    pub fn from_type(t: super::BlockType) -> &'static [Block]{
+        match t{
+            super::BlockType::I => &I,
+            super::BlockType::L => &L,
+            super::BlockType::O => &O,
+            super::BlockType::J => &J,
+            super::BlockType::T => &T,
+            super::BlockType::S => &S,
+            super::BlockType::Z => &Z,
+        }
+    }
 
     pub static I: [Block; 2] = [
         [
             [true , false, false, false],
             [true , false, false, false],
             [true , false, false, false],
-            [true , false, false, false]
+            [true , false, false, false],
         ],[
             [false, false, false, false],
             [false, false, false, false],
             [false, false, false, false],
-            [true , true , true , true ]
+            [true , true , true , true ],
         ]
     ];
 
     pub static L: [Block; 4] = [
         [
-            [false, true , false, false],
-            [false, true , false, false],
-            [false, true , false, false],
-            [false, true , true , false]
-        ],[
-            [false, false, false, false],
-            [false, false, false, false],
-            [true , true , true , true ],
             [true , false, false, false],
+            [true , false, false, false],
+            [true , true , false, false],
+            [false, false, false, false],
         ],[
-            [false, true , true , false],
-            [false, false, true , false],
-            [false, false, true , false],
-            [false, false, true , false],
-        ],[
+            [true , true , true , false],
+            [true , false, false, false],
             [false, false, false, false],
             [false, false, false, false],
-            [true , true , true , true ],
-            [false, false, false, true ],
+        ],[
+            [true , true , false, false],
+            [false, true , false, false],
+            [false, true , false, false],
+            [false, false, false, false],
+        ],[
+            [false, false, true , false],
+            [true , true , true , false],
+            [false, false, false, false],
+            [false, false, false, false],
         ]
     ];
 
     pub static O: [Block; 1] = [
         [
-            [false, false, false, false],
-            [false, false, false, false],
             [true , true , false, false],
-            [true , true , false, false]
+            [true , true , false, false],
+            [false, false, false, false],
+            [false, false, false, false],
         ]
     ];
 
     pub static J: [Block; 4] = [
         [
-            [false, false, true , false],
-            [false, false, true , false],
-            [false, false, true , false],
-            [false, true , true , false]
+            [false, true , false, false],
+            [false, true , false, false],
+            [true , true , false, false],
+            [false, false, false, false],
         ],[
-            [false, false, false, false],
-            [false, false, false, false],
             [true , false, false, false],
-            [true , true , true , true ]
-        ],[
-            [false, true , true , false],
-            [false, true , false, false],
-            [false, true , false, false],
-            [false, true , false, false]
-        ],[
+            [true , true , true , false],
             [false, false, false, false],
             [false, false, false, false],
-            [true , true , true , true ],
-            [false, false, false, true ]
+        ],[
+            [true , true , false, false],
+            [true , false, false, false],
+            [true , false, false, false],
+            [false, false, false, false],
+        ],[
+            [true , true , true , false],
+            [false, false, true , false],
+            [false, false, false, false],
+            [false, false, false, false],
         ]
     ];
 
     pub static T: [Block; 4] = [
         [
-            [false, false, false, false],
-            [false, false, false, false],
-            [false, true , false, false],
-            [true , true , true , false]
-        ],[
-            [false, false, false, false],
-            [false, true , false, false],
-            [false, true , true , false],
-            [false, true , false, false]
-        ],[
-            [false, false, false, false],
-            [false, false, false, false],
             [true , true , true , false],
-            [false, true , false, false]
-        ],[
+            [false, true , false, false],
             [false, false, false, false],
+            [false, false, false, false],
+        ],[
             [false, true , false, false],
             [true , true , false, false],
-            [false, true , false, false]
+            [false, true , false, false],
+            [false, false, false, false],
+        ],[
+            [false, true , false, false],
+            [true , true , true , false],
+            [false, false, false, false],
+            [false, false, false, false],
+        ],[
+            [true , false, false, false],
+            [true , true , false, false],
+            [true , false, false, false],
+            [false, false, false, false],
         ]
     ];
 
-    pub static S: [Block; 0] = [];
-    pub static Z: [Block; 0] = [];
+    pub static S: [Block; 2] = [
+        [
+            [true , false, false, false],
+            [true , true , false, false],
+            [false, true , false, false],
+            [false, false, false, false],
+        ],[
+            [false, true , true , false],
+            [true , true , false, false],
+            [false, false, false, false],
+            [false, false, false, false],
+        ]
+    ];
+
+    pub static Z: [Block; 2] = [
+        [
+            [false, true , false, false],
+            [true , true , false, false],
+            [true , false, false, false],
+            [false, false, false, false],
+        ],[
+            [true , true , false, false],
+            [false, true , true , false],
+            [false, false, false, false],
+            [false, false, false, false],
+        ]
+    ];
 }
 
 pub fn block_intersects(gs: &GameState, x: i16, y: i16) -> bool {

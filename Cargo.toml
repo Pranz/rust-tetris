@@ -3,9 +3,9 @@ name = "rust-tetris"
 version = "0.1.0"
 authors = ["Pranz <jesper.fridefors@gmail.com", "Lolirofle <lolipopple@hotmail.com>"]
 
-
 [dependencies]
 piston = "0.1.4"
 piston2d-graphics = "0.1.4"
 pistoncore-glutin_window = "0.1.0"
 piston2d-opengl_graphics = "0.1.0"
+rand = "0.3.8"

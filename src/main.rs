@@ -1,9 +1,14 @@
+#![feature(associated_consts)]
 #![allow(unused_imports)]
 #![allow(dead_code)]
-extern crate piston;
-extern crate graphics;
+
 extern crate glutin_window;
+extern crate graphics;
 extern crate opengl_graphics;
+extern crate piston;
+extern crate rand;
+
+mod data;
 
 use piston::window::WindowSettings;
 use piston::event::*;
@@ -11,13 +16,12 @@ use piston::input::{Button, Key};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
-pub mod data;
-use data::gamestate::GameState;
-use data::colors::*;
+use self::data::gamestate::GameState;
+use self::data::colors::*;
 
 pub struct App {
     gl: GlGraphics,
-    tetris : GameState, 
+    tetris : GameState,
 }
 
 impl App {
@@ -42,7 +46,7 @@ fn main() {
     let window = Window::new(
         opengl,
         WindowSettings::new(
-            "spinning-square",
+            "Polyminos Falling",
             [800, 600]
         )
         .exit_on_esc(true)
