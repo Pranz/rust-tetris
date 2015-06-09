@@ -159,16 +159,16 @@ impl GameState {
     
     //check and resolve any full rows, starting to check at the specified y-position and then
     //upward.
-    pub fn handle_full_rows(&mut self, lowest_y : u8) {
-        let mut terminated_rows : u8 = 0;
+    pub fn handle_full_rows(&mut self, lowest_y : MapSizeAxis) {
+        let mut terminated_rows : MapSizeAxis = 0;
         for i in 0..4  {
-            let lowest_y = lowest_y + i as u8 - terminated_rows;
-            if (0..WIDTH).all(|x| {self.position(x, lowest_y)}) {
+            let lowest_y = lowest_y + i as MapSizeAxis - terminated_rows;
+            if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}) {
                 terminated_rows += 1;
                 for j in 0..lowest_y {
-                    self.map[lowest_y - j] = self.map[lowest_y - j - 1];
+                    self.map[(lowest_y - j) as usize] = self.map[(lowest_y - j - 1) as usize];
                 }
-                self.map[0] = [0; WIDTH];
+                self.map[0] = [false; WIDTH as usize];
             }
         }
     }
