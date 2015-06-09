@@ -1,6 +1,6 @@
 use core::default::Default;
 
-use super::shapes::tetrimino::{Shape,data, BlockVariant, BLOCK_COUNT};
+use super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
 
 pub type PosAxis = i16;
 pub type SizeAxis = u8;

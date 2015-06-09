@@ -3,7 +3,7 @@ use piston::event;
 use rand::{self,Rand};
 
 use super::map::{self,Map};
-use super::shapes::tetrimino::{data,Shape, BlockVariant};
+use super::shapes::tetrimino::{Shape,BlockVariant};
 
 pub struct GameState<Rng>{
 	pub map                 : Map,
@@ -21,7 +21,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
 	    	map                 : Map::default(),
         	block_move_frequency: 60,//Unit: frames/block
         	frames_passed       : 0,
-        	block               : BlockVariant::new(&mut rng),
+        	block               : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),
         	block_x             : 0,
         	block_y             : 0,
         	rng                 : rng,
@@ -33,10 +33,9 @@ impl<Rng: rand::Rng> GameState<Rng>{
         if self.frames_passed == self.block_move_frequency {
             self.frames_passed = 0;
             if self.map.block_intersects(&self.block, self.block_x as map::PosAxis, self.block_y as map::PosAxis + 1) {
-                let (x, y) = (self.block_x,self.block_y);
-                self.map.imprint_block(&self.block, x, y);
+                self.map.imprint_block(&self.block,self.block_x,self.block_y);
 
-                self.block = BlockVariant::new(&mut self.rng);
+                self.block = BlockVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
                 self.block_x = 2;//TODO: Top middle of map
                 self.block_y = 0;
                 if self.map.block_intersects(&self.block, self.block_x, self.block_y) {

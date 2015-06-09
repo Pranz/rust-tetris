@@ -54,10 +54,10 @@ pub struct BlockVariant{
 }
 
 impl BlockVariant {
-    pub fn new<R: Rng>(rng: &mut R) -> Self {
+    pub fn new(shape: Shape,rotation: u8) -> Self {
         BlockVariant {
-            shape      : <Shape as Rand>::rand(rng),
-            rotation   : 0,
+            shape   : shape,
+            rotation: rotation,
         }
     }
 
@@ -74,7 +74,7 @@ impl BlockVariant {
     }
 
     pub fn previous_rotation(&mut self) {
-        self.rotation = if (self.rotation == 0) {
+        self.rotation = if self.rotation == 0{
             self.shape.data().len() as u8
         } else {
             self.rotation

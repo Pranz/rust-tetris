@@ -17,7 +17,7 @@ use graphics::Transformed;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
 use data::{colors,map};
-use data::shapes::tetrimino::{Shape, BLOCK_COUNT};
+use data::shapes::tetrimino::BLOCK_COUNT;
 use data::gamestate::GameState;
 
 struct App<Rng>{
@@ -30,14 +30,14 @@ impl<Rng: rand::Rng> App<Rng>{
         let square = graphics::rectangle::square(0.0, 0.0, 16.0);
         let &mut App{ref mut gl,ref mut tetris} = self;
 
-        gl.draw(args.viewport(), |c, g| {
-            graphics::clear(colors::BLACK, g);
+        gl.draw(args.viewport(), |context,gl|{
+            graphics::clear(colors::BLACK,gl);
 
             for i in 0..map::WIDTH {
                 for j in 0..map::HEIGHT {
                     if tetris.map.position(i as map::PosAxis,j as map::PosAxis) {
-                        let transform = c.transform.trans(i as f64 * 16.0, j as f64 * 16.0);
-                        graphics::rectangle(colors::WHITE, square, transform, g);
+                        let transform = context.transform.trans(i as f64 * 16.0, j as f64 * 16.0);
+                        graphics::rectangle(colors::WHITE,square,transform,gl);
                     }
                 }
             }
@@ -45,8 +45,8 @@ impl<Rng: rand::Rng> App<Rng>{
             for i in 0..BLOCK_COUNT {
                 for j in 0..BLOCK_COUNT {
                     if tetris.block.get(i as u8, j as u8) {
-                        let transform = c.transform.trans((i as map::PosAxis + tetris.block_x) as f64 * 16.0, (j as map::PosAxis + tetris.block_y) as f64 * 16.0);
-                        graphics::rectangle(colors::WHITE, square, transform, g);
+                        let transform = context.transform.trans((i as map::PosAxis + tetris.block_x) as f64 * 16.0, (j as map::PosAxis + tetris.block_y) as f64 * 16.0);
+                        graphics::rectangle(colors::WHITE,square,transform,gl);
                     }
                 }
             }
