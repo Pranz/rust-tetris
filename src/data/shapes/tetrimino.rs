@@ -1,6 +1,7 @@
-use data::gamestate::GameState;
-use data::map;
 use rand::{Rand,Rng};
+
+use super::super::gamestate::GameState;
+use super::super::map;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Shape{
@@ -13,8 +14,8 @@ pub enum Shape{
     Z,
 }
 impl Shape{
-    const LEN: usize = 7;
-    const BLOCK_COUNT: map::SizeAxis = 4;
+    pub const LEN: usize = 7;
+    pub const BLOCK_COUNT: map::SizeAxis = 4;
 
     pub fn data(self) -> &'static [data::Block]{
         match self{
@@ -51,7 +52,8 @@ pub struct ShapeState{
 }
 
 pub mod data{
-    pub type Block = [[bool; super::Shape::BLOCK_COUNT as usize]; super::Shape::BLOCK_COUNT as usize];
+    const BLOCK_COUNT: usize = 4;//TODO: Should be same as super::Shape::BLOCK_COUNT. Bypass rustc panic "Path not fully resolved". May be issue 22933
+    pub type Block = [[bool; BLOCK_COUNT as usize]; BLOCK_COUNT as usize];
 
     pub static I: [Block; 2] = [
         [

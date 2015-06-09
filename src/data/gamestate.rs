@@ -1,47 +1,50 @@
-use piston::event::UpdateArgs;
+use core::default::Default;
+use piston::event;
 use rand::{self,Rand};
 
 use super::map::{self,Map};
 use super::shapes::tetrimino::{data,Shape};
 
-pub struct GameState {
-	map                  : Map,
-    pub frames_until_move: u16,
-    pub frames_passed    : u16,
-    pub block            : &'static [data::Block],
-    pub block_rotation   : u8,
-    pub block_x          : map::PosAxis,
-    pub block_y          : map::PosAxis,
+pub struct GameState<Rng>{
+	map                     : Map,
+    pub block_move_frequency: u16,
+    pub frames_passed       : u16,
+    pub block               : &'static [data::Block],
+    pub block_rotation      : u8,
+    pub block_x             : map::PosAxis,
+    pub block_y             : map::PosAxis,
+    pub rng                 : Rng
 }
 
-impl GameState {
-    pub fn new() -> Self {
+impl<Rng: rand::Rng> GameState<Rng>{
+    pub fn new(rng: Rng) -> Self {
         let mut state = GameState {
     	    map: Map::default(),
-            frames_until_move: 60,
-            frames_passed    : 0,
-            block            : &data::L,
-            block_rotation   : 0,
-            block_x          : 0,
-            block_y          : 0,
+            block_move_frequency: 60,//Unit: frames/block
+            frames_passed       : 0,
+            block               : &data::L,
+            block_rotation      : 0,
+            block_x             : 0,
+            block_y             : 0,
+            rng                 : rng,
 		};
 		state
 	}
 
-    pub fn update(&mut self, _: &UpdateArgs){
+    pub fn update(&mut self, _: &event::UpdateArgs){
         self.frames_passed += 1;
-        if self.frames_passed == self.frames_until_move {
+        if self.frames_passed == self.block_move_frequency {
             self.frames_passed = 0;
             if self.map.block_intersects(self.block,self.block_rotation, self.block_x as map::PosAxis, self.block_y as map::PosAxis + 1) {
                 let (x, y) = (self.block_x,self.block_y);
-                self.map.imprint_block(self,x,y);
+                self.map.imprint_block(self.block,self.block_rotation,x,y);
 
-                self.block = Shape::rand(&mut rand::StdRng::new().unwrap()).data();//TODO: Store StdRng::new
+                self.block = Shape::rand(&mut self.rng).data();
                 self.block_x = 2;//TODO: Top middle of map
                 self.block_y = 0;
                 self.block_rotation = 0;//TODO: Randomize
                 if self.map.block_intersects(self.block,self.block_rotation, self.block_x, self.block_y) {
-                    self.clear();
+                    self.map.clear();
                 }
             }
             else {
@@ -50,16 +53,20 @@ impl GameState {
         }
     }
 
-    pub fn next_rotation(&mut self) {
+    pub fn next_rotation(&mut self) -> bool{
         self.block_rotation = (self.block_rotation + 1) % self.block.len() as u8;
+
+        true
     }
 
-    pub fn previous_rotation(&mut self) {
+    pub fn previous_rotation(&mut self) -> bool{
         self.block_rotation = if self.block_rotation == 0{
             self.block.len() as u8
         }else{
             self.block_rotation
         } - 1;
+
+        true
     }
 
     pub fn move_block(&mut self, dx: map::PosAxis, dy: map::PosAxis) -> bool{
@@ -69,24 +76,6 @@ impl GameState {
             self.block_x += dx;
             self.block_y += dy;
             true
-        }
-    }
-
-    //pub fn move_row
-
-    //check and resolve any full rows, starting to check at the specified y-position and then
-    //upward.
-    pub fn handle_full_rows(&mut self, lowest_y : map::SizeAxis) {
-        let mut terminated_rows : map::SizeAxis = 0;
-        for i in 0..4  {
-            let lowest_y = lowest_y + i as map::SizeAxis - terminated_rows;
-            if (0..map::WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}) {
-                terminated_rows += 1;
-                for j in 0..lowest_y {
-                    self.map[(lowest_y - j) as usize] = self.map[(lowest_y - j - 1) as usize];
-                }
-                self.map[0] = [false; map::WIDTH as usize];
-            }
         }
     }
 }
