@@ -1,6 +1,9 @@
 use rand::{Rand,Rng};
 
 use super::super::map;
+use super::super::map::SizeAxis;
+
+pub const BLOCK_COUNT: map::SizeAxis = 4;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Shape{
@@ -14,7 +17,6 @@ pub enum Shape{
 }
 impl Shape{
     pub const LEN: usize = 7;
-    pub const BLOCK_COUNT: map::SizeAxis = 4;
 
     pub fn data(self) -> &'static [data::Block]{
         match self{
@@ -45,9 +47,39 @@ impl Rand for Shape{
     }
 }
 
-pub struct ShapeState{
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub struct BlockVariant{
     shape: Shape,
     rotation: u8
+}
+
+impl BlockVariant {
+    pub fn new<R: Rng>(rng: &mut R) -> Self {
+        BlockVariant {
+            shape      : <Shape as Rand>::rand(rng),
+            rotation   : 0,
+        }
+    }
+
+    pub fn collision_map(&self) -> &'static [[bool; BLOCK_COUNT as usize]] {
+        &self.shape.data()[self.rotation as usize]
+    }
+
+    pub fn get(&self, x : SizeAxis, y : SizeAxis) -> bool {
+        self.collision_map()[y as usize][x as usize]
+    }
+
+    pub fn next_rotation(&mut self) {
+        self.rotation = (self.rotation + 1) % self.shape.data().len() as u8;
+    }
+
+    pub fn previous_rotation(&mut self) {
+        self.rotation = if (self.rotation == 0) {
+            self.shape.data().len() as u8
+        } else {
+            self.rotation
+        } - 1;
+    }
 }
 
 pub mod data{

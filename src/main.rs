@@ -17,7 +17,7 @@ use graphics::Transformed;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
 use data::{colors,map};
-use data::shapes::tetrimino::Shape;
+use data::shapes::tetrimino::{Shape, BLOCK_COUNT};
 use data::gamestate::GameState;
 
 struct App<Rng>{
@@ -42,9 +42,9 @@ impl<Rng: rand::Rng> App<Rng>{
                 }
             }
 
-            for i in 0..Shape::BLOCK_COUNT {
-                for j in 0..Shape::BLOCK_COUNT {
-                    if tetris.block[tetris.block_rotation as usize][i as usize][j as usize] {
+            for i in 0..BLOCK_COUNT {
+                for j in 0..BLOCK_COUNT {
+                    if tetris.block.get(i as u8, j as u8) {
                         let transform = c.transform.trans((i as map::PosAxis + tetris.block_x) as f64 * 16.0, (j as map::PosAxis + tetris.block_y) as f64 * 16.0);
                         graphics::rectangle(colors::WHITE, square, transform, g);
                     }
@@ -62,9 +62,9 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::Right => {self.tetris.move_block(1, 0);},
             Key::Left  => {self.tetris.move_block(-1, 0);},
             Key::Down  => {self.tetris.move_block(0, 1);},
-            Key::Up    => {self.tetris.next_rotation();},
-            Key::X     => {self.tetris.next_rotation();},
-            Key::Z     => {self.tetris.previous_rotation();},
+            Key::Up    => {self.tetris.block.next_rotation();},
+            Key::X     => {self.tetris.block.next_rotation();},
+            Key::Z     => {self.tetris.block.previous_rotation();},
             _ => {},
         }
     }

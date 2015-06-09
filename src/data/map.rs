@@ -1,6 +1,6 @@
 use core::default::Default;
 
-use super::shapes::tetrimino::{Shape,data};
+use super::shapes::tetrimino::{Shape,data, BlockVariant, BLOCK_COUNT};
 
 pub type PosAxis = i16;
 pub type SizeAxis = u8;
@@ -44,10 +44,10 @@ impl Map{
 	    }
 	}
 
-	pub fn block_intersects(&self,block: &'static [data::Block],block_rotation: u8, x: PosAxis, y: PosAxis) -> bool {
-	    for i in 0..Shape::BLOCK_COUNT {
-	        for j in 0..Shape::BLOCK_COUNT {
-	            if block[block_rotation as usize][i as usize][j as usize] {
+	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> bool {
+	    for i in 0..BLOCK_COUNT {
+	        for j in 0..BLOCK_COUNT {
+	            if block.collision_map()[j as usize][i as usize] {
 	                if (i as PosAxis + x) < 0 || (j as PosAxis + y) < 0 || (i as PosAxis + x) >= WIDTH as PosAxis || (j as PosAxis + y) >= HEIGHT as PosAxis {
 	                    return true;
 	                }else if unsafe{self.pos((i as PosAxis + x) as usize,(j as PosAxis + y) as usize)}{
@@ -59,10 +59,10 @@ impl Map{
 	    false
 	}
 
-	pub fn imprint_block(&mut self,block: &'static [data::Block],block_rotation: u8, x: PosAxis, y: PosAxis){
-	    for i in 0 .. Shape::BLOCK_COUNT{
-	        for j in 0 .. Shape::BLOCK_COUNT{
-	            if block[block_rotation as usize][i as usize][j as usize]{
+	pub fn imprint_block(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis){
+	    for i in 0 .. BLOCK_COUNT{
+	        for j in 0 .. BLOCK_COUNT{
+	            if block.collision_map()[j as usize][i as usize]{
 	                self.set_position(x+(i as PosAxis),y+(j as PosAxis),true);
 	            }
 	        }
