@@ -67,9 +67,13 @@ impl GameState {
             if block_intersects(&self, self.block_x as i16, self.block_y as i16 + 1) {
                 let (x, y) = (self.block_x, self.block_y);
                 imprint_block(self, x as u8, y as u8);
+
                 self.block_x = 2;
                 self.block_y = 0;
                 self.block = data::from_type(BlockType::rand(&mut rand::StdRng::new().unwrap()));
+                if block_intersects(&self, self.block_x, self.block_y) {
+                    self.clear();
+                }
             }
             else {
                 self.block_y += 1;
@@ -93,6 +97,14 @@ impl GameState {
         if !block_intersects(&self, self.block_x + dx, self.block_y + dy) {
             self.block_x += dx;
             self.block_y += dy;
+        }
+    }
+
+    pub fn clear(&mut self) {
+        for i in 0..WIDTH {
+            for j in 0..HEIGHT {
+                self.map[i as usize][j as usize] = false;
+            }
         }
     }
 }
