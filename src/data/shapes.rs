@@ -50,28 +50,28 @@ pub mod data{
 
     pub static I: [Block; 2] = [
         [
-            [true , false, false, false],//O - - -
-            [true , false, false, false],//O - - -
-            [true , false, false, false],//O - - -
-            [true , false, false, false],//O - - -
+            [false, false, true, false],//O - - -
+            [false, false, true, false],//O - - -
+            [false, false, true, false],//O - - -
+            [false, false, true, false],//O - - -
         ],[
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
             [true , true , true , true ],//O O O O
-            [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -
         ]
     ];
 
     pub static L: [Block; 4] = [
         [
-            [true , false, false, false],//O - - -
-            [true , false, false, false],//O - - -
-            [true , true , false, false],//O O - -
+            [false, true , false, false],//O - - -
+            [false, true , false, false],//O - - -
+            [false, true , true , false],//O O - -
             [false, false, false, false],//- - - -
         ],[
+            [false, false, false, false],//- - - -
             [true , true , true , false],//O O O -
             [true , false, false, false],//O - - -
-            [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -
         ],[
             [true , true , false, false],//O O - -
@@ -107,39 +107,39 @@ pub mod data{
             [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -
         ],[
-            [true , true , false, false],//O O - -
-            [true , false, false, false],//O - - -
-            [true , false, false, false],//O - - -
+            [false, true , true , false],//O O - -
+            [false, true , false, false],//O - - -
+            [false, true , false, false],//O - - -
             [false, false, false, false],//- - - -
         ],[
+            [false, false, false, false],//- - - -
             [true , true , true , false],//O O O -
             [false, false, true , false],//- - O -
-            [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -
         ]
     ];
 
     pub static T: [Block; 4] = [
         [
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
             [true , true , true , false],//O O O -
             [false, true , false, false],//- O - -
-            [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
         ],[
+            [false, false, false, false],//- - - -
             [false, true , false, false],//- O - -
             [true , true , false, false],//O O - -
             [false, true , false, false],//- O - -
-            [false, false, false, false],//- - - -
         ],[
+            [false, false, false, false],//- - - -
             [false, true , false, false],//- O - -
             [true , true , true , false],//O O O -
             [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
         ],[
-            [true , false, false, false],//O - - -
-            [true , true , false, false],//O O - -
-            [true , false, false, false],//O - - -
             [false, false, false, false],//- - - -
+            [false, true , false, false],//O - - -
+            [false, true , true , false],//O O - -
+            [false, true , false, false],//O - - -
         ]
     ];
 
@@ -150,24 +150,24 @@ pub mod data{
             [false, true , false, false],//- O - -
             [false, false, false, false],//- - - -
         ],[
+            [false, false, false, false],//- - - -
             [false, true , true , false],//- O O -
             [true , true , false, false],//O O - -
-            [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -
         ]
     ];
 
     pub static Z: [Block; 2] = [
         [
-            [false, true , false, false],//- O - -
-            [true , true , false, false],//O O - -
-            [true , false, false, false],//O - - -
             [false, false, false, false],//- - - -
+            [false, false, true , false],//- O - -
+            [false, true , true , false],//O O - -
+            [false, true , false, false],//O - - -
         ],[
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
             [true , true , false, false],//O O - -
             [false, true , true , false],//- O O -
-            [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
         ]
     ];
 }

@@ -156,4 +156,20 @@ impl GameState {
         }
         false
     }
+    
+    //check and resolve any full rows, starting to check at the specified y-position and then
+    //upward.
+    pub fn handle_full_rows(&mut self, lowest_y : u8) {
+        let mut terminated_rows : u8 = 0;
+        for i in 0..4  {
+            let lowest_y = lowest_y + i as u8 - terminated_rows;
+            if (0..WIDTH).all(|x| {self.position(x, lowest_y)}) {
+                terminated_rows += 1;
+                for j in 0..lowest_y {
+                    self.map[lowest_y - j] = self.map[lowest_y - j - 1];
+                }
+                self.map[0] = [0; WIDTH];
+            }
+        }
+    }
 }
