@@ -33,9 +33,9 @@ impl App {
 
     fn on_key_press(&mut self, key : Key) {
         match key {
-            Key::Right => self.tetris.move_block(1, 0),
-            Key::Left  => self.tetris.move_block(-1, 0),
-            Key::Down  => self.tetris.move_block(0, 1),
+            Key::Right => {self.tetris.move_block(1, 0);},
+            Key::Left  => {self.tetris.move_block(-1, 0);},
+            Key::Down  => {self.tetris.move_block(0, 1);},
             Key::Up    => self.tetris.next_rotation(),
             Key::X     => self.tetris.next_rotation(),
             Key::Z     => self.tetris.previous_rotation(),

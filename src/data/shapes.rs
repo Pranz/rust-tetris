@@ -1,7 +1,7 @@
-use data::gamestate::{GameState, WIDTH, HEIGHT};
+use data::gamestate::{GameState,MapPosAxis,MapSizeAxis};
 use rand::{Rand,Rng};
 
-pub const BLOCK_SIZE: u8 = 4;
+pub const BLOCK_SIZE: MapSizeAxis = 4;
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum BlockType {
@@ -172,27 +172,11 @@ pub mod data{
     ];
 }
 
-pub fn block_intersects(gs: &GameState, x: i16, y: i16) -> bool {
+pub fn imprint_block(gs: &mut GameState, x: MapPosAxis, y: MapPosAxis) {
     for i in 0..BLOCK_SIZE {
         for j in 0..BLOCK_SIZE {
-            if gs.block[gs.block_rotation as usize][i as usize][j as usize] {
-                if (i as i16 + x) < 0 || (j as i16 + y) < 0 || (i as i16 + x) >= WIDTH as i16 || (j as i16 + y) >= HEIGHT as i16 {
-                    return true;
-                }
-                else if gs.map[(i as i16 + x) as usize][(j as i16 + y) as usize] {
-                    return true;
-                }
-            }
-        }
-    }
-    false
-}
-
-pub fn imprint_block(gs: &mut GameState, x: u8, y: u8) {
-    for i in 0..BLOCK_SIZE {
-        for j in 0..BLOCK_SIZE {
-            if gs.block[gs.block_rotation as usize][i as usize][j as usize] && (i+x) < WIDTH as u8 && (j+y) < HEIGHT as u8 {
-                gs.map[(x+i) as usize][(y+j) as usize] = true;
+            if gs.block[gs.block_rotation as usize][i as usize][j as usize]{
+                gs.set_position(x+(i as MapPosAxis),y+(j as MapPosAxis),true);
             }
         }
     }
