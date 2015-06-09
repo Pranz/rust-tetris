@@ -29,7 +29,9 @@ impl BlockType{
         }
     }
 }
-impl Rand for BlockType{
+
+
+impl Rand for BlockType {
     fn rand<R: Rng>(rng: &mut R) -> Self{
         use self::BlockType::*;
 
@@ -45,8 +47,38 @@ impl Rand for BlockType{
         }
     }
 }
+#[derive(PartialEq, Eq, Copy, Clone)]
+pub struct BlockVariant {
+    pub block_type : BlockType,
+    pub rotation   : u8,
+}
 
-pub mod data{
+impl BlockVariant {
+    pub fn new<R: Rng>(rng: &mut R) -> Self {
+        BlockVariant {
+            block_type : <BlockType as Rand>::rand(rng),
+            rotation   : 0,
+        }
+    }
+
+    pub fn collision_map(&self) -> &'static [[bool; BLOCK_SIZE as usize]] {
+        &self.block_type.data()[self.rotation as usize]
+    }
+
+    pub fn next_rotation(&mut self) {
+        self.rotation += (self.rotation + 1) % self.block_type.data().len() as u8;
+    }
+
+    pub fn previous_rotation(&mut self) {
+        self.rotation = if (self.rotation == 0) {
+            self.block_type.data().len() as u8
+        } else {
+            self.rotation
+        } - 1;
+    }
+}
+
+pub mod data {
     pub type Block = [[bool; super::BLOCK_SIZE as usize]; super::BLOCK_SIZE as usize];
 
     pub static I: [Block; 2] = [
@@ -171,15 +203,4 @@ pub mod data{
             [false, true , true , false],//- O O -
         ]
     ];
-}
-
-pub fn imprint_block(gs: &mut GameState, x: MapPosAxis, y: MapPosAxis) {
-    for i in 0..BLOCK_SIZE {
-        for j in 0..BLOCK_SIZE {
-            if gs.block[gs.block_rotation as usize][i as usize][j as usize]{
-                gs.set_position(x+(i as MapPosAxis),y+(j as MapPosAxis),true);
-            }
-        }
-    }
-    gs.handle_full_rows(y as u8 + 4);
 }

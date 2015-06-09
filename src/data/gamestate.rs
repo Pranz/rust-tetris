@@ -3,20 +3,21 @@ use piston::event::*;
 use rand::{self,Rand};
 
 use super::colors;
-use super::shapes::{data,BlockType,BLOCK_SIZE,imprint_block};
+use super::shapes::{data,BlockType, BlockVariant, BLOCK_SIZE};
+use super::map::{block_intersects, handle_full_rows, imprint_block};
 
-pub type MapPosAxis = i16;
+pub type MapPosAxis  = i16;
 pub type MapSizeAxis = u8;
+pub type CellType    = bool;
 
 pub const WIDTH : MapSizeAxis = 10;
 pub const HEIGHT: MapSizeAxis = 20;
 
 pub struct GameState {
-	map                  : [[bool; WIDTH as usize]; HEIGHT as usize],
+	map                  : [[CellType; WIDTH as usize]; HEIGHT as usize],
     pub frames_until_move: u16,
     pub frames_passed    : u16,
-    pub block            : &'static [data::Block],
-    pub block_rotation   : u8,
+    pub block            : BlockVariant,
     pub block_x          : MapPosAxis,
     pub block_y          : MapPosAxis,
 }
@@ -27,7 +28,10 @@ impl GameState {
     	    map: [[false; WIDTH as usize]; HEIGHT as usize],
             frames_until_move: 60,
             frames_passed    : 0,
-            block            : &data::L,
+            block            : BlockVariant {
+				block_type : &data::L,
+				rotation   : 0,
+			},
             block_rotation   : 0,
             block_x          : 0,
             block_y          : 0,
@@ -69,13 +73,13 @@ impl GameState {
             self.frames_passed = 0;
             if self.block_intersects(self.block,self.block_rotation, self.block_x as MapPosAxis, self.block_y as MapPosAxis + 1) {
                 let (x, y) = (self.block_x,self.block_y);
-                imprint_block(self,x,y);
+                imprint_block(&self.map, &self.block, x, y);
 
-                self.block = BlockType::rand(&mut rand::StdRng::new().unwrap()).data();//TODO: Store StdRng::new
+                self.block = BlockVariant::new(&mut rand::StdRng::new());//TODO: Store StdRng::new
                 self.block_x = 2;//TODO: Top middle of map
                 self.block_y = 0;
                 self.block_rotation = 0;//TODO: Randomize
-                if self.block_intersects(self.block,self.block_rotation, self.block_x, self.block_y) {
+                if block_intersects(&self.map, &self.block, self.block_x, self.block_y) {
                     self.clear();
                 }
             }
@@ -85,20 +89,8 @@ impl GameState {
         }
     }
 
-    pub fn next_rotation(&mut self) {
-        self.block_rotation = (self.block_rotation + 1) % self.block.len() as u8;
-    }
-
-    pub fn previous_rotation(&mut self) {
-        self.block_rotation = if self.block_rotation == 0{
-            self.block.len() as u8
-        }else{
-            self.block_rotation
-        } - 1;
-    }
-
     pub fn move_block(&mut self, dx: MapPosAxis, dy: MapPosAxis) -> bool{
-        if self.block_intersects(self.block,self.block_rotation,self.block_x + dx, self.block_y + dy){
+        if self.block_intersects(&self.map, &self.block,self.block_x + dx, self.block_y + dy){
             false
         }else{
             self.block_x += dx;
@@ -117,11 +109,11 @@ impl GameState {
         }
     }
 
-    pub unsafe fn pos(&self,x: usize,y: usize) -> bool{
+    pub unsafe fn pos(&self, x: usize, y: usize) -> bool{
         self.map[y][x]
     }
 
-    pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: bool){
+    pub unsafe fn set_pos(&mut self, x: usize, y: usize,state: bool){
         self.map[y][x] = state;
     }
 
@@ -142,35 +134,5 @@ impl GameState {
         }
     }
 
-    pub fn block_intersects(&self,block: &'static [data::Block],block_rotation: u8, x: MapPosAxis, y: MapPosAxis) -> bool {
-        for i in 0..BLOCK_SIZE {
-            for j in 0..BLOCK_SIZE {
-                if block[block_rotation as usize][i as usize][j as usize] {
-                    if (i as MapPosAxis + x) < 0 || (j as MapPosAxis + y) < 0 || (i as MapPosAxis + x) >= WIDTH as MapPosAxis || (j as MapPosAxis + y) >= HEIGHT as MapPosAxis {
-                        return true;
-                    }else if unsafe{self.pos((i as MapPosAxis + x) as usize,(j as MapPosAxis + y) as usize)}{
-                        return true;
-                    }
-                }
-            }
-        }
-        false
-    }
-    
-    //check and resolve any full rows, starting to check at the specified y-position and then
-    //upward.
-    pub fn handle_full_rows(&mut self, lowest_y : MapSizeAxis) {
-        let lowest_y = if lowest_y >= HEIGHT { HEIGHT - 1 } else { lowest_y };
-        let mut terminated_rows : MapSizeAxis = 0;
-        for i in 0..4  {
-            let lowest_y = lowest_y - i as MapSizeAxis + terminated_rows;
-            if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}) {
-                terminated_rows += 1;
-                for j in 0..lowest_y {
-                    self.map[(lowest_y - j) as usize] = self.map[(lowest_y - j - 1) as usize];
-                }
-                self.map[0] = [false; WIDTH as usize];
-            }
-        }
-    }
+
 }
