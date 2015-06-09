@@ -15,9 +15,20 @@ pub enum BlockType {
 }
 impl BlockType{
     const LEN: usize = 7;
+
+    pub fn data(self) -> &'static [data::Block]{
+        match self{
+            BlockType::I => &data::I,
+            BlockType::L => &data::L,
+            BlockType::O => &data::O,
+            BlockType::J => &data::J,
+            BlockType::T => &data::T,
+            BlockType::S => &data::S,
+            BlockType::Z => &data::Z,
+        }
+    }
 }
 impl Rand for BlockType{
-
     fn rand<R: Rng>(rng: &mut R) -> Self{
         use self::BlockType::*;
 
@@ -37,138 +48,126 @@ impl Rand for BlockType{
 pub mod data{
     pub type Block = [[bool; super::BLOCK_SIZE as usize]; super::BLOCK_SIZE as usize];
 
-    pub fn from_type(t: super::BlockType) -> &'static [Block]{
-        match t{
-            super::BlockType::I => &I,
-            super::BlockType::L => &L,
-            super::BlockType::O => &O,
-            super::BlockType::J => &J,
-            super::BlockType::T => &T,
-            super::BlockType::S => &S,
-            super::BlockType::Z => &Z,
-        }
-    }
-
     pub static I: [Block; 2] = [
         [
-            [true , false, false, false],
-            [true , false, false, false],
-            [true , false, false, false],
-            [true , false, false, false],
+            [true , false, false, false],//O - - -
+            [true , false, false, false],//O - - -
+            [true , false, false, false],//O - - -
+            [true , false, false, false],//O - - -
         ],[
-            [false, false, false, false],
-            [false, false, false, false],
-            [false, false, false, false],
-            [true , true , true , true ],
+            [true , true , true , true ],//O O O O
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ]
     ];
 
     pub static L: [Block; 4] = [
         [
-            [true , false, false, false],
-            [true , false, false, false],
-            [true , true , false, false],
-            [false, false, false, false],
+            [true , false, false, false],//O - - -
+            [true , false, false, false],//O - - -
+            [true , true , false, false],//O O - -
+            [false, false, false, false],//- - - -
         ],[
-            [true , true , true , false],
-            [true , false, false, false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [true , true , true , false],//O O O -
+            [true , false, false, false],//O - - -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ],[
-            [true , true , false, false],
-            [false, true , false, false],
-            [false, true , false, false],
-            [false, false, false, false],
+            [true , true , false, false],//O O - -
+            [false, true , false, false],//- O - -
+            [false, true , false, false],//- O - -
+            [false, false, false, false],//- - - -
         ],[
-            [false, false, true , false],
-            [true , true , true , false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [false, false, true , false],//- - O -
+            [true , true , true , false],//O O O -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ]
     ];
 
     pub static O: [Block; 1] = [
         [
-            [true , true , false, false],
-            [true , true , false, false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [true , true , false, false],//O O - -
+            [true , true , false, false],//O O - -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ]
     ];
 
     pub static J: [Block; 4] = [
         [
-            [false, true , false, false],
-            [false, true , false, false],
-            [true , true , false, false],
-            [false, false, false, false],
+            [false, true , false, false],//- O - -
+            [false, true , false, false],//- O - -
+            [true , true , false, false],//O O - -
+            [false, false, false, false],//- - - -
         ],[
-            [true , false, false, false],
-            [true , true , true , false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [true , false, false, false],//O - - -
+            [true , true , true , false],//O O O -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ],[
-            [true , true , false, false],
-            [true , false, false, false],
-            [true , false, false, false],
-            [false, false, false, false],
+            [true , true , false, false],//O O - -
+            [true , false, false, false],//O - - -
+            [true , false, false, false],//O - - -
+            [false, false, false, false],//- - - -
         ],[
-            [true , true , true , false],
-            [false, false, true , false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [true , true , true , false],//O O O -
+            [false, false, true , false],//- - O -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ]
     ];
 
     pub static T: [Block; 4] = [
         [
-            [true , true , true , false],
-            [false, true , false, false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [true , true , true , false],//O O O -
+            [false, true , false, false],//- O - -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ],[
-            [false, true , false, false],
-            [true , true , false, false],
-            [false, true , false, false],
-            [false, false, false, false],
+            [false, true , false, false],//- O - -
+            [true , true , false, false],//O O - -
+            [false, true , false, false],//- O - -
+            [false, false, false, false],//- - - -
         ],[
-            [false, true , false, false],
-            [true , true , true , false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [false, true , false, false],//- O - -
+            [true , true , true , false],//O O O -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ],[
-            [true , false, false, false],
-            [true , true , false, false],
-            [true , false, false, false],
-            [false, false, false, false],
+            [true , false, false, false],//O - - -
+            [true , true , false, false],//O O - -
+            [true , false, false, false],//O - - -
+            [false, false, false, false],//- - - -
         ]
     ];
 
     pub static S: [Block; 2] = [
         [
-            [true , false, false, false],
-            [true , true , false, false],
-            [false, true , false, false],
-            [false, false, false, false],
+            [true , false, false, false],//O - - -
+            [true , true , false, false],//O O - -
+            [false, true , false, false],//- O - -
+            [false, false, false, false],//- - - -
         ],[
-            [false, true , true , false],
-            [true , true , false, false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [false, true , true , false],//- O O -
+            [true , true , false, false],//O O - -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ]
     ];
 
     pub static Z: [Block; 2] = [
         [
-            [false, true , false, false],
-            [true , true , false, false],
-            [true , false, false, false],
-            [false, false, false, false],
+            [false, true , false, false],//- O - -
+            [true , true , false, false],//O O - -
+            [true , false, false, false],//O - - -
+            [false, false, false, false],//- - - -
         ],[
-            [true , true , false, false],
-            [false, true , true , false],
-            [false, false, false, false],
-            [false, false, false, false],
+            [true , true , false, false],//O O - -
+            [false, true , true , false],//- O O -
+            [false, false, false, false],//- - - -
+            [false, false, false, false],//- - - -
         ]
     ];
 }
