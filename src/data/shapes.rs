@@ -13,6 +13,7 @@ pub enum BlockType {
     S,
     Z,
 }
+
 impl BlockType{
     const LEN: usize = 7;
 
@@ -180,4 +181,5 @@ pub fn imprint_block(gs: &mut GameState, x: MapPosAxis, y: MapPosAxis) {
             }
         }
     }
+    gs.handle_full_rows(y as u8 + 4);
 }

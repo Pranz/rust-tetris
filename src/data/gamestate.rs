@@ -12,7 +12,7 @@ pub const WIDTH : MapSizeAxis = 10;
 pub const HEIGHT: MapSizeAxis = 20;
 
 pub struct GameState {
-	map                  : [[bool; HEIGHT as usize]; WIDTH as usize],
+	map                  : [[bool; WIDTH as usize]; HEIGHT as usize],
     pub frames_until_move: u16,
     pub frames_passed    : u16,
     pub block            : &'static [data::Block],
@@ -24,7 +24,7 @@ pub struct GameState {
 impl GameState {
     pub fn new() -> Self {
         let mut state = GameState {
-    	    map: [[false; HEIGHT as usize]; WIDTH as usize],
+    	    map: [[false; WIDTH as usize]; HEIGHT as usize],
             frames_until_move: 60,
             frames_passed    : 0,
             block            : &data::L,
@@ -118,11 +118,11 @@ impl GameState {
     }
 
     pub unsafe fn pos(&self,x: usize,y: usize) -> bool{
-        self.map[x][y]
+        self.map[y][x]
     }
 
     pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: bool){
-        self.map[x][y] = state;
+        self.map[y][x] = state;
     }
 
     pub fn position(&self,x: MapPosAxis,y: MapPosAxis) -> bool{
@@ -148,7 +148,7 @@ impl GameState {
                 if block[block_rotation as usize][i as usize][j as usize] {
                     if (i as MapPosAxis + x) < 0 || (j as MapPosAxis + y) < 0 || (i as MapPosAxis + x) >= WIDTH as MapPosAxis || (j as MapPosAxis + y) >= HEIGHT as MapPosAxis {
                         return true;
-                    }else if unsafe{self.pos((i as usize) + (x as usize),(j as usize) + (y as usize))}{
+                    }else if unsafe{self.pos((i as MapPosAxis + x) as usize,(j as MapPosAxis + y) as usize)}{
                         return true;
                     }
                 }
@@ -160,9 +160,10 @@ impl GameState {
     //check and resolve any full rows, starting to check at the specified y-position and then
     //upward.
     pub fn handle_full_rows(&mut self, lowest_y : MapSizeAxis) {
+        let lowest_y = if lowest_y >= HEIGHT { HEIGHT - 1 } else { lowest_y };
         let mut terminated_rows : MapSizeAxis = 0;
         for i in 0..4  {
-            let lowest_y = lowest_y + i as MapSizeAxis - terminated_rows;
+            let lowest_y = lowest_y - i as MapSizeAxis + terminated_rows;
             if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}) {
                 terminated_rows += 1;
                 for j in 0..lowest_y {
