@@ -1,6 +1,4 @@
 #![feature(associated_consts)]
-#![allow(unused_imports)]
-#![allow(dead_code)]
 
 extern crate glutin_window;
 extern crate graphics;
@@ -16,8 +14,7 @@ use piston::input::{Button, Key};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
-use self::data::gamestate::GameState;
-use self::data::colors::*;
+use data::gamestate::GameState;
 
 pub struct App {
     gl: GlGraphics,
@@ -35,14 +32,22 @@ impl App {
     }
 
     fn on_key_press(&mut self, key : Key) {
-        self.tetris.on_key_press(key);
+        match key {
+            Key::Right => self.tetris.move_block(1, 0),
+            Key::Left  => self.tetris.move_block(-1, 0),
+            Key::Down  => self.tetris.move_block(0, 1),
+            Key::Up    => self.tetris.next_rotation(),
+            Key::X     => self.tetris.next_rotation(),
+            Key::Z     => self.tetris.previous_rotation(),
+            _ => {},
+        }
     }
 }
 
 fn main() {
     let opengl = OpenGL::_3_2;
 
-    // Create an Glutin window.
+    //Create an Glutin window.
     let window = Window::new(
         opengl,
         WindowSettings::new(
@@ -52,7 +57,7 @@ fn main() {
         .exit_on_esc(true)
     );
 
-    // Create a new game and run it.
+    //Create a new game and run it.
     let mut app = App {
         gl: GlGraphics::new(opengl),
         tetris: GameState::new(),

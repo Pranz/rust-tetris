@@ -1,8 +1,5 @@
-use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{ GlGraphics, OpenGL };
+use opengl_graphics::GlGraphics;
 use piston::event::*;
-use piston::input::Key;
-use piston::window::WindowSettings;
 use rand::{self,Rand};
 
 use super::colors;
@@ -77,18 +74,6 @@ impl GameState {
             else {
                 self.block_y += 1;
             }
-        }
-    }
-
-    pub fn on_key_press(&mut self, key: Key) {
-        match key {
-            Key::Right => self.move_block(1, 0),
-            Key::Left  => self.move_block(-1, 0),
-            Key::Down  => self.move_block(0, 1),
-            Key::Up    => self.next_rotation(),
-            Key::X     => self.next_rotation(),
-            Key::Z     => self.previous_rotation(),
-            _ => {},
         }
     }
 
