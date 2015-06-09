@@ -1,10 +1,8 @@
 use data::gamestate::{GameState,MapPosAxis,MapSizeAxis};
 use rand::{Rand,Rng};
 
-pub const BLOCK_SIZE: MapSizeAxis = 4;
-
 #[derive(PartialEq, Eq, Copy, Clone)]
-pub enum BlockType {
+pub enum Shape{
     I,
     L,
     O,
@@ -13,26 +11,27 @@ pub enum BlockType {
     S,
     Z,
 }
-impl BlockType{
+impl Shape{
     const LEN: usize = 7;
+    const BLOCK_COUNT: MapSizeAxis = 4;
 
     pub fn data(self) -> &'static [data::Block]{
         match self{
-            BlockType::I => &data::I,
-            BlockType::L => &data::L,
-            BlockType::O => &data::O,
-            BlockType::J => &data::J,
-            BlockType::T => &data::T,
-            BlockType::S => &data::S,
-            BlockType::Z => &data::Z,
+            Shape::I => &data::I,
+            Shape::L => &data::L,
+            Shape::O => &data::O,
+            Shape::J => &data::J,
+            Shape::T => &data::T,
+            Shape::S => &data::S,
+            Shape::Z => &data::Z,
         }
     }
 }
-impl Rand for BlockType{
+impl Rand for Shape{
     fn rand<R: Rng>(rng: &mut R) -> Self{
-        use self::BlockType::*;
+        use self::Shape::*;
 
-        match rng.gen_range(0,BlockType::LEN as u8){
+        match rng.gen_range(0,Shape::LEN as u8){
             0 => I,
             1 => L,
             2 => O,
@@ -46,7 +45,7 @@ impl Rand for BlockType{
 }
 
 pub mod data{
-    pub type Block = [[bool; super::BLOCK_SIZE as usize]; super::BLOCK_SIZE as usize];
+    pub type Block = [[bool; super::BLOCK_COUNT as usize]; super::BLOCK_COUNT as usize];
 
     pub static I: [Block; 2] = [
         [
@@ -170,14 +169,4 @@ pub mod data{
             [false, true , true , false],//- O O -
         ]
     ];
-}
-
-pub fn imprint_block(gs: &mut GameState, x: MapPosAxis, y: MapPosAxis) {
-    for i in 0..BLOCK_SIZE {
-        for j in 0..BLOCK_SIZE {
-            if gs.block[gs.block_rotation as usize][i as usize][j as usize]{
-                gs.set_position(x+(i as MapPosAxis),y+(j as MapPosAxis),true);
-            }
-        }
-    }
 }
