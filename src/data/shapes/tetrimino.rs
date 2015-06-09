@@ -1,4 +1,5 @@
-use data::gamestate::{GameState,MapPosAxis,MapSizeAxis};
+use data::gamestate::GameState;
+use data::map;
 use rand::{Rand,Rng};
 
 #[derive(PartialEq, Eq, Copy, Clone)]
@@ -13,7 +14,7 @@ pub enum Shape{
 }
 impl Shape{
     const LEN: usize = 7;
-    const BLOCK_COUNT: MapSizeAxis = 4;
+    const BLOCK_COUNT: map::SizeAxis = 4;
 
     pub fn data(self) -> &'static [data::Block]{
         match self{
@@ -44,15 +45,20 @@ impl Rand for Shape{
     }
 }
 
+pub struct ShapeState{
+    shape: Shape,
+    rotation: u8
+}
+
 pub mod data{
-    pub type Block = [[bool; super::BLOCK_COUNT as usize]; super::BLOCK_COUNT as usize];
+    pub type Block = [[bool; super::Shape::BLOCK_COUNT as usize]; super::Shape::BLOCK_COUNT as usize];
 
     pub static I: [Block; 2] = [
         [
-            [false, false, true, false],//O - - -
-            [false, false, true, false],//O - - -
-            [false, false, true, false],//O - - -
-            [false, false, true, false],//O - - -
+            [false, false, true , false],//- - O -
+            [false, false, true , false],//- - O -
+            [false, false, true , false],//- - O -
+            [false, false, true , false],//- - O -
         ],[
             [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -
@@ -106,9 +112,9 @@ pub mod data{
             [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -
         ],[
-            [false, true , true , false],//O O - -
-            [false, true , false, false],//O - - -
-            [false, true , false, false],//O - - -
+            [false, true , true , false],//- O O -
+            [false, true , false, false],//- O - -
+            [false, true , false, false],//- O - -
             [false, false, false, false],//- - - -
         ],[
             [false, false, false, false],//- - - -
@@ -136,9 +142,9 @@ pub mod data{
             [false, false, false, false],//- - - -
         ],[
             [false, false, false, false],//- - - -
-            [false, true , false, false],//O - - -
-            [false, true , true , false],//O O - -
-            [false, true , false, false],//O - - -
+            [false, true , false, false],//- O - -
+            [false, true , true , false],//- O O -
+            [false, true , false, false],//- O - -
         ]
     ];
 
@@ -159,9 +165,9 @@ pub mod data{
     pub static Z: [Block; 2] = [
         [
             [false, false, false, false],//- - - -
-            [false, false, true , false],//- O - -
-            [false, true , true , false],//O O - -
-            [false, true , false, false],//O - - -
+            [false, false, true , false],//- - O -
+            [false, true , true , false],//- O O -
+            [false, true , false, false],//- O - -
         ],[
             [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -

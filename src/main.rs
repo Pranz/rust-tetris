@@ -14,6 +14,8 @@ use piston::input::{Button, Key};
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
+use data::{colors,map};
+use data::shapes::tetrimino::Shape;
 use data::gamestate::GameState;
 
 pub struct App {
@@ -23,8 +25,31 @@ pub struct App {
 
 impl App {
     fn render(&mut self, args: &RenderArgs) {
-        let (tetris, gl) = (&self.tetris, &mut self.gl);
-        tetris.render(gl, args);
+        use graphics::*;
+
+        let square = rectangle::square(0.0, 0.0, 16.0);
+
+        self.gl.draw(args.viewport(), |c, g| {
+            clear(colors::BLACK, g);
+
+            for i in 0..map::WIDTH {
+                for j in 0..map::HEIGHT {
+                    if self.tetris.position(i as map::PosAxis,j as map::PosAxis) {
+                        let transform = c.transform.trans(i as f64 * 16.0, j as f64 * 16.0);
+                        rectangle(colors::WHITE, square, transform, g);
+                    }
+                }
+            }
+
+            for i in 0..Shape::BLOCK_COUNT {
+                for j in 0..Shape::BLOCK_COUNT {
+                    if self.tetris.block[self.block_rotation as usize][i as usize][j as usize] {
+                        let transform = c.transform.trans((i as map::PosAxis + self.tetris.block_x) as f64 * 16.0, (j as map::PosAxis + self.tetris.block_y) as f64 * 16.0);
+                        rectangle(colors::WHITE, square, transform, g);
+                    }
+                }
+            }
+        });
     }
 
     fn update(&mut self, args: &UpdateArgs) {
