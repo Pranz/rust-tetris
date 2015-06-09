@@ -1,6 +1,5 @@
 use rand::{Rand,Rng};
 
-use super::super::gamestate::GameState;
 use super::super::map;
 
 #[derive(PartialEq, Eq, Copy, Clone)]

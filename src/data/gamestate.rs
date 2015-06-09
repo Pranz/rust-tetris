@@ -6,7 +6,7 @@ use super::map::{self,Map};
 use super::shapes::tetrimino::{data,Shape};
 
 pub struct GameState<Rng>{
-	map                     : Map,
+	pub map                 : Map,
     pub block_move_frequency: u16,
     pub frames_passed       : u16,
     pub block               : &'static [data::Block],
@@ -17,19 +17,16 @@ pub struct GameState<Rng>{
 }
 
 impl<Rng: rand::Rng> GameState<Rng>{
-    pub fn new(rng: Rng) -> Self {
-        let mut state = GameState {
-    	    map: Map::default(),
-            block_move_frequency: 60,//Unit: frames/block
-            frames_passed       : 0,
-            block               : &data::L,
-            block_rotation      : 0,
-            block_x             : 0,
-            block_y             : 0,
-            rng                 : rng,
-		};
-		state
-	}
+    pub fn new(rng: Rng) -> Self{GameState{
+	    map                 : Map::default(),
+        block_move_frequency: 60,//Unit: frames/block
+        frames_passed       : 0,
+        block               : &data::L,
+        block_rotation      : 0,
+        block_x             : 0,
+        block_y             : 0,
+        rng                 : rng,
+    }}
 
     pub fn update(&mut self, _: &event::UpdateArgs){
         self.frames_passed += 1;

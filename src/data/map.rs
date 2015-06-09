@@ -8,7 +8,7 @@ pub type SizeAxis = u8;
 pub const WIDTH : SizeAxis = 10;
 pub const HEIGHT: SizeAxis = 20;
 
-pub struct Map([[bool; HEIGHT as usize]; WIDTH as usize]);
+pub struct Map([[bool; WIDTH as usize]; HEIGHT as usize]);
 
 impl Map{
 	pub fn clear(&mut self){
@@ -20,11 +20,11 @@ impl Map{
 	}
 
 	pub unsafe fn pos(&self,x: usize,y: usize) -> bool{
-	    self.0[x][y]
+	    self.0[y][x]
 	}
 
 	pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: bool){
-	    self.0[x][y] = state;
+	    self.0[y][x] = state;
 	}
 
 	pub fn position(&self,x: PosAxis,y: PosAxis) -> bool{
@@ -50,7 +50,7 @@ impl Map{
 	            if block[block_rotation as usize][i as usize][j as usize] {
 	                if (i as PosAxis + x) < 0 || (j as PosAxis + y) < 0 || (i as PosAxis + x) >= WIDTH as PosAxis || (j as PosAxis + y) >= HEIGHT as PosAxis {
 	                    return true;
-	                }else if unsafe{self.pos((i as usize) + (x as usize),(j as usize) + (y as usize))}{
+	                }else if unsafe{self.pos((i as PosAxis + x) as usize,(j as PosAxis + y) as usize)}{
 	                    return true;
 	                }
 	            }
@@ -67,6 +67,7 @@ impl Map{
 	            }
 	        }
 	    }
+	    self.handle_full_rows(y as u8 + 4);
 	}
 
 	//pub fn move_row
@@ -74,9 +75,10 @@ impl Map{
 	//check and resolve any full rows, starting to check at the specified y-position and then
 	//upward.
 	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){
+		let lowest_y = if lowest_y >= HEIGHT { HEIGHT - 1 } else { lowest_y };
 	    let mut terminated_rows: SizeAxis = 0;
 	    for i in 0..4  {
-	        let lowest_y = lowest_y + i as SizeAxis - terminated_rows;
+	        let lowest_y = lowest_y - i as SizeAxis + terminated_rows;
 	        if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}) {
 	            terminated_rows += 1;
 	            for j in 0..lowest_y {
@@ -90,6 +92,6 @@ impl Map{
 
 impl Default for Map{
 	fn default() -> Self{
-		Map([[false; HEIGHT as usize]; WIDTH as usize])
+		Map([[false; WIDTH as usize]; HEIGHT as usize])
 	}
 }

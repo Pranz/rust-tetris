@@ -1,4 +1,4 @@
-#![feature(associated_consts)]
+#![feature(associated_consts,core)]
 
 extern crate core;
 extern crate glutin_window;
@@ -10,9 +10,10 @@ extern crate rand;
 mod data;
 
 use piston::window::WindowSettings;
-use piston::event;
+use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
 use piston::input::{Button, Key};
 use glutin_window::GlutinWindow as Window;
+use graphics::Transformed;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
 use data::{colors,map};
@@ -27,13 +28,14 @@ struct App<Rng>{
 impl<Rng: rand::Rng> App<Rng>{
     fn render(&mut self, args: &event::RenderArgs) {
         let square = graphics::rectangle::square(0.0, 0.0, 16.0);
+        let &mut App{ref mut gl,ref mut tetris} = self;
 
-        self.gl.draw(args.viewport(), |c, g| {
+        gl.draw(args.viewport(), |c, g| {
             graphics::clear(colors::BLACK, g);
 
             for i in 0..map::WIDTH {
                 for j in 0..map::HEIGHT {
-                    if self.tetris.position(i as map::PosAxis,j as map::PosAxis) {
+                    if tetris.map.position(i as map::PosAxis,j as map::PosAxis) {
                         let transform = c.transform.trans(i as f64 * 16.0, j as f64 * 16.0);
                         graphics::rectangle(colors::WHITE, square, transform, g);
                     }
@@ -42,8 +44,8 @@ impl<Rng: rand::Rng> App<Rng>{
 
             for i in 0..Shape::BLOCK_COUNT {
                 for j in 0..Shape::BLOCK_COUNT {
-                    if self.tetris.block[self.block_rotation as usize][i as usize][j as usize] {
-                        let transform = c.transform.trans((i as map::PosAxis + self.tetris.block_x) as f64 * 16.0, (j as map::PosAxis + self.tetris.block_y) as f64 * 16.0);
+                    if tetris.block[tetris.block_rotation as usize][i as usize][j as usize] {
+                        let transform = c.transform.trans((i as map::PosAxis + tetris.block_x) as f64 * 16.0, (j as map::PosAxis + tetris.block_y) as f64 * 16.0);
                         graphics::rectangle(colors::WHITE, square, transform, g);
                     }
                 }
