@@ -68,9 +68,10 @@ impl GameState {
                 let (x, y) = (self.block_x, self.block_y);
                 imprint_block(self, x as u8, y as u8);
 
-                self.block_x = 2;
+                self.block = data::from_type(BlockType::rand(&mut rand::StdRng::new().unwrap()));//TODO: Store StdRng::new
+                self.block_x = 2;//TODO: Top middle of map
                 self.block_y = 0;
-                self.block = data::from_type(BlockType::rand(&mut rand::StdRng::new().unwrap()));
+                self.block_rotation = 0;//TODO: Randomize
                 if block_intersects(&self, self.block_x, self.block_y) {
                     self.clear();
                 }
