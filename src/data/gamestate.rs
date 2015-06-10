@@ -22,7 +22,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
         	block_move_frequency: 60,
         	frames_passed       : 0,
         	block               : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),
-        	block_x             : 0,
+        	block_x             : 0,//TODO: Maybe move some of these fields to a Player struct? (Multiplayer preparations)
         	block_y             : 0,
         	rng                 : rng,
     	}

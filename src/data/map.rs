@@ -4,7 +4,7 @@ use super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
 
 pub type PosAxis  = i16;
 pub type SizeAxis = u8;
-pub type CellType = bool;
+pub type CellType = bool;//TODO: Further abstraction. Use struct with trait impl later with a `fn is_occupied() -> bool`
 
 pub const WIDTH : SizeAxis = 10;
 pub const HEIGHT: SizeAxis = 20;

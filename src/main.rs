@@ -28,7 +28,7 @@ struct App<Rng>{
 impl<Rng: rand::Rng> App<Rng>{
     fn render(&mut self, args: &event::RenderArgs){
         //Unit square
-        const BLOCK_PIXEL_SIZE: f64 = 16.0;
+        const BLOCK_PIXEL_SIZE: f64 = 24.0;
         let square = graphics::rectangle::square(0.0,0.0,BLOCK_PIXEL_SIZE);
 
         //Draw in the current viewport
@@ -38,6 +38,7 @@ impl<Rng: rand::Rng> App<Rng>{
             graphics::clear(colors::BLACK,gl);
 
             //Draw map
+            graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map::WIDTH as f64 * BLOCK_PIXEL_SIZE,map::HEIGHT as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
             for i in 0..map::WIDTH{
                 for j in 0..map::HEIGHT{
                     if tetris.map.position(i as map::PosAxis,j as map::PosAxis){
