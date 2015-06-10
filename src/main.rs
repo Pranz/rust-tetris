@@ -41,7 +41,7 @@ impl<Rng: rand::Rng> App<Rng>{
             graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map::WIDTH as f64 * BLOCK_PIXEL_SIZE,map::HEIGHT as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
             for i in 0..map::WIDTH{
                 for j in 0..map::HEIGHT{
-                    if tetris.map.position(i as map::PosAxis,j as map::PosAxis){
+                    if tetris.map.position(i as map::PosAxis,j as map::PosAxis) == Some(true) {
                         let transform = context.transform.trans(i as f64 * BLOCK_PIXEL_SIZE, j as f64 * BLOCK_PIXEL_SIZE);
                         graphics::rectangle(colors::DARK_WHITE,square,transform,gl);
                     }

@@ -45,12 +45,12 @@ impl<Cell: cell::Cell + Copy> Map<Cell>{
 	}
 
 	///Returns the cell at the given position.
-	///An empty cell will be returned when out of bounds
-	pub fn position(&self,x: PosAxis,y: PosAxis) -> Cell{
+	///A None will be returned when out of bounds
+	pub fn position(&self,x: PosAxis,y: PosAxis) -> Option<Cell>{
 	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
-	        cell::Cell::empty()//TODO: Wouldn't it make sense that everything outside is a occupied cell? The borders are walls after all
+	        None
 	    }else{
-	        unsafe{self.pos(x as usize,y as usize)}
+	        Some(unsafe{self.pos(x as usize,y as usize)})
 	    }
 	}
 
@@ -72,9 +72,9 @@ impl<Cell: cell::Cell + Copy> Map<Cell>{
 	        for j in 0..BLOCK_COUNT{
 	            if block.collision_map()[j as usize][i as usize] {
 					let (x, y) = (i as PosAxis + x, j as PosAxis + y);
-	                if x < 0 || y < 0 || x >= WIDTH as PosAxis || y >= HEIGHT as PosAxis {
-	                    return Some((x,y));
-	                }else if unsafe{self.pos(x as usize,y as usize)}.is_occupied(){
+	                if self.position(x,y).is_none() || unsafe{self.pos(x as usize,y as usize)}.is_occupied() {
+						//the use of unsafe here is actually safe since if there would be an out of
+						//bounds error, the OR gate would short circuit.
 	                    return Some((x,y));
 	                }
 	            }
@@ -96,10 +96,9 @@ impl<Cell: cell::Cell + Copy> Map<Cell>{
 	    }
 	}
 
-	//pub fn move_row
-
 	///Check and resolve any full rows, starting to check at the specified y-position and then upward.
-	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){//TODO: Maybe split the functionality in this function?
+	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){
+		// TODO: In case we need to move lines anywhere else, split this function into two.
 		let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
 	    let mut terminated_rows: SizeAxis = 0;
 	    for i in 0..BLOCK_COUNT{
