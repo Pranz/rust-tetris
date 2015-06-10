@@ -77,27 +77,19 @@ impl<Rng: rand::Rng> GameState<Rng>{
         }
     }
 
-	//try to rotate (forwards). If this results in a collision, try to resolve this collision by
-	//moving in the x axis. if the collision cannot resolve, amend the rotation and return false,
-	//otherwise return true.
+	///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
+	///moving in the x axis. if the collision cannot resolve, amend the rotation and return false,
+	///otherwise return true.
 	pub fn rotate_and_resolve(&mut self) -> bool {
 		self.block.next_rotation();
 		if let Some((x,_)) = self.map.block_intersects(&self.block, self.block_x, self.block_y) {
 			let center_x = self.block_x + 2;
-			if x < center_x {
-				for i in 1..3 {
-					if self.move_block(i, 0) {return true;}
-				}
-				self.block.previous_rotation();
-				return false;
+			let sign = if x < center_x {1} else {-1};
+			for i in 1..3 {
+				if self.move_block(i * sign, 0) {return true;}
 			}
-			else {
-				for i in 1..3 {
-					if self.move_block(-i, 0) {return true;}
-				}
-				self.block.previous_rotation();
-				return false;
-			}
+			self.block.previous_rotation();
+			return false;
 		}
 	true
 	}
