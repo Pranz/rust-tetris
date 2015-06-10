@@ -3,7 +3,6 @@
 use rand::{Rand,Rng};
 
 use super::super::map;
-use super::super::map::SizeAxis;
 
 pub const BLOCK_COUNT: map::SizeAxis = 4;//TODO: Move this to Shape as an associated constant (Shape::BLOCK_COUNT) when rustc panic "Path not fully resolved" is fixed. May be issue 22933.
 
@@ -71,7 +70,7 @@ impl BlockVariant{
         &self.shape.data()[self.rotation as usize]
     }
 
-    pub fn get(&self, x: SizeAxis, y: SizeAxis) -> bool{
+    pub fn get(&self, x: map::SizeAxis, y: map::SizeAxis) -> bool{
         self.collision_map()[y as usize][x as usize]
     }
 

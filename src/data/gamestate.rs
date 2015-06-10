@@ -2,29 +2,29 @@ use core::default::Default;
 use piston::event;
 use rand::{self,Rand};
 
-use super::map::{self,Map};
+use super::map ::{self,Map};
+use super::player::Player;
 use super::shapes::tetrimino::{Shape,BlockVariant};
 
 pub struct GameState<Rng>{
-	pub map                 : Map<bool>,
-    pub block_move_frequency: f64,//Unit: seconds/block
-    pub time_count          : f64,
-    pub block               : BlockVariant,
-    pub block_x             : map::PosAxis,
-    pub block_y             : map::PosAxis,
-    pub rng                 : Rng
+	pub map   : Map<bool>,
+    pub player: Player,
+    pub player_time_count: f64,
+    pub rng   : Rng,
 }
 
 impl<Rng: rand::Rng> GameState<Rng>{
     pub fn new(mut rng: Rng) -> Self {
 		GameState{
-	    	map                 : Map::default(),
-        	block_move_frequency: 1.0,
-        	time_count          : 0.0,
-        	block               : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),
-        	block_x             : 0,//TODO: Maybe move some of these fields to a Player struct? (Multiplayer preparations)
-        	block_y             : 0,
-        	rng                 : rng,
+	    	map              : Map::default(),
+        	player: Player{
+        	    x             : 0,//TODO: Maybe move some of these fields to a Player struct? (Multiplayer preparations)
+        	    y             : 0,
+                block         : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),
+                move_frequency: 1.0,
+            },
+            player_time_count: 0.0,
+        	rng              : rng,
     	}
 	}
 
@@ -62,21 +62,6 @@ impl<Rng: rand::Rng> GameState<Rng>{
         }
     }
 
-    ///Moves the current block if there are no collisions at the new position.
-    ///Returns whether the movement was successful due to collisions.
-    pub fn move_block(&mut self, dx: map::PosAxis, dy: map::PosAxis) -> bool{
-		//Collision check
-        if self.map.block_intersects(&self.block, self.block_x + dx, self.block_y + dy).is_some(){
-			//Collided => cannot move
-            false
-        }else{
-            //No collision, able to move and does so
-            self.block_x += dx;
-            self.block_y += dy;
-            true
-        }
-    }
-
 	///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
 	///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 	///otherwise return true.
@@ -86,7 +71,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
 			let center_x = self.block_x + 2;//TODO: Magic constants everywhere
 			let sign = if x < center_x {1} else {-1};
 			for i in 1..3 {
-				if self.move_block(i * sign, 0) {return true;}
+				if self.player.move_block(i * sign, 0) {return true;}
 			}
 			self.block.previous_rotation();
 			return false;
