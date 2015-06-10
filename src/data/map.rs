@@ -2,14 +2,35 @@
 
 use core::default::Default;
 
-use super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
+use super::shapes::tetrimino::{Shape,BlockVariant,BLOCK_COUNT};
 
 ///Signed integer type used for describing a position axis. A `SizeAxis` will always fit in a `PosAxis`.
 pub type PosAxis  = i16;
 ///Unsigned integer type used for describing a size axis.
 pub type SizeAxis = u8;
+//type which the Map stores.
+pub type CellType = bool;
 
-pub type CellType = bool;//TODO: Further abstraction. Use struct with trait impl later with a `fn is_occupied() -> bool`. Make this a type parameter in Map
+pub trait Cell {
+	fn is_occupied(self) -> bool;
+	fn empty() -> Self;
+}
+
+pub struct CellShape(Option<Shape>);
+
+impl Cell for CellShape {
+	#[inline(always)]
+	fn is_occupied(self) -> bool {self.0.is_some()}
+	#[inline(always)]
+	fn empty() -> Self {CellShape(None)}
+}
+
+impl Cell for bool {
+	#[inline(always)]
+	fn is_occupied(self) -> bool {self}
+	#[inline(always)]
+	fn empty() -> Self {false}
+}
 
 ///Constant width of the map
 pub const WIDTH : SizeAxis = 10;
@@ -46,7 +67,7 @@ impl Map{
 	///An empty cell will be returned when out of bounds
 	pub fn position(&self,x: PosAxis,y: PosAxis) -> CellType{
 	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
-	        false
+	        Cell::empty()
 	    }else{
 	        unsafe{self.pos(x as usize,y as usize)}
 	    }
@@ -63,20 +84,22 @@ impl Map{
 	    }
 	}
 
+
 	///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map
-	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> bool{
+	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> {
 	    for i in 0..BLOCK_COUNT{
 	        for j in 0..BLOCK_COUNT{
-	            if block.collision_map()[j as usize][i as usize]{
-	                if (i as PosAxis + x) < 0 || (j as PosAxis + y) < 0 || (i as PosAxis + x) >= WIDTH as PosAxis || (j as PosAxis + y) >= HEIGHT as PosAxis{
-	                    return true;
-	                }else if unsafe{self.pos((i as PosAxis + x) as usize,(j as PosAxis + y) as usize)}{
-	                    return true;
+	            if block.collision_map()[j as usize][i as usize] {
+					let (x, y) = (i as PosAxis + x, j as PosAxis + y);
+	                if x < 0 || y < 0 || x >= WIDTH as PosAxis || y >= HEIGHT as PosAxis {
+	                    return Some((x,y));
+	                }else if unsafe{self.pos(x as usize,y as usize)}{
+	                    return Some((x,y));
 	                }
 	            }
 	        }
 	    }
-	    false
+	    None
 	}
 
 	///Imprints the given block at the given position on the map
@@ -96,7 +119,7 @@ impl Map{
 	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){//TODO: Maybe split the functionality in this function?
 		let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
 	    let mut terminated_rows: SizeAxis = 0;
-	    for i in 0..4{//TODO: 4? Magic constant
+	    for i in 0..BLOCK_COUNT{//TODO: 4? Magic constant
 	        let lowest_y = lowest_y - i as SizeAxis + terminated_rows;
 	        if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}){
 	            terminated_rows += 1;

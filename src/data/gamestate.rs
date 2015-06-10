@@ -38,7 +38,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
             self.time_count -= self.block_move_frequency;
 
             //If there are a collision below
-            if self.map.block_intersects(&self.block, self.block_x as map::PosAxis, self.block_y as map::PosAxis + 1){
+            if self.map.block_intersects(&self.block, self.block_x as map::PosAxis, self.block_y as map::PosAxis + 1).is_some() {
                 //Imprint the current block onto the map
                 self.map.imprint_block(&self.block,self.block_x,self.block_y);
 
@@ -49,10 +49,9 @@ impl<Rng: rand::Rng> GameState<Rng>{
                 self.block = BlockVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
                 self.block_x = 2;//TODO: Top middle of map
                 self.block_y = 0;
-
                 //If the new block at the starting position also collides with another block
-                if self.map.block_intersects(&self.block, self.block_x, self.block_y){
-                    //Reset the map
+                if self.map.block_intersects(&self.block, self.block_x, self.block_y).is_some() {
+					//Reset the map
                     self.map.clear();
                 }
             }
@@ -65,10 +64,10 @@ impl<Rng: rand::Rng> GameState<Rng>{
 
     ///Moves the current block if there are no collisions at the new position.
     ///Returns whether the movement was successful due to collisions.
-    pub fn move_block(&mut self,dx: map::PosAxis,dy: map::PosAxis) -> bool{
-        //Collision check
-        if self.map.block_intersects(&self.block, self.block_x + dx, self.block_y + dy){
-            //Collided => cannot move
+    pub fn move_block(&mut self, dx: map::PosAxis, dy: map::PosAxis) -> bool{
+		//Collision check
+        if self.map.block_intersects(&self.block, self.block_x + dx, self.block_y + dy).is_some(){
+			//Collided => cannot move
             false
         }else{
             //No collision, able to move and does so
@@ -77,4 +76,29 @@ impl<Rng: rand::Rng> GameState<Rng>{
             true
         }
     }
+
+	//try to rotate (forwards). If this results in a collision, try to resolve this collision by
+	//moving in the x axis. if the collision cannot resolve, amend the rotation and return false,
+	//otherwise return true.
+	pub fn rotate_and_resolve(&mut self) -> bool {
+		self.block.next_rotation();
+		if let Some((x,_)) = self.map.block_intersects(&self.block, self.block_x, self.block_y) {
+			let center_x = self.block_x + 2;
+			if x < center_x {
+				for i in 1..3 {
+					if self.move_block(i, 0) {return true;}
+				}
+				self.block.previous_rotation();
+				return false;
+			}
+			else {
+				for i in 1..3 {
+					if self.move_block(-i, 0) {return true;}
+				}
+				self.block.previous_rotation();
+				return false;
+			}
+		}
+	true
+	}
 }
