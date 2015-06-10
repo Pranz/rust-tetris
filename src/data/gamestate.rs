@@ -6,7 +6,7 @@ use super::map::{self,Map};
 use super::shapes::tetrimino::{Shape,BlockVariant};
 
 pub struct GameState<Rng>{
-	pub map                 : Map,
+	pub map                 : Map<bool>,
     pub block_move_frequency: f64,//Unit: seconds/block
     pub time_count          : f64,
     pub block               : BlockVariant,
@@ -40,7 +40,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
             //If there are a collision below
             if self.map.block_intersects(&self.block, self.block_x as map::PosAxis, self.block_y as map::PosAxis + 1).is_some() {
                 //Imprint the current block onto the map
-                self.map.imprint_block(&self.block,self.block_x,self.block_y);
+                self.map.imprint_block(&self.block,self.block_x,self.block_y,|_| true);
 
                 //Handles the filled rows
                 self.map.handle_full_rows(self.block_y as u8 + 4);//TODO: 4? Magic constant
@@ -78,12 +78,12 @@ impl<Rng: rand::Rng> GameState<Rng>{
     }
 
 	///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
-	///moving in the x axis. if the collision cannot resolve, amend the rotation and return false,
+	///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 	///otherwise return true.
 	pub fn rotate_and_resolve(&mut self) -> bool {
 		self.block.next_rotation();
 		if let Some((x,_)) = self.map.block_intersects(&self.block, self.block_x, self.block_y) {
-			let center_x = self.block_x + 2;
+			let center_x = self.block_x + 2;//TODO: Magic constants everywhere
 			let sign = if x < center_x {1} else {-1};
 			for i in 1..3 {
 				if self.move_block(i * sign, 0) {return true;}

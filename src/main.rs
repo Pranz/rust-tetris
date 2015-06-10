@@ -69,8 +69,8 @@ impl<Rng: rand::Rng> App<Rng>{
         Key::Left  => {self.tetris.move_block(-1, 0);},
         Key::Down  => {self.tetris.move_block( 0, 1);},
         Key::Up    => {self.tetris.rotate_and_resolve();},
-        Key::X     => {self.tetris.rotate_and_resolve();},
-        Key::Z     => {self.tetris.block.previous_rotation();},
+        Key::X     => {self.tetris.block.previous_rotation();},
+        Key::Z     => {self.tetris.rotate_and_resolve();},
         _ => {},
     }}
 }
