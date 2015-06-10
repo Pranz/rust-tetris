@@ -1,4 +1,4 @@
-//!Modules with data handling
+//!Data handling modules
 
 pub mod colors;
 pub mod gamestate;

@@ -4,13 +4,20 @@ use core::default::Default;
 
 use super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
 
+///Signed integer type used for describing a position axis. A `SizeAxis` will always fit in a `PosAxis`.
 pub type PosAxis  = i16;
+///Unsigned integer type used for describing a size axis.
 pub type SizeAxis = u8;
+
 pub type CellType = bool;//TODO: Further abstraction. Use struct with trait impl later with a `fn is_occupied() -> bool`. Make this a type parameter in Map
 
+///Constant width of the map
 pub const WIDTH : SizeAxis = 10;
+
+///Constant height of the map
 pub const HEIGHT: SizeAxis = 20;
 
+///Rectangular game map
 pub struct Map([[CellType; WIDTH as usize]; HEIGHT as usize]);
 
 impl Map{
@@ -72,7 +79,7 @@ impl Map{
 	    false
 	}
 
-	//Imprints the given block at the given position on the map
+	///Imprints the given block at the given position on the map
 	pub fn imprint_block(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis){
 	    for i in 0 .. BLOCK_COUNT{
 	        for j in 0 .. BLOCK_COUNT{

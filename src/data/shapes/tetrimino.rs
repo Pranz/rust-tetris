@@ -7,6 +7,7 @@ use super::super::map::SizeAxis;
 
 pub const BLOCK_COUNT: map::SizeAxis = 4;//TODO: Move this to Shape as an associated constant (Shape::BLOCK_COUNT) when rustc panic "Path not fully resolved" is fixed. May be issue 22933.
 
+///All possible tetrimino shapes
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Shape{
     I,
@@ -18,8 +19,10 @@ pub enum Shape{
     Z,
 }
 impl Shape{
+    ///Number of possible tetrimino shapes
     pub const LEN: usize = 7;
 
+    ///Returns the data of the tetrimino shape
     pub fn data(self) -> &'static [data::Block]{
         match self{
             Shape::I => &data::I,
@@ -49,6 +52,7 @@ impl Rand for Shape{
     }
 }
 
+///A shape with its rotation
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub struct BlockVariant{
     shape: Shape,
@@ -88,7 +92,9 @@ impl BlockVariant{
     }*/
 }
 
+///Contains data arrays of all the possible blocks and its rotations in a 4x4 grid
 pub mod data{
+    ///Data of a block
     pub type Block = [[bool; super::BLOCK_COUNT as usize]; super::BLOCK_COUNT as usize];
 
     pub static I: [Block; 2] = [

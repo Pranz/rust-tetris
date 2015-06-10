@@ -7,7 +7,7 @@ extern crate opengl_graphics;
 extern crate piston;
 extern crate rand;
 
-mod data;
+pub mod data;
 
 use piston::window::WindowSettings;
 use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
