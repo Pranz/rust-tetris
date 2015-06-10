@@ -22,30 +22,36 @@ use data::gamestate::GameState;
 
 struct App<Rng>{
     gl: GlGraphics,
-    tetris : GameState<Rng>,
+    tetris: GameState<Rng>,
 }
 
 impl<Rng: rand::Rng> App<Rng>{
-    fn render(&mut self, args: &event::RenderArgs) {
-        let square = graphics::rectangle::square(0.0, 0.0, 16.0);
-        let &mut App{ref mut gl,ref mut tetris} = self;
+    fn render(&mut self, args: &event::RenderArgs){
+        //Unit square
+        const BLOCK_PIXEL_SIZE: f64 = 16.0;
+        let square = graphics::rectangle::square(0.0,0.0,BLOCK_PIXEL_SIZE);
 
-        gl.draw(args.viewport(), |context,gl|{
+        //Draw in the current viewport
+        let &mut App{ref mut gl,ref mut tetris} = self;
+        gl.draw(args.viewport(),|context,gl|{
+            //Clear screen
             graphics::clear(colors::BLACK,gl);
 
-            for i in 0..map::WIDTH {
-                for j in 0..map::HEIGHT {
-                    if tetris.map.position(i as map::PosAxis,j as map::PosAxis) {
-                        let transform = context.transform.trans(i as f64 * 16.0, j as f64 * 16.0);
-                        graphics::rectangle(colors::WHITE,square,transform,gl);
+            //Draw map
+            for i in 0..map::WIDTH{
+                for j in 0..map::HEIGHT{
+                    if tetris.map.position(i as map::PosAxis,j as map::PosAxis){
+                        let transform = context.transform.trans(i as f64 * BLOCK_PIXEL_SIZE, j as f64 * BLOCK_PIXEL_SIZE);
+                        graphics::rectangle(colors::DARK_WHITE,square,transform,gl);
                     }
                 }
             }
 
-            for i in 0..BLOCK_COUNT {
-                for j in 0..BLOCK_COUNT {
-                    if tetris.block.get(i as u8, j as u8) {
-                        let transform = context.transform.trans((i as map::PosAxis + tetris.block_x) as f64 * 16.0, (j as map::PosAxis + tetris.block_y) as f64 * 16.0);
+            //Draw current block(s)
+            for i in 0..BLOCK_COUNT{
+                for j in 0..BLOCK_COUNT{
+                    if tetris.block.get(i as u8, j as u8){
+                        let transform = context.transform.trans((i as map::PosAxis + tetris.block_x) as f64 * BLOCK_PIXEL_SIZE, (j as map::PosAxis + tetris.block_y) as f64 * BLOCK_PIXEL_SIZE);
                         graphics::rectangle(colors::WHITE,square,transform,gl);
                     }
                 }
@@ -53,27 +59,26 @@ impl<Rng: rand::Rng> App<Rng>{
         });
     }
 
-    fn update(&mut self, args: &event::UpdateArgs) {
+    fn update(&mut self, args: &event::UpdateArgs){
         self.tetris.update(args);
     }
 
-    fn on_key_press(&mut self, key : Key) {
-        match key {
-            Key::Right => {self.tetris.move_block(1, 0);},
-            Key::Left  => {self.tetris.move_block(-1, 0);},
-            Key::Down  => {self.tetris.move_block(0, 1);},
-            Key::Up    => {self.tetris.block.next_rotation();},
-            Key::X     => {self.tetris.block.next_rotation();},
-            Key::Z     => {self.tetris.block.previous_rotation();},
-            _ => {},
-        }
-    }
+    fn on_key_press(&mut self, key: Key){match key{
+        Key::Right => {self.tetris.move_block( 1, 0);},
+        Key::Left  => {self.tetris.move_block(-1, 0);},
+        Key::Down  => {self.tetris.move_block( 0, 1);},
+        Key::Up    => {self.tetris.block.next_rotation();},
+        Key::X     => {self.tetris.block.next_rotation();},
+        Key::Z     => {self.tetris.block.previous_rotation();},
+        _ => {},
+    }}
 }
 
-fn main() {
+fn main(){
+    //Define the OpenGL version to be used
     let opengl = OpenGL::_3_2;
 
-    //Create an Glutin window.
+    //Create a window.
     let window = Window::new(
         opengl,
         WindowSettings::new(
@@ -83,22 +88,26 @@ fn main() {
         .exit_on_esc(true)
     );
 
-    //Create a new game and run it.
-    let mut app = App {
+    //Create a new application
+    let mut app = App{
         gl: GlGraphics::new(opengl),
         tetris: GameState::new(rand::StdRng::new().unwrap()),
     };
 
-    for e in window.events() {
-        if let Some(r) = e.render_args() {
+    //Run the created application: Listen for events
+    for e in window.events(){
+        //Render
+        if let Some(r) = e.render_args(){
             app.render(&r);
         }
 
-        if let Some(u) = e.update_args() {
+        //Update
+        if let Some(u) = e.update_args(){
             app.update(&u);
         }
 
-        if let Some(Button::Keyboard(k)) = e.press_args() {
+        //Keyboard event
+        if let Some(Button::Keyboard(k)) = e.press_args(){
             app.on_key_press(k);
         }
     }

@@ -12,8 +12,8 @@ pub struct Map([[bool; WIDTH as usize]; HEIGHT as usize]);
 
 impl Map{
 	pub fn clear(&mut self){
-	    for i in 0..WIDTH {
-	        for j in 0..HEIGHT {
+	    for i in 0..WIDTH{
+	        for j in 0..HEIGHT{
 	            self.set_position(i as PosAxis,j as PosAxis,false);
 	        }
 	    }
@@ -44,11 +44,11 @@ impl Map{
 	    }
 	}
 
-	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> bool {
-	    for i in 0..BLOCK_COUNT {
-	        for j in 0..BLOCK_COUNT {
-	            if block.collision_map()[j as usize][i as usize] {
-	                if (i as PosAxis + x) < 0 || (j as PosAxis + y) < 0 || (i as PosAxis + x) >= WIDTH as PosAxis || (j as PosAxis + y) >= HEIGHT as PosAxis {
+	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> bool{
+	    for i in 0..BLOCK_COUNT{
+	        for j in 0..BLOCK_COUNT{
+	            if block.collision_map()[j as usize][i as usize]{
+	                if (i as PosAxis + x) < 0 || (j as PosAxis + y) < 0 || (i as PosAxis + x) >= WIDTH as PosAxis || (j as PosAxis + y) >= HEIGHT as PosAxis{
 	                    return true;
 	                }else if unsafe{self.pos((i as PosAxis + x) as usize,(j as PosAxis + y) as usize)}{
 	                    return true;
@@ -67,21 +67,20 @@ impl Map{
 	            }
 	        }
 	    }
-	    self.handle_full_rows(y as u8 + 4);
+	    self.handle_full_rows(y as u8 + 4);//TODO: 4? Magic constant
 	}
 
 	//pub fn move_row
 
-	//check and resolve any full rows, starting to check at the specified y-position and then
-	//upward.
+	///Check and resolve any full rows, starting to check at the specified y-position and then upward.
 	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){
-		let lowest_y = if lowest_y >= HEIGHT { HEIGHT - 1 } else { lowest_y };
+		let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
 	    let mut terminated_rows: SizeAxis = 0;
-	    for i in 0..4  {
+	    for i in 0..4{//TODO: 4? Magic constant
 	        let lowest_y = lowest_y - i as SizeAxis + terminated_rows;
-	        if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}) {
+	        if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}){
 	            terminated_rows += 1;
-	            for j in 0..lowest_y {
+	            for j in 0..lowest_y{
 	                self.0[(lowest_y - j) as usize] = self.0[(lowest_y - j - 1) as usize];
 	            }
 	            self.0[0] = [false; WIDTH as usize];

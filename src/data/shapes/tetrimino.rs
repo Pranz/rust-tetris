@@ -3,7 +3,7 @@ use rand::{Rand,Rng};
 use super::super::map;
 use super::super::map::SizeAxis;
 
-pub const BLOCK_COUNT: map::SizeAxis = 4;
+pub const BLOCK_COUNT: map::SizeAxis = 4;//TODO: Move this to Shape as an associated constant (Shape::BLOCK_COUNT) when rustc panic "Path not fully resolved" is fixed. May be issue 22933.
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Shape{
@@ -53,38 +53,41 @@ pub struct BlockVariant{
     rotation: u8
 }
 
-impl BlockVariant {
-    pub fn new(shape: Shape,rotation: u8) -> Self {
-        BlockVariant {
+impl BlockVariant{
+    pub fn new(shape: Shape,rotation: u8) -> Self{
+        BlockVariant{
             shape   : shape,
             rotation: rotation,
         }
     }
 
-    pub fn collision_map(&self) -> &'static [[bool; BLOCK_COUNT as usize]] {
+    pub fn collision_map(&self) -> &'static [[bool; BLOCK_COUNT as usize]]{
         &self.shape.data()[self.rotation as usize]
     }
 
-    pub fn get(&self, x : SizeAxis, y : SizeAxis) -> bool {
+    pub fn get(&self, x: SizeAxis, y: SizeAxis) -> bool{
         self.collision_map()[y as usize][x as usize]
     }
 
-    pub fn next_rotation(&mut self) {
+    pub fn next_rotation(&mut self){
         self.rotation = (self.rotation + 1) % self.shape.data().len() as u8;
     }
 
-    pub fn previous_rotation(&mut self) {
+    pub fn previous_rotation(&mut self){
         self.rotation = if self.rotation == 0{
             self.shape.data().len() as u8
-        } else {
+        }else{
             self.rotation
         } - 1;
     }
+
+    /*pub fn random_rotation<R: Rng>(&mut self,rng: &mut R){
+        self.rotation = rng.gen_range(0,self.shape.data().len() as u8)
+    }*/
 }
 
 pub mod data{
-    const BLOCK_COUNT: usize = 4;//TODO: Should be same as super::Shape::BLOCK_COUNT. Bypass rustc panic "Path not fully resolved". May be issue 22933
-    pub type Block = [[bool; BLOCK_COUNT as usize]; BLOCK_COUNT as usize];
+    pub type Block = [[bool; super::BLOCK_COUNT as usize]; super::BLOCK_COUNT as usize];
 
     pub static I: [Block; 2] = [
         [

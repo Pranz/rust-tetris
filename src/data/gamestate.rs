@@ -7,7 +7,7 @@ use super::shapes::tetrimino::{Shape,BlockVariant};
 
 pub struct GameState<Rng>{
 	pub map                 : Map,
-    pub block_move_frequency: u16,
+    pub block_move_frequency: u16,//Unit: frames/block
     pub frames_passed       : u16,
     pub block               : BlockVariant,
     pub block_x             : map::PosAxis,
@@ -19,7 +19,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
     pub fn new(mut rng: Rng) -> Self {
 		GameState{
 	    	map                 : Map::default(),
-        	block_move_frequency: 60,//Unit: frames/block
+        	block_move_frequency: 60,
         	frames_passed       : 0,
         	block               : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),
         	block_x             : 0,
