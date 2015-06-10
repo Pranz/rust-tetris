@@ -2,13 +2,14 @@ use core::default::Default;
 
 use super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
 
-pub type PosAxis = i16;
+pub type PosAxis  = i16;
 pub type SizeAxis = u8;
+pub type CellType = bool;
 
 pub const WIDTH : SizeAxis = 10;
 pub const HEIGHT: SizeAxis = 20;
 
-pub struct Map([[bool; WIDTH as usize]; HEIGHT as usize]);
+pub struct Map([[CellType; WIDTH as usize]; HEIGHT as usize]);
 
 impl Map{
 	pub fn clear(&mut self){
@@ -19,15 +20,15 @@ impl Map{
 	    }
 	}
 
-	pub unsafe fn pos(&self,x: usize,y: usize) -> bool{
+	pub unsafe fn pos(&self,x: usize,y: usize) -> CellType{
 	    self.0[y][x]
 	}
 
-	pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: bool){
+	pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: CellType){
 	    self.0[y][x] = state;
 	}
 
-	pub fn position(&self,x: PosAxis,y: PosAxis) -> bool{
+	pub fn position(&self,x: PosAxis,y: PosAxis) -> CellType{
 	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
 	        false
 	    }else{
@@ -35,7 +36,7 @@ impl Map{
 	    }
 	}
 
-	pub fn set_position(&mut self,x: PosAxis,y: PosAxis,state: bool) -> bool{
+	pub fn set_position(&mut self,x: PosAxis,y: PosAxis,state: CellType) -> bool{
 	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
 	        false
 	    }else{
