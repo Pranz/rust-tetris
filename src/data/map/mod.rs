@@ -23,99 +23,99 @@ pub const HEIGHT: SizeAxis = 20;
 pub struct Map<Cell>([[Cell; WIDTH as usize]; HEIGHT as usize]);
 
 impl<Cell: cell::Cell + Copy> Map<Cell>{
-	//Clears the map
-	pub fn clear(&mut self){
-	    for i in 0..WIDTH{
-	        for j in 0..HEIGHT{
-	            self.set_position(i as PosAxis,j as PosAxis,Cell::empty());
-	        }
-	    }
-	}
+    //Clears the map
+    pub fn clear(&mut self){
+        for i in 0..WIDTH{
+            for j in 0..HEIGHT{
+                self.set_position(i as PosAxis,j as PosAxis,Cell::empty());
+            }
+        }
+    }
 
-	///Returns the cell at the given position without checks
-	#[inline(always)]
-	pub unsafe fn pos(&self,x: usize,y: usize) -> Cell{
-	    self.0[y][x]
-	}
+    ///Returns the cell at the given position without checks
+    #[inline(always)]
+    pub unsafe fn pos(&self,x: usize,y: usize) -> Cell{
+        self.0[y][x]
+    }
 
-	///Sets the cell at the given position without checks
-	#[inline(always)]
-	pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
-	    self.0[y][x] = state;
-	}
+    ///Sets the cell at the given position without checks
+    #[inline(always)]
+    pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
+        self.0[y][x] = state;
+    }
 
-	///Returns the cell at the given position.
-	///A None will be returned when out of bounds
-	pub fn position(&self,x: PosAxis,y: PosAxis) -> Option<Cell>{
-	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
-	        None
-	    }else{
-	        Some(unsafe{self.pos(x as usize,y as usize)})
-	    }
-	}
+    ///Returns the cell at the given position.
+    ///A None will be returned when out of bounds
+    pub fn position(&self,x: PosAxis,y: PosAxis) -> Option<Cell>{
+        if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
+            None
+        }else{
+            Some(unsafe{self.pos(x as usize,y as usize)})
+        }
+    }
 
-	///Sets the cell at the given position.
-	///Returns false when out of bounds or failing to set the cell at the given position.
-	pub fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Cell) -> bool{
-	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
-	        false
-	    }else{
-	        unsafe{self.set_pos(x as usize,y as usize,state)};
-	        true
-	    }
-	}
+    ///Sets the cell at the given position.
+    ///Returns false when out of bounds or failing to set the cell at the given position.
+    pub fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Cell) -> bool{
+        if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
+            false
+        }else{
+            unsafe{self.set_pos(x as usize,y as usize,state)};
+            true
+        }
+    }
 
 
-	///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map
-	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> {
-	    for i in 0..BLOCK_COUNT{
-	        for j in 0..BLOCK_COUNT{
-	            if block.collision_map()[j as usize][i as usize] {
-					let (x, y) = (i as PosAxis + x, j as PosAxis + y);
-	                if self.position(x,y).is_none() || unsafe{self.pos(x as usize,y as usize)}.is_occupied() {
-						//the use of unsafe here is actually safe since if there would be an out of
-						//bounds error, the OR gate would short circuit.
-	                    return Some((x,y));
-	                }
-	            }
-	        }
-	    }
-	    None
-	}
+    ///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map
+    pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> {
+        for i in 0..BLOCK_COUNT{
+            for j in 0..BLOCK_COUNT{
+                if block.collision_map()[j as usize][i as usize] {
+                    let (x, y) = (i as PosAxis + x, j as PosAxis + y);
+                    if self.position(x,y).is_none() || unsafe{self.pos(x as usize,y as usize)}.is_occupied() {
+                        //the use of unsafe here is actually safe since if there would be an out of
+                        //bounds error, the OR gate would short circuit.
+                        return Some((x,y));
+                    }
+                }
+            }
+        }
+        None
+    }
 
-	///Imprints the given block at the given position on the map
-	pub fn imprint_block<F>(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
-		where F: Fn(&BlockVariant) -> Cell
-	{
-	    for i in 0 .. BLOCK_COUNT{
-	        for j in 0 .. BLOCK_COUNT{
-	            if block.collision_map()[j as usize][i as usize]{
-	                self.set_position(x+(i as PosAxis),y+(j as PosAxis),cell_constructor(block));
-	            }
-	        }
-	    }
-	}
+    ///Imprints the given block at the given position on the map
+    pub fn imprint_block<F>(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
+        where F: Fn(&BlockVariant) -> Cell
+    {
+        for i in 0 .. BLOCK_COUNT{
+            for j in 0 .. BLOCK_COUNT{
+                if block.collision_map()[j as usize][i as usize]{
+                    self.set_position(x+(i as PosAxis),y+(j as PosAxis),cell_constructor(block));
+                }
+            }
+        }
+    }
 
-	///Check and resolve any full rows, starting to check at the specified y-position and then upward.
-	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){
-		// TODO: In case we need to move lines anywhere else, split this function into two.
-		let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
-	    let mut terminated_rows: SizeAxis = 0;
-	    for i in 0..BLOCK_COUNT{
-	        let lowest_y = lowest_y - i as SizeAxis + terminated_rows;
-	        if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}.is_occupied()){
-	            terminated_rows += 1;
-	            for j in 0..lowest_y{
-	                self.0[(lowest_y - j) as usize] = self.0[(lowest_y - j - 1) as usize];
-	            }
-	            self.0[0] = [Cell::empty(); WIDTH as usize];
-	        }
-	    }
-	}
+    ///Check and resolve any full rows, starting to check at the specified y-position and then upward.
+    pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){
+        // TODO: In case we need to move lines anywhere else, split this function into two.
+        let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
+        let mut terminated_rows: SizeAxis = 0;
+        for i in 0..BLOCK_COUNT{
+            let lowest_y = lowest_y - i as SizeAxis + terminated_rows;
+            if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}.is_occupied()){
+                terminated_rows += 1;
+                for j in 0..lowest_y{
+                    self.0[(lowest_y - j) as usize] = self.0[(lowest_y - j - 1) as usize];
+                }
+                self.0[0] = [Cell::empty(); WIDTH as usize];
+            }
+        }
+    }
 }
 
 impl<Cell: cell::Cell + Copy> Default for Map<Cell>{
-	fn default() -> Self{
-		Map([[Cell::empty(); WIDTH as usize]; HEIGHT as usize])
-	}
+    fn default() -> Self{
+        Map([[Cell::empty(); WIDTH as usize]; HEIGHT as usize])
+    }
 }
