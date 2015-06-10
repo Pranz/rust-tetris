@@ -7,8 +7,8 @@ use super::shapes::tetrimino::{Shape,BlockVariant};
 
 pub struct GameState<Rng>{
 	pub map                 : Map,
-    pub block_move_frequency: u16,//Unit: frames/block
-    pub frames_passed       : u16,
+    pub block_move_frequency: f64,//Unit: seconds/block
+    pub time_count          : f64,
     pub block               : BlockVariant,
     pub block_x             : map::PosAxis,
     pub block_y             : map::PosAxis,
@@ -19,8 +19,8 @@ impl<Rng: rand::Rng> GameState<Rng>{
     pub fn new(mut rng: Rng) -> Self {
 		GameState{
 	    	map                 : Map::default(),
-        	block_move_frequency: 60,
-        	frames_passed       : 0,
+        	block_move_frequency: 1.0,
+        	time_count          : 0.0,
         	block               : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),
         	block_x             : 0,//TODO: Maybe move some of these fields to a Player struct? (Multiplayer preparations)
         	block_y             : 0,
@@ -28,30 +28,50 @@ impl<Rng: rand::Rng> GameState<Rng>{
     	}
 	}
 
-    pub fn update(&mut self, _: &event::UpdateArgs){
-        self.frames_passed += 1;
-        if self.frames_passed == self.block_move_frequency {
-            self.frames_passed = 0;
-            if self.map.block_intersects(&self.block, self.block_x as map::PosAxis, self.block_y as map::PosAxis + 1) {
+    pub fn update(&mut self, args: &event::UpdateArgs){
+        //Add the time since the last update to the time count
+        self.time_count += args.dt;
+
+        //If the time count is bigger than the block move frequency, then repeat until it is smaller
+        while self.time_count >= self.block_move_frequency{
+            //Subtract one step of frequency
+            self.time_count -= self.block_move_frequency;
+
+            //If there are a collision below
+            if self.map.block_intersects(&self.block, self.block_x as map::PosAxis, self.block_y as map::PosAxis + 1){
+                //Imprint the current block onto the map
                 self.map.imprint_block(&self.block,self.block_x,self.block_y);
 
+                //Handles the filled rows
+                self.map.handle_full_rows(self.block_y as u8 + 4);//TODO: 4? Magic constant
+
+                //Select a new block at random, setting its position to the starting position
                 self.block = BlockVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
                 self.block_x = 2;//TODO: Top middle of map
                 self.block_y = 0;
-                if self.map.block_intersects(&self.block, self.block_x, self.block_y) {
+
+                //If the new block at the starting position also collides with another block
+                if self.map.block_intersects(&self.block, self.block_x, self.block_y){
+                    //Reset the map
                     self.map.clear();
                 }
             }
-            else {
+            else{
+                //Move the current block downwards
                 self.block_y += 1;
             }
         }
     }
 
-    pub fn move_block(&mut self, dx: map::PosAxis, dy: map::PosAxis) -> bool{
+    ///Moves the current block if there are no collisions at the new position.
+    ///Returns whether the movement was successful due to collisions.
+    pub fn move_block(&mut self,dx: map::PosAxis,dy: map::PosAxis) -> bool{
+        //Collision check
         if self.map.block_intersects(&self.block, self.block_x + dx, self.block_y + dy){
+            //Collided => cannot move
             false
         }else{
+            //No collision, able to move and does so
             self.block_x += dx;
             self.block_y += dy;
             true

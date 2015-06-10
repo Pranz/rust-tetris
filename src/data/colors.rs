@@ -1,3 +1,5 @@
+//!Color constants
+
 #![allow(dead_code)]
 
 pub const RED        : [f32; 4] = [1.0, 0.0, 0.0, 1.0];

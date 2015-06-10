@@ -1,3 +1,5 @@
+//!A basic tetrimino shape (4 blocks)
+
 use rand::{Rand,Rng};
 
 use super::super::map;

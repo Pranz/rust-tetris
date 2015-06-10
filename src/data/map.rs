@@ -1,10 +1,12 @@
+//!A game map
+
 use core::default::Default;
 
 use super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
 
 pub type PosAxis  = i16;
 pub type SizeAxis = u8;
-pub type CellType = bool;//TODO: Further abstraction. Use struct with trait impl later with a `fn is_occupied() -> bool`
+pub type CellType = bool;//TODO: Further abstraction. Use struct with trait impl later with a `fn is_occupied() -> bool`. Make this a type parameter in Map
 
 pub const WIDTH : SizeAxis = 10;
 pub const HEIGHT: SizeAxis = 20;
@@ -12,6 +14,7 @@ pub const HEIGHT: SizeAxis = 20;
 pub struct Map([[CellType; WIDTH as usize]; HEIGHT as usize]);
 
 impl Map{
+	//Clears the map
 	pub fn clear(&mut self){
 	    for i in 0..WIDTH{
 	        for j in 0..HEIGHT{
@@ -20,14 +23,20 @@ impl Map{
 	    }
 	}
 
+	///Returns the cell at the given position without checks
+	#[inline(always)]
 	pub unsafe fn pos(&self,x: usize,y: usize) -> CellType{
 	    self.0[y][x]
 	}
 
+	///Sets the cell at the given position without checks
+	#[inline(always)]
 	pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: CellType){
 	    self.0[y][x] = state;
 	}
 
+	///Returns the cell at the given position.
+	///An empty cell will be returned when out of bounds
 	pub fn position(&self,x: PosAxis,y: PosAxis) -> CellType{
 	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
 	        false
@@ -36,6 +45,8 @@ impl Map{
 	    }
 	}
 
+	///Sets the cell at the given position.
+	///Returns false when out of bounds or failing to set the cell at the given position.
 	pub fn set_position(&mut self,x: PosAxis,y: PosAxis,state: CellType) -> bool{
 	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
 	        false
@@ -45,6 +56,7 @@ impl Map{
 	    }
 	}
 
+	///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map
 	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> bool{
 	    for i in 0..BLOCK_COUNT{
 	        for j in 0..BLOCK_COUNT{
@@ -60,6 +72,7 @@ impl Map{
 	    false
 	}
 
+	//Imprints the given block at the given position on the map
 	pub fn imprint_block(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis){
 	    for i in 0 .. BLOCK_COUNT{
 	        for j in 0 .. BLOCK_COUNT{
@@ -68,13 +81,12 @@ impl Map{
 	            }
 	        }
 	    }
-	    self.handle_full_rows(y as u8 + 4);//TODO: 4? Magic constant
 	}
 
 	//pub fn move_row
 
 	///Check and resolve any full rows, starting to check at the specified y-position and then upward.
-	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){
+	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){//TODO: Maybe split the functionality in this function?
 		let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
 	    let mut terminated_rows: SizeAxis = 0;
 	    for i in 0..4{//TODO: 4? Magic constant
