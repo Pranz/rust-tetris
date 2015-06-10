@@ -1,10 +1,31 @@
 use core::default::Default;
 
-use super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
+use super::shapes::tetrimino::{Shape,BlockVariant,BLOCK_COUNT};
 
 pub type PosAxis  = i16;
 pub type SizeAxis = u8;
-pub type CellType = bool;//TODO: Further abstraction. Use struct with trait impl later with a `fn is_occupied() -> bool`
+pub type CellType = bool;
+
+pub trait Cell {
+	fn is_occupied(self) -> bool;
+	fn empty() -> Self;
+}
+
+pub struct CellShape(Option<Shape>);
+
+impl Cell for CellShape {
+	#[inline(always)]
+	fn is_occupied(self) -> bool {self.0.is_some()}
+	#[inline(always)]
+	fn empty() -> Self {CellShape(None)}
+}
+
+impl Cell for bool {
+	#[inline(always)]
+	fn is_occupied(self) -> bool {self}
+	#[inline(always)]
+	fn empty() -> Self {false}
+}
 
 pub const WIDTH : SizeAxis = 10;
 pub const HEIGHT: SizeAxis = 20;
@@ -30,7 +51,7 @@ impl Map{
 
 	pub fn position(&self,x: PosAxis,y: PosAxis) -> CellType{
 	    if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
-	        false
+	        Cell::empty()
 	    }else{
 	        unsafe{self.pos(x as usize,y as usize)}
 	    }
@@ -45,19 +66,20 @@ impl Map{
 	    }
 	}
 
-	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> bool{
+	pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> {
 	    for i in 0..BLOCK_COUNT{
 	        for j in 0..BLOCK_COUNT{
-	            if block.collision_map()[j as usize][i as usize]{
-	                if (i as PosAxis + x) < 0 || (j as PosAxis + y) < 0 || (i as PosAxis + x) >= WIDTH as PosAxis || (j as PosAxis + y) >= HEIGHT as PosAxis{
-	                    return true;
-	                }else if unsafe{self.pos((i as PosAxis + x) as usize,(j as PosAxis + y) as usize)}{
-	                    return true;
+	            if block.collision_map()[j as usize][i as usize] {
+					let (x, y) = (i as PosAxis + x, j as PosAxis + y);
+	                if x < 0 || y < 0 || x >= WIDTH as PosAxis || y >= HEIGHT as PosAxis {
+	                    return Some((x,y));
+	                }else if unsafe{self.pos(x as usize,y as usize)}{
+	                    return Some((x,y));
 	                }
 	            }
 	        }
 	    }
-	    false
+	    None
 	}
 
 	pub fn imprint_block(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis){
@@ -77,7 +99,7 @@ impl Map{
 	pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){
 		let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
 	    let mut terminated_rows: SizeAxis = 0;
-	    for i in 0..4{//TODO: 4? Magic constant
+	    for i in 0..BLOCK_COUNT{//TODO: 4? Magic constant
 	        let lowest_y = lowest_y - i as SizeAxis + terminated_rows;
 	        if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}){
 	            terminated_rows += 1;
