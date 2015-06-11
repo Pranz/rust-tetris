@@ -112,10 +112,37 @@ impl<Cell: cell::Cell + Copy> Map<Cell>{
             }
         }
     }
+
+    pub fn cells<'s>(&'s self) -> CellIter<'s,Cell>{CellIter{map: self,x: 0,y: 0}}
 }
 
 impl<Cell: cell::Cell + Copy> Default for Map<Cell>{
     fn default() -> Self{
         Map([[Cell::empty(); WIDTH as usize]; HEIGHT as usize])
     }
+}
+
+pub struct CellIter<'m,Cell: 'm>{
+	map: &'m Map<Cell>,
+	x: SizeAxis,
+	y: SizeAxis,
+}
+impl<'m,Cell: cell::Cell + Copy> Iterator for CellIter<'m,Cell>{//TODO: Cell requirements because of the impl requirements in Map. Use individual `where` for every method in Map or use a Map trait instead
+	type Item = (SizeAxis,SizeAxis,Cell);
+
+	fn next(&mut self) -> Option<<Self as Iterator>::Item>{
+		if self.x == WIDTH{
+			self.x = 0;
+			self.y+= 1;
+		}
+
+		if self.y == HEIGHT{
+			return None
+		}
+
+		let x = self.x;
+		self.x+=1;
+
+		return Some((x,self.y,unsafe{self.map.pos(x as usize,self.y as usize)}));
+	}
 }
