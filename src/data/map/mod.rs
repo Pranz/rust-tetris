@@ -19,32 +19,17 @@ pub trait Map{
     //Clears the map
     fn clear(&mut self);
 
-    ///Returns the cell at the given position without checks
-    unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell;
-
-    ///Sets the cell at the given position without checks
-    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Self::Cell);
+    fn is_position_out_of_range(&self,x: PosAxis,y: PosAxis) -> bool{
+    	x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis
+    }
 
     ///Returns the cell at the given position.
     ///A None will be returned when out of bounds
-    fn position(&self,x: PosAxis,y: PosAxis) -> Option<Self::Cell>{
-        if x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis{
-            None
-        }else{
-            Some(unsafe{self.pos(x as usize,y as usize)})
-        }
-    }
+    fn position(&self,x: PosAxis,y: PosAxis) -> Option<Self::Cell>;
 
     ///Sets the cell at the given position.
     ///Returns false when out of bounds or failing to set the cell at the given position.
-    fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Self::Cell) -> bool{
-        if x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis{
-            false
-        }else{
-            unsafe{self.set_pos(x as usize,y as usize,state)};
-            true
-        }
-    }
+    fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Self::Cell) -> bool;
 
 
     ///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map

@@ -21,14 +21,21 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         }
     }
 
-    #[inline(always)]
-    unsafe fn pos(&self,x: usize,y: usize) -> Cell{
-        self.0[y][x]
+    fn position(&self,x: super::PosAxis,y: super::PosAxis) -> Option<Cell>{
+        if self.is_position_out_of_range(x,y){
+            None
+        }else{
+            Some(unsafe{self.pos(x as usize,y as usize)})
+        }
     }
 
-    #[inline(always)]
-    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
-        self.0[y][x] = state;
+    fn set_position(&mut self,x: super::PosAxis,y: super::PosAxis,state: Cell) -> bool{
+        if self.is_position_out_of_range(x,y){
+            false
+        }else{
+            unsafe{self.set_pos(x as usize,y as usize,state)};
+            true
+        }
     }
 
     fn block_intersects(&self, block: &BlockVariant, x: super::PosAxis, y: super::PosAxis) -> Option<(super::PosAxis, super::PosAxis)> {
@@ -82,7 +89,19 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     fn height(&self) -> super::SizeAxis{HEIGHT}
 }
 
-impl<Cell> Map<Cell>{
+impl<Cell: Copy> Map<Cell>{
+    ///Returns the cell at the given position without checks
+    #[inline(always)]
+    unsafe fn pos(&self,x: usize,y: usize) -> Cell{
+        self.0[y][x]
+    }
+
+    ///Sets the cell at the given position without checks
+    #[inline(always)]
+    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
+        self.0[y][x] = state;
+    }
+
     pub fn cells<'s>(&'s self) -> CellIter<'s,Self>{CellIter{map: self,x: 0,y: 0}}
 }
 
@@ -98,11 +117,10 @@ pub struct CellIter<'m,Map: 'm>{
 	x: super::SizeAxis,
 	y: super::SizeAxis,
 }
-impl<'m,Map> Iterator for CellIter<'m,Map>
-    where Map: MapTrait,
-          Map::Cell: Copy
+impl<'m,Cell> Iterator for CellIter<'m,Map<Cell>>
+    where Cell: Copy
 {
-	type Item = (super::SizeAxis,super::SizeAxis,Map::Cell);
+	type Item = (super::SizeAxis,super::SizeAxis,Cell);
 
 	fn next(&mut self) -> Option<<Self as Iterator>::Item>{
 		if self.x == WIDTH{
