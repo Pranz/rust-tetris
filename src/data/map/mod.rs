@@ -1,53 +1,34 @@
 //!A game map
 
 pub mod cell;
+pub mod default_map;
 
 
 
-use core::default::Default;
-
-use super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
+use super::shapes::tetrimino::BlockVariant;
 
 ///Signed integer type used for describing a position axis. The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.
 pub type PosAxis  = i16;
+
 ///Unsigned integer type used for describing a size axis.
 pub type SizeAxis = u8;
 
-///Constant width of the map
-pub const WIDTH : SizeAxis = 10;
+pub trait Map{
+	type Cell;
 
-///Constant height of the map
-pub const HEIGHT: SizeAxis = 20;
-
-///Rectangular game map
-pub struct Map<Cell>([[Cell; WIDTH as usize]; HEIGHT as usize]);
-
-impl<Cell: cell::Cell + Copy> Map<Cell>{
     //Clears the map
-    pub fn clear(&mut self){
-        for i in 0..WIDTH{
-            for j in 0..HEIGHT{
-                self.set_position(i as PosAxis,j as PosAxis,Cell::empty());
-            }
-        }
-    }
+    fn clear(&mut self);
 
     ///Returns the cell at the given position without checks
-    #[inline(always)]
-    pub unsafe fn pos(&self,x: usize,y: usize) -> Cell{
-        self.0[y][x]
-    }
+    unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell;
 
     ///Sets the cell at the given position without checks
-    #[inline(always)]
-    pub unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
-        self.0[y][x] = state;
-    }
+    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Self::Cell);
 
     ///Returns the cell at the given position.
     ///A None will be returned when out of bounds
-    pub fn position(&self,x: PosAxis,y: PosAxis) -> Option<Cell>{
-        if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
+    fn position(&self,x: PosAxis,y: PosAxis) -> Option<Self::Cell>{
+        if x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis{
             None
         }else{
             Some(unsafe{self.pos(x as usize,y as usize)})
@@ -56,8 +37,8 @@ impl<Cell: cell::Cell + Copy> Map<Cell>{
 
     ///Sets the cell at the given position.
     ///Returns false when out of bounds or failing to set the cell at the given position.
-    pub fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Cell) -> bool{
-        if x<0 || y<0 || x>=WIDTH as PosAxis || y>=HEIGHT as PosAxis{
+    fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Self::Cell) -> bool{
+        if x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis{
             false
         }else{
             unsafe{self.set_pos(x as usize,y as usize,state)};
@@ -67,82 +48,15 @@ impl<Cell: cell::Cell + Copy> Map<Cell>{
 
 
     ///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map
-    pub fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> {
-        for i in 0..BLOCK_COUNT{
-            for j in 0..BLOCK_COUNT{
-                if block.collision_map()[j as usize][i as usize] {
-                    let (x, y) = (i as PosAxis + x, j as PosAxis + y);
-                    if self.position(x,y).is_none() || unsafe{self.pos(x as usize,y as usize)}.is_occupied() {
-                        //the use of unsafe here is actually safe since if there would be an out of
-                        //bounds error, the OR gate would short circuit.
-                        return Some((x,y));
-                    }
-                }
-            }
-        }
-        None
-    }
+    fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)>;
 
     ///Imprints the given block at the given position on the map
-    pub fn imprint_block<F>(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
-        where F: Fn(&BlockVariant) -> Cell
-    {
-        for i in 0 .. BLOCK_COUNT{
-            for j in 0 .. BLOCK_COUNT{
-                if block.collision_map()[j as usize][i as usize]{
-                    self.set_position(x+(i as PosAxis),y+(j as PosAxis),cell_constructor(block));
-                }
-            }
-        }
-    }
+    fn imprint_block<F>(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
+        where F: Fn(&BlockVariant) -> Self::Cell;
 
     ///Check and resolve any full rows, starting to check at the specified y-position and then upward.
-    pub fn handle_full_rows(&mut self, lowest_y: SizeAxis){
-        // TODO: In case we need to move lines anywhere else, split this function into two.
-        let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
-        let mut terminated_rows: SizeAxis = 0;
-        for i in 0..BLOCK_COUNT{
-            let lowest_y = lowest_y - i as SizeAxis + terminated_rows;
-            if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}.is_occupied()){
-                terminated_rows += 1;
-                for j in 0..lowest_y{
-                    self.0[(lowest_y - j) as usize] = self.0[(lowest_y - j - 1) as usize];
-                }
-                self.0[0] = [Cell::empty(); WIDTH as usize];
-            }
-        }
-    }
+    fn handle_full_rows(&mut self, lowest_y: SizeAxis);
 
-    pub fn cells<'s>(&'s self) -> CellIter<'s,Cell>{CellIter{map: self,x: 0,y: 0}}
-}
-
-impl<Cell: cell::Cell + Copy> Default for Map<Cell>{
-    fn default() -> Self{
-        Map([[Cell::empty(); WIDTH as usize]; HEIGHT as usize])
-    }
-}
-
-pub struct CellIter<'m,Cell: 'm>{
-	map: &'m Map<Cell>,
-	x: SizeAxis,
-	y: SizeAxis,
-}
-impl<'m,Cell: cell::Cell + Copy> Iterator for CellIter<'m,Cell>{//TODO: Cell requirements because of the impl requirements in Map. Use individual `where` for every method in Map or use a Map trait instead
-	type Item = (SizeAxis,SizeAxis,Cell);
-
-	fn next(&mut self) -> Option<<Self as Iterator>::Item>{
-		if self.x == WIDTH{
-			self.x = 0;
-			self.y+= 1;
-		}
-
-		if self.y == HEIGHT{
-			return None
-		}
-
-		let x = self.x;
-		self.x+=1;
-
-		return Some((x,self.y,unsafe{self.map.pos(x as usize,self.y as usize)}));
-	}
+    fn width(&self) -> SizeAxis;
+    fn height(&self) -> SizeAxis;
 }

@@ -6,7 +6,7 @@ use super::map::{self,Map};
 use super::shapes::tetrimino::{Shape,BlockVariant};
 
 pub struct GameState<Rng>{
-	pub map                 : Map<bool>,
+	pub map                 : map::default_map::Map<bool>,
     pub block_move_frequency: f64,//Unit: seconds/block
     pub time_count          : f64,
     pub block               : BlockVariant,
@@ -18,7 +18,7 @@ pub struct GameState<Rng>{
 impl<Rng: rand::Rng> GameState<Rng>{
     pub fn new(mut rng: Rng) -> Self {
 		GameState{
-	    	map                 : Map::default(),
+	    	map                 : map::default_map::Map::default(),
         	block_move_frequency: 1.0,
         	time_count          : 0.0,
         	block               : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),

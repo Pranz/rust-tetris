@@ -18,6 +18,7 @@ use opengl_graphics::{ GlGraphics, OpenGL };
 
 use data::{colors,map};
 use data::map::cell::Cell;
+use data::map::Map;
 use data::shapes::tetrimino::BLOCK_COUNT;
 use data::gamestate::GameState;
 
@@ -39,7 +40,7 @@ impl<Rng: rand::Rng> App<Rng>{
             graphics::clear(colors::BLACK,gl);
 
             //Draw map
-            graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map::WIDTH as f64 * BLOCK_PIXEL_SIZE,map::HEIGHT as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
+            graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,tetris.map.width() as f64 * BLOCK_PIXEL_SIZE,tetris.map.height() as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
             for (x,y,cell) in tetris.map.cells(){
                 if cell.is_occupied(){
                     let transform = context.transform.trans(x as f64 * BLOCK_PIXEL_SIZE,y as f64 * BLOCK_PIXEL_SIZE);
@@ -68,7 +69,7 @@ impl<Rng: rand::Rng> App<Rng>{
         Key::Left  => {self.tetris.move_block(-1, 0);},
         Key::Down  => {self.tetris.move_block( 0, 1);},
         Key::Up    => {self.tetris.rotate_and_resolve();},
-        Key::X     => {self.tetris.block.previous_rotation();},
+        Key::X     => {self.tetris.block.previous_rotation();},//TODO: No resolve for previous rotation?
         Key::Z     => {self.tetris.rotate_and_resolve();},
         _ => {},
     }}
