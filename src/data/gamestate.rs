@@ -7,7 +7,7 @@ use super::player::Player;
 use super::shapes::tetrimino::{Shape,BlockVariant};
 
 pub struct GameState<Rng>{
-	pub map   : Map<bool>,
+    pub map   : map::default_map::Map<bool>,
     pub player: Player,
     pub player_time_count: f64,
     pub rng   : Rng,
@@ -15,18 +15,18 @@ pub struct GameState<Rng>{
 
 impl<Rng: rand::Rng> GameState<Rng>{
     pub fn new(mut rng: Rng) -> Self {
-		GameState{
-	    	map              : Map::default(),
-        	player: Player{
-        	    x             : 0,//TODO: Maybe move some of these fields to a Player struct? (Multiplayer preparations)
-        	    y             : 0,
+        GameState{
+            map              : map::default_map::Map::default(),
+            player: Player{
+                x             : 0,
+                y             : 0,
                 block         : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),
                 move_frequency: 1.0,
             },
             player_time_count: 0.0,
-        	rng              : rng,
-    	}
-	}
+            rng              : rng,
+        }
+    }
 
     pub fn update(&mut self, args: &event::UpdateArgs){
         //Add the time since the last update to the time count
@@ -51,7 +51,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
                 self.block_y = 0;
                 //If the new block at the starting position also collides with another block
                 if self.map.block_intersects(&self.block, self.block_x, self.block_y).is_some() {
-					//Reset the map
+                    //Reset the map
                     self.map.clear();
                 }
             }
@@ -62,20 +62,20 @@ impl<Rng: rand::Rng> GameState<Rng>{
         }
     }
 
-	///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
-	///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
-	///otherwise return true.
-	pub fn rotate_and_resolve(&mut self) -> bool {
-		self.block.next_rotation();
-		if let Some((x,_)) = self.map.block_intersects(&self.block, self.block_x, self.block_y) {
-			let center_x = self.block_x + 2;//TODO: Magic constants everywhere
-			let sign = if x < center_x {1} else {-1};
-			for i in 1..3 {
-				if self.player.move_block(i * sign, 0) {return true;}
-			}
-			self.block.previous_rotation();
-			return false;
-		}
-	true
-	}
+    ///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
+    ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
+    ///otherwise return true.
+    pub fn rotate_and_resolve(&mut self) -> bool {
+        self.block.next_rotation();
+        if let Some((x,_)) = self.map.block_intersects(&self.block, self.block_x, self.block_y) {
+            let center_x = self.block_x + 2;//TODO: Magic constants everywhere
+            let sign = if x < center_x {1} else {-1};
+            for i in 1..3 {
+                if self.player.move_block(i * sign, 0) {return true;}
+            }
+            self.block.previous_rotation();
+            return false;
+        }
+    true
+    }
 }
