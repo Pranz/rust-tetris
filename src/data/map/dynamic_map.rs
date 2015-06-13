@@ -1,0 +1,157 @@
+use super::super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
+use super::Map as MapTrait;
+use super::cell::Cell;
+
+///Constant width of the map
+const WIDTH : super::SizeAxis = 10;
+
+///Constant height of the map
+const HEIGHT: super::SizeAxis = 20;
+
+///Rectangular game map
+pub struct Map {
+    slice : Box<[Box<[u8]>]>,
+    width : u8,
+    height: u8,
+}
+
+impl MapTrait for Map{
+    type Cell = u8;
+
+    fn clear(&mut self){
+        for i in 0..self.width(){
+            for j in 0..self.height(){
+                self.set_position(i as super::PosAxis,j as super::PosAxis,0);
+            }
+        }
+    }
+
+    fn position(&self,x: super::PosAxis,y: super::PosAxis) -> Option<u8>{
+        if self.is_position_out_of_range(x,y){
+            None
+        }else{
+            Some(unsafe{self.pos(x as usize,y as usize)})
+        }
+    }
+
+    fn set_position(&mut self,x: super::PosAxis,y: super::PosAxis,state: u8) -> bool{
+        if self.is_position_out_of_range(x,y){
+            false
+        }else{
+            unsafe{self.set_pos(x as usize,y as usize,state)};
+            true
+        }
+    }
+
+    fn block_intersects(&self, block: &BlockVariant, x: super::PosAxis, y: super::PosAxis) -> Option<(super::PosAxis, super::PosAxis)> {
+        for i in 0..BLOCK_COUNT{
+            for j in 0..BLOCK_COUNT{
+                if block.collision_map()[j as usize][i as usize] {
+                    let (x,y) = (i as super::PosAxis + x,j as super::PosAxis + y);
+                    match self.position(x,y){
+                        None                           => return Some((x,y)),
+                        Some(pos) if pos.is_occupied() => return Some((x,y)),
+                        _ => ()
+                    };
+                }
+            }
+        }
+        None
+    }
+
+    fn imprint_block<F>(&mut self,block: &BlockVariant, x: super::PosAxis, y: super::PosAxis,cell_constructor: F)
+        where F: Fn(&BlockVariant) -> u8
+    {
+        for i in 0 .. BLOCK_COUNT{
+            for j in 0 .. BLOCK_COUNT{
+                if block.collision_map()[j as usize][i as usize]{
+                    self.set_position(x+(i as super::PosAxis),y+(j as super::PosAxis),cell_constructor(block));
+                }
+            }
+        }
+    }
+
+    fn handle_full_rows(&mut self, lowest_y: super::SizeAxis){
+        // TODO: In case we need to move lines anywhere else, split this function into two.
+        let lowest_y = if lowest_y >= self.height() {self.height() - 1}else{lowest_y};
+        let mut terminated_rows: super::SizeAxis = 0;
+        for i in 0..BLOCK_COUNT{
+            let lowest_y = lowest_y - i as super::SizeAxis + terminated_rows;
+            if (0..self.width()).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}.is_occupied()){
+                terminated_rows += 1;
+                for j in 0..lowest_y{
+                    for x in 0..self.width() {
+                        self.slice[(lowest_y - j) as usize][x as usize] = self.slice[(lowest_y - j - 1) as usize][x as usize];
+                    }
+                }
+                for x in 0..self.width() {
+                    self.slice[0][x as usize] = <u8 as Cell>::empty();
+                }
+            }
+        }
+    }
+
+    #[inline(always)]
+    fn width(&self) -> super::SizeAxis{self.width}
+
+    #[inline(always)]
+    fn height(&self) -> super::SizeAxis{self.height}
+}
+
+impl Map{
+    ///Returns the cell at the given position without checks
+    #[inline(always)]
+    unsafe fn pos(&self,x: usize,y: usize) -> u8{
+        self.slice[y][x]
+    }
+
+    ///Sets the cell at the given position without checks
+    #[inline(always)]
+    unsafe fn set_pos(&mut self,x: usize,y: usize,state: u8){
+        self.slice[y][x]= state;
+    }
+
+    pub fn cells<'s>(&'s self) -> CellIter<'s,Self>{CellIter{map: self,x: 0,y: 0}}
+
+    pub fn new(x : u8, y : u8) -> Self {
+        let mut columns = Vec::with_capacity(y as usize);
+        for _ in 0..y {
+            let mut row : Vec<u8> = Vec::with_capacity(x as usize);
+            unsafe {row.set_len(x as usize);}
+            for i in 0..x {
+                row[i as usize] = <u8 as Cell>::empty();
+            }
+            columns.push(row.into_boxed_slice());
+        }
+        Map {
+            slice : columns.into_boxed_slice(),
+            width : x,
+            height: y,
+        }
+    }
+}
+
+pub struct CellIter<'m,Map: 'm>{
+    map: &'m Map,
+    x: super::SizeAxis,
+    y: super::SizeAxis,
+}
+impl<'m> Iterator for CellIter<'m,Map> {
+    type Item = (super::SizeAxis,super::SizeAxis,u8);
+
+    fn next(&mut self) -> Option<<Self as Iterator>::Item>{
+        if self.x == self.map.width(){
+            self.x = 0;
+            self.y+= 1;
+        }
+
+        if self.y == self.map.height(){
+            return None
+        }
+
+        let x = self.x;
+        self.x+=1;
+
+        return Some((x,self.y,unsafe{self.map.pos(x as usize,self.y as usize)}));
+    }
+}

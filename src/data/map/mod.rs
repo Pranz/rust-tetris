@@ -2,7 +2,7 @@
 
 pub mod cell;
 pub mod default_map;
-
+pub mod dynamic_map;
 
 
 use super::shapes::tetrimino::BlockVariant;
@@ -14,13 +14,13 @@ pub type PosAxis  = i16;
 pub type SizeAxis = u8;
 
 pub trait Map{
-	type Cell;
+    type Cell;
 
     //Clears the map
     fn clear(&mut self);
 
     fn is_position_out_of_range(&self,x: PosAxis,y: PosAxis) -> bool{
-    	x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis
+        x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis
     }
 
     ///Returns the cell at the given position.
