@@ -113,28 +113,28 @@ impl<Cell: super::cell::Cell + Copy> Default for Map<Cell>{
 }
 
 pub struct CellIter<'m,Map: 'm>{
-	map: &'m Map,
-	x: super::SizeAxis,
-	y: super::SizeAxis,
+    map: &'m Map,
+    x: super::SizeAxis,
+    y: super::SizeAxis,
 }
 impl<'m,Cell> Iterator for CellIter<'m,Map<Cell>>
     where Cell: Copy
 {
-	type Item = (super::SizeAxis,super::SizeAxis,Cell);
+    type Item = (super::SizeAxis,super::SizeAxis,Cell);
 
-	fn next(&mut self) -> Option<<Self as Iterator>::Item>{
-		if self.x == WIDTH{
-			self.x = 0;
-			self.y+= 1;
-		}
+    fn next(&mut self) -> Option<<Self as Iterator>::Item>{
+        if self.x == WIDTH{
+            self.x = 0;
+            self.y+= 1;
+        }
 
-		if self.y == HEIGHT{
-			return None
-		}
+        if self.y == HEIGHT{
+            return None
+        }
 
-		let x = self.x;
-		self.x+=1;
+        let x = self.x;
+        self.x+=1;
 
-		return Some((x,self.y,unsafe{self.map.pos(x as usize,self.y as usize)}));
-	}
+        return Some((x,self.y,unsafe{self.map.pos(x as usize,self.y as usize)}));
+    }
 }
