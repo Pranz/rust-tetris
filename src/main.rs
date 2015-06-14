@@ -19,7 +19,7 @@ use opengl_graphics::{ GlGraphics, OpenGL };
 use data::{colors,map};
 use data::map::cell::Cell;
 use data::map::Map;
-use data::shapes::tetrimino::BLOCK_COUNT;
+use data::shapes::tetrimino::{BLOCK_COUNT,Shape};
 use data::gamestate::GameState;
 
 struct App<Rng>{
@@ -71,6 +71,15 @@ impl<Rng: rand::Rng> App<Rng>{
         Key::Up    => {self.tetris.rotate_and_resolve();},
         Key::X     => {self.tetris.block.previous_rotation();},//TODO: No resolve for previous rotation?
         Key::Z     => {self.tetris.rotate_and_resolve();},
+        Key::R     => {self.tetris.map.clear();},
+        Key::D1    => {self.tetris.block.set_shape(Shape::I);},
+        Key::D2    => {self.tetris.block.set_shape(Shape::L);},
+        Key::D3    => {self.tetris.block.set_shape(Shape::O);},
+        Key::D4    => {self.tetris.block.set_shape(Shape::J);},
+        Key::D5    => {self.tetris.block.set_shape(Shape::T);},
+        Key::D6    => {self.tetris.block.set_shape(Shape::S);},
+        Key::D7    => {self.tetris.block.set_shape(Shape::Z);},
+        Key::Home  => {self.tetris.block_y = 0;},
         _ => {},
     }}
 }

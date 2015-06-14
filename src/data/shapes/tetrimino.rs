@@ -87,6 +87,11 @@ impl BlockVariant{
         } - 1;
     }
 
+    pub fn set_shape(&mut self,shape: Shape){
+        self.shape = shape;
+        self.rotation %= shape.data().len() as u8;
+    }
+
     /*pub fn random_rotation<R: Rng>(&mut self,rng: &mut R){
         self.rotation = rng.gen_range(0,self.shape.data().len() as u8)
     }*/
