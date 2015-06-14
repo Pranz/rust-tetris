@@ -14,9 +14,9 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     type Cell = Cell;
 
     fn clear(&mut self){
-        for i in 0..self.width(){
-            for j in 0..self.height(){
-                self.set_position(i as super::PosAxis,j as super::PosAxis,Cell::empty());
+        for y in 0..self.height(){
+            for x in 0..self.width(){
+                unsafe{self.set_pos(x as usize,y as usize,Cell::empty())};
             }
         }
     }
@@ -39,8 +39,8 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     }
 
     fn block_intersects(&self, block: &BlockVariant, x: super::PosAxis, y: super::PosAxis) -> Option<(super::PosAxis, super::PosAxis)> {
-        for i in 0..BLOCK_COUNT{
-            for j in 0..BLOCK_COUNT{
+        for j in 0..BLOCK_COUNT{
+            for i in 0..BLOCK_COUNT{
                 if block.collision_map()[j as usize][i as usize] {
                     let (x,y) = (i as super::PosAxis + x,j as super::PosAxis + y);
                     match self.position(x,y){
@@ -57,8 +57,8 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     fn imprint_block<F>(&mut self,block: &BlockVariant, x: super::PosAxis, y: super::PosAxis,cell_constructor: F)
         where F: Fn(&BlockVariant) -> Cell
     {
-        for i in 0 .. BLOCK_COUNT{
-            for j in 0 .. BLOCK_COUNT{
+        for j in 0 .. BLOCK_COUNT{
+            for i in 0 .. BLOCK_COUNT{
                 if block.collision_map()[j as usize][i as usize]{
                     self.set_position(x+(i as super::PosAxis),y+(j as super::PosAxis),cell_constructor(block));
                 }

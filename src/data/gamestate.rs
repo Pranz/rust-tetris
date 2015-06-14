@@ -1,4 +1,3 @@
-use core::default::Default;
 use piston::event;
 use rand::{self,Rand};
 
@@ -18,7 +17,7 @@ pub struct GameState<Rng>{
 impl<Rng: rand::Rng> GameState<Rng>{
     pub fn new(mut rng: Rng) -> Self {
         GameState{
-            map                 : map::dynamic_map::Map::new(30, 25),
+            map                 : map::dynamic_map::Map::new(8, 25),
             block_move_frequency: 1.0,
             time_count          : 0.0,
             block               : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),

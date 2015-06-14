@@ -2,27 +2,18 @@ use super::super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
 use super::Map as MapTrait;
 use super::cell::Cell;
 
-///Constant width of the map
-const WIDTH : super::SizeAxis = 10;
-
-///Constant height of the map
-const HEIGHT: super::SizeAxis = 20;
-
 ///Rectangular game map
 pub struct Map {
-    slice : Box<[Box<[u8]>]>,
+    slice : Box<[u8]>,
     width : u8,
-    height: u8,
 }
 
 impl MapTrait for Map{
     type Cell = u8;
 
     fn clear(&mut self){
-        for i in 0..self.width(){
-            for j in 0..self.height(){
-                self.set_position(i as super::PosAxis,j as super::PosAxis,0);
-            }
+        for cell in self.slice.iter_mut(){
+            *cell = <u8 as Cell>::empty();
         }
     }
 
@@ -80,13 +71,9 @@ impl MapTrait for Map{
             if (0..self.width()).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}.is_occupied()){
                 terminated_rows += 1;
                 for j in 0..lowest_y{
-                    for x in 0..self.width() {
-                        self.slice[(lowest_y - j) as usize][x as usize] = self.slice[(lowest_y - j - 1) as usize][x as usize];
-                    }
+                    unsafe{self.copy_row(lowest_y - j - 1,lowest_y - j)};
                 }
-                for x in 0..self.width() {
-                    self.slice[0][x as usize] = <u8 as Cell>::empty();
-                }
+                unsafe{self.clear_row(0)};
             }
         }
     }
@@ -95,39 +82,54 @@ impl MapTrait for Map{
     fn width(&self) -> super::SizeAxis{self.width}
 
     #[inline(always)]
-    fn height(&self) -> super::SizeAxis{self.height}
+    fn height(&self) -> super::SizeAxis{(self.slice.len()/(self.width as usize)) as u8}
 }
 
 impl Map{
     ///Returns the cell at the given position without checks
     #[inline(always)]
     unsafe fn pos(&self,x: usize,y: usize) -> u8{
-        self.slice[y][x]
+        self.slice[x + y*(self.width as usize)]
     }
 
     ///Sets the cell at the given position without checks
     #[inline(always)]
     unsafe fn set_pos(&mut self,x: usize,y: usize,state: u8){
-        self.slice[y][x]= state;
+        self.slice[x + y*(self.width as usize)] = state;
     }
 
     pub fn cells<'s>(&'s self) -> CellIter<'s,Self>{CellIter{map: self,x: 0,y: 0}}
+    pub fn cells_mut<'s>(&'s self) -> CellIter<'s,Self>{CellIter{map: self,x: 0,y: 0}}
 
-    pub fn new(x : u8, y : u8) -> Self {
-        let mut columns = Vec::with_capacity(y as usize);
-        for _ in 0..y {
-            let mut row : Vec<u8> = Vec::with_capacity(x as usize);
-            unsafe {row.set_len(x as usize);}
-            for i in 0..x {
-                row[i as usize] = <u8 as Cell>::empty();
-            }
-            columns.push(row.into_boxed_slice());
+    pub fn new(width: super::SizeAxis,height: super::SizeAxis) -> Self{
+        use core::iter::{self,FromIterator};
+
+        Map{
+            slice : Vec::from_iter(iter::repeat(<u8 as Cell>::empty()).take((width as usize)*(height as usize))).into_boxed_slice(),
+            width : width,
         }
-        Map {
-            slice : columns.into_boxed_slice(),
-            width : x,
-            height: y,
+    }
+
+    pub unsafe fn clear_row(&mut self,y: super::SizeAxis){
+        debug_assert!(y < self.height());
+
+        for i in self.width * y .. (self.width+1) * y{
+            self.slice[i as usize] = <u8 as Cell>::empty();
         }
+    }
+
+    pub unsafe fn copy_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
+        use core::{mem,ptr};
+
+        debug_assert!(y_from != y_to);
+        debug_assert!(y_from < self.height());
+        debug_assert!(y_to < self.height());
+
+        ptr::copy_nonoverlapping(
+            &self.slice[(self.width as usize) * (y_from as usize)],
+            &mut self.slice[(self.width as usize) * (y_to as usize)],
+            self.width as usize * mem::size_of::<<Self as MapTrait>::Cell>()
+        );
     }
 }
 
@@ -136,7 +138,7 @@ pub struct CellIter<'m,Map: 'm>{
     x: super::SizeAxis,
     y: super::SizeAxis,
 }
-impl<'m> Iterator for CellIter<'m,Map> {
+impl<'m> Iterator for CellIter<'m,Map>{
     type Item = (super::SizeAxis,super::SizeAxis,u8);
 
     fn next(&mut self) -> Option<<Self as Iterator>::Item>{
