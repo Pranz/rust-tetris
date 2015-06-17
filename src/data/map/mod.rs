@@ -95,10 +95,38 @@ pub trait Map{
     fn height(&self) -> SizeAxis;
 
     ///Returns the cell at the given position without checks
+    ///Requirements:
+    ///    x < height()
+    ///    y < height()
     unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell;
 
     ///Sets the cell at the given position without checks
+    ///Requirements:
+    ///    x < height()
+    ///    y < height()
     unsafe fn set_pos(&mut self,x: usize,y: usize,state: Self::Cell);
+
+    ///Clears the row at the given y coordinate
+    ///Requirements:
+    ///    y < height()
+    fn clear_row(&mut self,y: SizeAxis);
+
+    ///Copies a row and its cells to another row, overwriting the existing data of the another row
+    ///Requirements:
+    ///    y_from != y_to
+    ///    y_from < height()
+    ///    y_to   < height()
+    fn copy_row(&mut self,y_from: SizeAxis,y_to: SizeAxis);
+
+    ///Moves a row and its cells to another row, overwriting the existing data of the anotehr row and clears the moved row
+    ///Requirements:
+    ///    y_from != y_to
+    ///    y_from < height()
+    ///    y_to   < height()
+    fn move_row(&mut self,y_from: SizeAxis,y_to: SizeAxis){
+        self.copy_row(y_from,y_to);
+        self.clear_row(y_from);
+    }
 }
 
 pub struct PositionedCellIter<'m,Map: 'm>{

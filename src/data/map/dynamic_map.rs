@@ -38,7 +38,7 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
                 while let Some(y) = y_check.next(){
                     //Simulate row gravity (Part 1)
                     //This applies to the rows that should be checked
-                    unsafe{self.copy_row(y,y + full_row_count)};
+                    self.copy_row(y,y + full_row_count);
 
                     //Continue to check if the row fully consist of occupied cells
                     if (0..self.width()).all(|x| unsafe{self.pos(x as usize,y as usize)}.is_occupied()){
@@ -46,10 +46,12 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
                     }
                 }
 
+                //TODO: Use move_rows instead?
+
                 //Simulate row gravity (Part 2)
                 //This applies to the rest of the rows
                 for y in (full_row_count .. y_check_start).rev(){
-                    unsafe{self.copy_row(y,y + full_row_count)};
+                    self.copy_row(y,y + full_row_count);
                 }
 
                 //Simulate row gravity (Part 3)
@@ -78,6 +80,31 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     unsafe fn set_pos(&mut self,x: usize,y: usize,state: <Self as MapTrait>::Cell){
         self.slice[x + y*(self.width as usize)] = state;
     }
+
+    fn clear_row(&mut self,y: super::SizeAxis){
+        debug_assert!(y < self.height());
+
+        for i in self.width * y .. self.width * (y+1){
+            self.slice[i as usize] = <Self as MapTrait>::Cell::empty();
+        }
+    }
+
+    fn copy_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
+        debug_assert!(y_from != y_to);
+        debug_assert!(y_from < self.height());
+        debug_assert!(y_to < self.height());
+
+        unsafe{ptr::copy_nonoverlapping(
+            &    self.slice[(self.width as usize) * (y_from as usize)],
+            &mut self.slice[(self.width as usize) * (y_to as usize)],
+            self.width as usize
+        )};
+    }
+
+    fn move_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
+        self.copy_row(y_from,y_to);
+        self.clear_row(y_from);
+    }
 }
 
 impl<Cell: super::cell::Cell + Copy> Map<Cell>{
@@ -92,14 +119,6 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
         }
     }
 
-    pub fn clear_row(&mut self,y: super::SizeAxis){
-        debug_assert!(y < self.height());
-
-        for i in self.width * y .. self.width * (y+1){
-            self.slice[i as usize] = <Self as MapTrait>::Cell::empty();
-        }
-    }
-
     pub fn clear_rows(&mut self,y: Range<super::SizeAxis>){
         debug_assert!(y.start < y.end);
         debug_assert!(y.end <= self.height());
@@ -109,33 +128,19 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
         }
     }
 
-    pub unsafe fn copy_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
-        debug_assert!(y_from != y_to);
-        debug_assert!(y_from < self.height());
-        debug_assert!(y_to < self.height());
-
-        //TODO: Guarantee drop for overwritten cells
-        ptr::copy_nonoverlapping(
-            &    self.slice[(self.width as usize) * (y_from as usize)],
-            &mut self.slice[(self.width as usize) * (y_to as usize)],
-            self.width as usize
-        );
-    }
-
-    pub unsafe fn move_rows(&mut self,y: Range<super::SizeAxis>,steps: super::PosAxis){
+    pub fn move_rows(&mut self,y: Range<super::SizeAxis>,steps: super::PosAxis){
         debug_assert!(y.start < y.end);
         debug_assert!(y.end <= self.height());
         debug_assert!(steps != 0);
         debug_assert!(y.start as super::PosAxis + steps > 0);
         debug_assert!(y.end   as super::PosAxis + steps < self.height() as super::PosAxis);
 
-        //TODO: Guarantee drop for overwritten cells
         let src  = (self.width as usize) * (y.start as usize);
         let dest = (self.width as usize) * ((y.start as super::PosAxis + steps) as usize);
         let size = self.width as usize * y.len();
 
         if steps.abs() < y.len() as super::PosAxis{
-            ptr::copy(&self.slice[src],&mut self.slice[dest],size);
+            unsafe{ptr::copy(&self.slice[src],&mut self.slice[dest],size)};
 
             if steps > 0{
                 self.clear_rows(y.start .. y.start + steps as super::SizeAxis);
@@ -143,7 +148,7 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
                 self.clear_rows(y.start + (-steps) as super::SizeAxis .. y.start);
             }
         }else{
-            ptr::copy_nonoverlapping(&self.slice[src],&mut self.slice[dest],size);
+            unsafe{ptr::copy_nonoverlapping(&self.slice[src],&mut self.slice[dest],size)};
             self.clear_rows(y);
         }
     }
