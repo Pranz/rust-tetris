@@ -11,10 +11,10 @@ pub mod data;
 
 use piston::window::WindowSettings;
 use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
-use piston::input::{Button, Key};
+use piston::input::{Button,Key};
 use glutin_window::GlutinWindow as Window;
 use graphics::Transformed;
-use opengl_graphics::{ GlGraphics, OpenGL };
+use opengl_graphics::{GlGraphics,OpenGL};
 
 use data::{colors,map};
 use data::map::cell::ShapeCell;
@@ -92,8 +92,8 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::Left   => {self.tetris.move_block(-1, 0);},
             Key::Down   => {self.tetris.time_count = if self.tetris.move_block( 0, 1){0.0}else{self.tetris.block_move_frequency};},
             Key::Up     => {self.tetris.rotate_and_resolve();},
-            Key::X      => {self.tetris.block.previous_rotation();},//TODO: No resolve for previous rotation?
-            Key::Z      => {self.tetris.rotate_and_resolve();},
+            Key::X      => {self.tetris.rotate_and_resolve();},
+            Key::Z      => {self.tetris.block.previous_rotation();},//TODO: No resolve for previous rotation?
             Key::R      => {self.tetris.map.clear();},
             Key::D1     => {self.tetris.block.set_shape(Shape::I);},
             Key::D2     => {self.tetris.block.set_shape(Shape::L);},
@@ -104,10 +104,6 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::D7     => {self.tetris.block.set_shape(Shape::Z);},
             Key::Home   => {self.tetris.block_y = 0;},
             Key::Return => {self.tetris.paused = true},
-            //Test
-            Key::T => {
-                //self.tetris.map.
-            },
             _ => {},
         }}
     }

@@ -1,4 +1,5 @@
 use core::ops::Range;
+use core::ptr;
 
 use super::Map as MapTrait;
 use super::cell::Cell;
@@ -37,7 +38,6 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
                 while let Some(y) = y_check.next(){
                     //Simulate row gravity (Part 1)
                     //This applies to the rows that should be checked
-                    println!("Copy 1: {} -> {}",y,y + full_row_count);
                     unsafe{self.copy_row(y,y + full_row_count)};
 
                     //Continue to check if the row fully consist of occupied cells
@@ -49,7 +49,6 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
                 //Simulate row gravity (Part 2)
                 //This applies to the rest of the rows
                 for y in (full_row_count .. y_check_start).rev(){
-                    println!("Copy 2: {} -> {}",y,y + full_row_count);
                     unsafe{self.copy_row(y,y + full_row_count)};
                 }
 
@@ -111,8 +110,6 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
     }
 
     pub unsafe fn copy_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
-        use core::{mem,ptr};
-
         debug_assert!(y_from != y_to);
         debug_assert!(y_from < self.height());
         debug_assert!(y_to < self.height());
@@ -121,13 +118,11 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
         ptr::copy_nonoverlapping(
             &    self.slice[(self.width as usize) * (y_from as usize)],
             &mut self.slice[(self.width as usize) * (y_to as usize)],
-            self.width as usize * mem::size_of::<<Self as MapTrait>::Cell>()
+            self.width as usize
         );
     }
 
     pub unsafe fn move_rows(&mut self,y: Range<super::SizeAxis>,steps: super::PosAxis){
-        use core::{mem,ptr};
-
         debug_assert!(y.start < y.end);
         debug_assert!(y.end <= self.height());
         debug_assert!(steps != 0);
@@ -137,7 +132,7 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
         //TODO: Guarantee drop for overwritten cells
         let src  = (self.width as usize) * (y.start as usize);
         let dest = (self.width as usize) * ((y.start as super::PosAxis + steps) as usize);
-        let size = self.width as usize * y.len() * mem::size_of::<<Self as MapTrait>::Cell>();
+        let size = self.width as usize * y.len();
 
         if steps.abs() < y.len() as super::PosAxis{
             ptr::copy(&self.slice[src],&mut self.slice[dest],size);
