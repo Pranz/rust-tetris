@@ -6,6 +6,8 @@ pub mod dynamic_map;
 
 
 
+use core::ops::Range;
+
 use super::shapes::tetrimino::BlockVariant;
 
 ///Signed integer type used for describing a position axis. The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.
@@ -20,7 +22,7 @@ pub trait Map{
     //Clears the map
     fn clear(&mut self);
 
-    fn is_position_out_of_range(&self,x: PosAxis,y: PosAxis) -> bool{
+    fn is_position_out_of_bounds(&self,x: PosAxis,y: PosAxis) -> bool{
         x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis
     }
 
@@ -30,7 +32,7 @@ pub trait Map{
 
     ///Sets the cell at the given position.
     ///Returns false when out of bounds or failing to set the cell at the given position.
-    fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Self::Cell) -> bool;
+    fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Self::Cell) -> Result<(),()>;
 
 
     ///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map
@@ -38,10 +40,10 @@ pub trait Map{
 
     ///Imprints the given block at the given position on the map
     fn imprint_block<F>(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
-        where F: Fn(&BlockVariant) -> Self::Cell;
+        where F: Fn(&BlockVariant) -> Self::Cell;//TODO: Probably makes Map not object safe
 
     ///Check and resolve any full rows, starting to check at the specified y-position and then upward.
-    fn handle_full_rows(&mut self, lowest_y: SizeAxis);
+    fn handle_full_rows(&mut self,y: Range<SizeAxis>) -> SizeAxis;
 
     fn width(&self) -> SizeAxis;
     fn height(&self) -> SizeAxis;

@@ -41,7 +41,7 @@ impl<Rng: rand::Rng> App<Rng>{
 
             //Draw map
             graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,tetris.map.width() as f64 * BLOCK_PIXEL_SIZE,tetris.map.height() as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
-            for (x,y,cell) in tetris.map.cells(){
+            for (x,y,cell) in tetris.map.cells_positioned(){
                 if cell.is_occupied(){
                     let transform = context.transform.trans(x as f64 * BLOCK_PIXEL_SIZE,y as f64 * BLOCK_PIXEL_SIZE);
                     graphics::rectangle(colors::DARK_WHITE,square,transform,gl);
@@ -67,7 +67,7 @@ impl<Rng: rand::Rng> App<Rng>{
     fn on_key_press(&mut self, key: Key){match key{
         Key::Right => {self.tetris.move_block( 1, 0);},
         Key::Left  => {self.tetris.move_block(-1, 0);},
-        Key::Down  => {self.tetris.move_block( 0, 1);},
+        Key::Down  => {self.tetris.time_count = if self.tetris.move_block( 0, 1){0.0}else{self.tetris.block_move_frequency};},
         Key::Up    => {self.tetris.rotate_and_resolve();},
         Key::X     => {self.tetris.block.previous_rotation();},//TODO: No resolve for previous rotation?
         Key::Z     => {self.tetris.rotate_and_resolve();},

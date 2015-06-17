@@ -1,3 +1,5 @@
+use core::ops::Range;
+
 use super::super::shapes::tetrimino::{BlockVariant,BLOCK_COUNT};
 use super::Map as MapTrait;
 
@@ -22,19 +24,19 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     }
 
     fn position(&self,x: super::PosAxis,y: super::PosAxis) -> Option<Cell>{
-        if self.is_position_out_of_range(x,y){
+        if self.is_position_out_of_bounds(x,y){
             None
         }else{
             Some(unsafe{self.pos(x as usize,y as usize)})
         }
     }
 
-    fn set_position(&mut self,x: super::PosAxis,y: super::PosAxis,state: Cell) -> bool{
-        if self.is_position_out_of_range(x,y){
-            false
+    fn set_position(&mut self,x: super::PosAxis,y: super::PosAxis,state: Cell) -> Result<(),()>{
+        if self.is_position_out_of_bounds(x,y){
+            Err(())
         }else{
             unsafe{self.set_pos(x as usize,y as usize,state)};
-            true
+            Ok(())
         }
     }
 
@@ -60,26 +62,30 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         for j in 0 .. BLOCK_COUNT{
             for i in 0 .. BLOCK_COUNT{
                 if block.collision_map()[j as usize][i as usize]{
-                    self.set_position(x+(i as super::PosAxis),y+(j as super::PosAxis),cell_constructor(block));
+                    self.set_position(x+(i as super::PosAxis),y+(j as super::PosAxis),cell_constructor(block)).ok();
                 }
             }
         }
     }
 
-    fn handle_full_rows(&mut self, lowest_y: super::SizeAxis){
+    fn handle_full_rows(&mut self,y_check: Range<super::SizeAxis>) -> super::SizeAxis{
         // TODO: In case we need to move lines anywhere else, split this function into two.
-        let lowest_y = if lowest_y >= HEIGHT{HEIGHT - 1}else{lowest_y};
+        debug_assert!(y_check.start < y_check.end);
+        debug_assert!(y_check.end <= HEIGHT);
+
         let mut terminated_rows: super::SizeAxis = 0;
-        for i in 0..BLOCK_COUNT{
-            let lowest_y = lowest_y - i as super::SizeAxis + terminated_rows;
-            if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,lowest_y as usize)}.is_occupied()){
+        for y_lowest in y_check.rev(){
+            let y_lowest = y_lowest + terminated_rows;
+            if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,y_lowest as usize)}.is_occupied()){
                 terminated_rows += 1;
-                for j in 0..lowest_y{
-                    self.0[(lowest_y - j) as usize] = self.0[(lowest_y - j - 1) as usize];
+                for y in (0..y_lowest).rev(){
+                    self.0[y as usize + 1] = self.0[y as usize];
                 }
                 self.0[0] = [Cell::empty(); WIDTH as usize];
             }
         }
+
+        return terminated_rows;
     }
 
     #[inline(always)]
@@ -102,7 +108,7 @@ impl<Cell: Copy> Map<Cell>{
         self.0[y][x] = state;
     }
 
-    pub fn cells<'s>(&'s self) -> CellIter<'s,Self>{CellIter{map: self,x: 0,y: 0}}
+    pub fn cells_positioned<'s>(&'s self) -> CellIter<'s,Self>{CellIter{map: self,x: 0,y: 0}}
 }
 
 

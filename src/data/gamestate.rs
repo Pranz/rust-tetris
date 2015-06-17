@@ -1,11 +1,14 @@
+use core::cmp;
 use piston::event;
 use rand::{self,Rand};
 
-use super::map::{self,Map};
-use super::shapes::tetrimino::{Shape,BlockVariant};
+use super::map;
+use super::map::Map as MapTrait;
+use super::map::dynamic_map::Map;
+use super::shapes::tetrimino::{BLOCK_COUNT,Shape,BlockVariant};
 
 pub struct GameState<Rng>{
-    pub map                 : map::dynamic_map::Map,
+    pub map                 : Map,
     pub block_move_frequency: f64,//Unit: seconds/block
     pub time_count          : f64,
     pub block               : BlockVariant,
@@ -17,7 +20,7 @@ pub struct GameState<Rng>{
 impl<Rng: rand::Rng> GameState<Rng>{
     pub fn new(mut rng: Rng) -> Self {
         GameState{
-            map                 : map::dynamic_map::Map::new(8, 25),
+            map                 : Map::new(5,25),
             block_move_frequency: 1.0,
             time_count          : 0.0,
             block               : BlockVariant::new(<Shape as Rand>::rand(&mut rng),0),
@@ -42,16 +45,18 @@ impl<Rng: rand::Rng> GameState<Rng>{
                 self.map.imprint_block(&self.block,self.block_x,self.block_y,|_| 1);
 
                 //Handles the filled rows
-                self.map.handle_full_rows(self.block_y as u8 + 4);//TODO: 4? Magic constant
+                let map_height = self.map.height();
+                self.map.handle_full_rows(cmp::max(0,self.block_y) as map::SizeAxis .. cmp::min(self.block_y as map::SizeAxis + BLOCK_COUNT,map_height));
 
                 //Select a new block at random, setting its position to the starting position
                 self.block = BlockVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
-                self.block_x = 2;//TODO: Top middle of map
+                self.block_x = self.map.width() as map::PosAxis/2 - BLOCK_COUNT as map::PosAxis/2;//TODO: Top middle of map
                 self.block_y = 0;
                 //If the new block at the starting position also collides with another block
                 if self.map.block_intersects(&self.block, self.block_x, self.block_y).is_some() {
                     //Reset the map
                     self.map.clear();
+                    self.time_count = 0.0;
                 }
             }
             else{
