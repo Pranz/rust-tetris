@@ -8,13 +8,14 @@ use super::map::dynamic_map::Map;
 use super::shapes::tetrimino::{BLOCK_COUNT,Shape,BlockVariant};
 
 pub struct GameState<Rng>{
-    pub map                 : Map,
+    pub map                 : Map<map::cell::ShapeCell>,
     pub block_move_frequency: f64,//Unit: seconds/block
     pub time_count          : f64,
     pub block               : BlockVariant,
     pub block_x             : map::PosAxis,
     pub block_y             : map::PosAxis,
-    pub rng                 : Rng
+    pub rng                 : Rng,
+    pub paused              : bool,
 }
 
 impl<Rng: rand::Rng> GameState<Rng>{
@@ -27,10 +28,11 @@ impl<Rng: rand::Rng> GameState<Rng>{
             block_x             : 0,//TODO: Maybe move some of these fields to a Player struct? (Multiplayer preparations)
             block_y             : 0,
             rng                 : rng,
+            paused              : false,
         }
     }
 
-    pub fn update(&mut self, args: &event::UpdateArgs){
+    pub fn update(&mut self, args: &event::UpdateArgs){if !self.paused{
         //Add the time since the last update to the time count
         self.time_count += args.dt;
 
@@ -42,7 +44,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
             //If there are a collision below
             if self.map.block_intersects(&self.block, self.block_x as map::PosAxis, self.block_y as map::PosAxis + 1).is_some() {
                 //Imprint the current block onto the map
-                self.map.imprint_block(&self.block,self.block_x,self.block_y,|_| 1);
+                self.map.imprint_block(&self.block,self.block_x,self.block_y,|variant| map::cell::ShapeCell(Some(variant.shape())));
 
                 //Handles the filled rows
                 let map_height = self.map.height();
@@ -64,7 +66,7 @@ impl<Rng: rand::Rng> GameState<Rng>{
                 self.block_y += 1;
             }
         }
-    }
+    }}
 
     ///Moves the current block if there are no collisions at the new position.
     ///Returns whether the movement was successful due to collisions.

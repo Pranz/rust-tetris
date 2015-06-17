@@ -87,6 +87,9 @@ impl BlockVariant{
         } - 1;
     }
 
+    #[inline(always)]
+    pub fn shape(&self) -> Shape{self.shape}
+
     pub fn set_shape(&mut self,shape: Shape){
         self.shape = shape;
         self.rotation %= shape.data().len() as u8;

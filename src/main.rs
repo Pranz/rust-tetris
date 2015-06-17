@@ -1,4 +1,4 @@
-#![feature(associated_consts,core)]
+#![feature(associated_consts,core,slice_patterns)]
 
 extern crate core;
 extern crate glutin_window;
@@ -17,7 +17,7 @@ use graphics::Transformed;
 use opengl_graphics::{ GlGraphics, OpenGL };
 
 use data::{colors,map};
-use data::map::cell::Cell;
+use data::map::cell::ShapeCell;
 use data::map::Map;
 use data::shapes::tetrimino::{BLOCK_COUNT,Shape};
 use data::gamestate::GameState;
@@ -41,10 +41,23 @@ impl<Rng: rand::Rng> App<Rng>{
 
             //Draw map
             graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,tetris.map.width() as f64 * BLOCK_PIXEL_SIZE,tetris.map.height() as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
-            for (x,y,cell) in tetris.map.cells_positioned(){
-                if cell.is_occupied(){
+            for (x,y,ShapeCell(cell)) in tetris.map.cells_positioned(){
+                if let Some(cell) = cell{
                     let transform = context.transform.trans(x as f64 * BLOCK_PIXEL_SIZE,y as f64 * BLOCK_PIXEL_SIZE);
-                    graphics::rectangle(colors::DARK_WHITE,square,transform,gl);
+                    graphics::rectangle(
+                        match cell{
+                            Shape::I => colors::blocks::RED,
+                            Shape::L => colors::blocks::MAGENTA,
+                            Shape::O => colors::blocks::BLUE,
+                            Shape::J => colors::blocks::ORANGE,
+                            Shape::T => colors::blocks::OLIVE,
+                            Shape::S => colors::blocks::LIME,
+                            Shape::Z => colors::blocks::CYAN,
+                        },
+                        square,
+                        transform,
+                        gl
+                    );
                 }
             }
 
@@ -57,6 +70,12 @@ impl<Rng: rand::Rng> App<Rng>{
                     }
                 }
             }
+
+            //Pause overlay
+            if tetris.paused{
+                let [w,h] = context.get_view_size();
+                graphics::rectangle([0.0,0.0,0.0,0.5],[0.0,0.0,w,h],context.transform,gl);
+            }
         });
     }
 
@@ -64,24 +83,34 @@ impl<Rng: rand::Rng> App<Rng>{
         self.tetris.update(args);
     }
 
-    fn on_key_press(&mut self, key: Key){match key{
-        Key::Right => {self.tetris.move_block( 1, 0);},
-        Key::Left  => {self.tetris.move_block(-1, 0);},
-        Key::Down  => {self.tetris.time_count = if self.tetris.move_block( 0, 1){0.0}else{self.tetris.block_move_frequency};},
-        Key::Up    => {self.tetris.rotate_and_resolve();},
-        Key::X     => {self.tetris.block.previous_rotation();},//TODO: No resolve for previous rotation?
-        Key::Z     => {self.tetris.rotate_and_resolve();},
-        Key::R     => {self.tetris.map.clear();},
-        Key::D1    => {self.tetris.block.set_shape(Shape::I);},
-        Key::D2    => {self.tetris.block.set_shape(Shape::L);},
-        Key::D3    => {self.tetris.block.set_shape(Shape::O);},
-        Key::D4    => {self.tetris.block.set_shape(Shape::J);},
-        Key::D5    => {self.tetris.block.set_shape(Shape::T);},
-        Key::D6    => {self.tetris.block.set_shape(Shape::S);},
-        Key::D7    => {self.tetris.block.set_shape(Shape::Z);},
-        Key::Home  => {self.tetris.block_y = 0;},
-        _ => {},
-    }}
+    fn on_key_press(&mut self, key: Key){
+        if self.tetris.paused{match key{
+            Key::Return => {self.tetris.paused = false},
+            _ => {},
+        }}else{match key{
+            Key::Right  => {self.tetris.move_block( 1, 0);},
+            Key::Left   => {self.tetris.move_block(-1, 0);},
+            Key::Down   => {self.tetris.time_count = if self.tetris.move_block( 0, 1){0.0}else{self.tetris.block_move_frequency};},
+            Key::Up     => {self.tetris.rotate_and_resolve();},
+            Key::X      => {self.tetris.block.previous_rotation();},//TODO: No resolve for previous rotation?
+            Key::Z      => {self.tetris.rotate_and_resolve();},
+            Key::R      => {self.tetris.map.clear();},
+            Key::D1     => {self.tetris.block.set_shape(Shape::I);},
+            Key::D2     => {self.tetris.block.set_shape(Shape::L);},
+            Key::D3     => {self.tetris.block.set_shape(Shape::O);},
+            Key::D4     => {self.tetris.block.set_shape(Shape::J);},
+            Key::D5     => {self.tetris.block.set_shape(Shape::T);},
+            Key::D6     => {self.tetris.block.set_shape(Shape::S);},
+            Key::D7     => {self.tetris.block.set_shape(Shape::Z);},
+            Key::Home   => {self.tetris.block_y = 0;},
+            Key::Return => {self.tetris.paused = true},
+            //Test
+            Key::T => {
+                //self.tetris.map.
+            },
+            _ => {},
+        }}
+    }
 }
 
 fn main(){

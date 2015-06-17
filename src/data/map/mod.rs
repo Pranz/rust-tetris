@@ -8,7 +8,8 @@ pub mod dynamic_map;
 
 use core::ops::Range;
 
-use super::shapes::tetrimino::BlockVariant;
+use data::map::cell::Cell;
+use super::shapes::tetrimino::{BLOCK_COUNT,BlockVariant};
 
 ///Signed integer type used for describing a position axis. The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.
 pub type PosAxis  = i16;
@@ -20,31 +21,110 @@ pub trait Map{
     type Cell;
 
     //Clears the map
-    fn clear(&mut self);
+    fn clear(&mut self) where Self::Cell: cell::Cell{
+        for y in 0..self.height(){
+            for x in 0..self.width(){
+                unsafe{self.set_pos(x as usize,y as usize,Self::Cell::empty())};
+            }
+        }
+    }
 
+    ///Returns whether the given position is out of bounds
     fn is_position_out_of_bounds(&self,x: PosAxis,y: PosAxis) -> bool{
         x<0 || y<0 || x>=self.width() as PosAxis || y>=self.height() as PosAxis
     }
 
     ///Returns the cell at the given position.
     ///A None will be returned when out of bounds
-    fn position(&self,x: PosAxis,y: PosAxis) -> Option<Self::Cell>;
+    fn position(&self,x: PosAxis,y: PosAxis) -> Option<Self::Cell>{
+        if self.is_position_out_of_bounds(x,y){
+            None
+        }else{
+            Some(unsafe{self.pos(x as usize,y as usize)})
+        }
+    }
 
     ///Sets the cell at the given position.
-    ///Returns false when out of bounds or failing to set the cell at the given position.
-    fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Self::Cell) -> Result<(),()>;
-
+    ///Returns Err when out of bounds or failing to set the cell at the given position.
+    fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Self::Cell) -> Result<(),()>{
+        if self.is_position_out_of_bounds(x,y){
+            Err(())
+        }else{
+            unsafe{self.set_pos(x as usize,y as usize,state)};
+            Ok(())
+        }
+    }
 
     ///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map
-    fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)>;
+    fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> where Self::Cell: cell::Cell + Copy{
+        for j in 0..BLOCK_COUNT{
+            for i in 0..BLOCK_COUNT{
+                if block.collision_map()[j as usize][i as usize] {
+                    let (x,y) = (i as PosAxis + x,j as PosAxis + y);
+                    match self.position(x,y){
+                        None                           => return Some((x,y)),
+                        Some(pos) if pos.is_occupied() => return Some((x,y)),
+                        _ => ()
+                    };
+                }
+            }
+        }
+        None
+    }
 
     ///Imprints the given block at the given position on the map
     fn imprint_block<F>(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
-        where F: Fn(&BlockVariant) -> Self::Cell;//TODO: Probably makes Map not object safe
+        where F: Fn(&BlockVariant) -> Self::Cell//TODO: Probably makes Map not object safe
+    {
+        for j in 0 .. BLOCK_COUNT{
+            for i in 0 .. BLOCK_COUNT{
+                if block.collision_map()[j as usize][i as usize]{
+                    self.set_position(x+(i as PosAxis),y+(j as PosAxis),cell_constructor(block)).ok();
+                }
+            }
+        }
+    }
 
     ///Check and resolve any full rows, starting to check at the specified y-position and then upward.
     fn handle_full_rows(&mut self,y: Range<SizeAxis>) -> SizeAxis;
 
+    ///Returns the rectangular axis aligned width of the map
     fn width(&self) -> SizeAxis;
+
+    ///Returns the rectangular axis aligned height of the map
     fn height(&self) -> SizeAxis;
+
+    ///Returns the cell at the given position without checks
+    unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell;
+
+    ///Sets the cell at the given position without checks
+    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Self::Cell);
+}
+
+pub struct PositionedCellIter<'m,Map: 'm>{
+    map: &'m Map,
+    x: SizeAxis,
+    y: SizeAxis,
+}
+impl<'m,M: Map> Iterator for PositionedCellIter<'m,M>
+    where M: Map,
+          M::Cell: Copy
+{
+    type Item = (SizeAxis,SizeAxis,M::Cell);
+
+    fn next(&mut self) -> Option<<Self as Iterator>::Item>{
+        if self.x == self.map.width(){
+            self.x = 0;
+            self.y+= 1;
+        }
+
+        if self.y == self.map.height(){
+            return None
+        }
+
+        let x = self.x;
+        self.x+=1;
+
+        return Some((x,self.y,unsafe{self.map.pos(x as usize,self.y as usize)}));
+    }
 }

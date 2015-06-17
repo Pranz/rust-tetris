@@ -8,7 +8,8 @@ pub trait Cell{
     fn is_occupied(self) -> bool;
 }
 
-pub struct ShapeCell(Option<Shape>);
+#[derive(Clone,Copy,Eq,PartialEq)]
+pub struct ShapeCell(pub Option<Shape>);
 
 impl Cell for ShapeCell{
     #[inline(always)]
@@ -24,11 +25,4 @@ impl Cell for bool{
 
     #[inline(always)]
     fn is_occupied(self) -> bool {self}
-}
-
-impl Cell for u8 {
-    #[inline(always)]
-    fn empty() -> Self {0}
-    #[inline(always)]
-    fn is_occupied(self) -> bool {self > 0}
 }
