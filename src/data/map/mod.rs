@@ -9,7 +9,7 @@ pub mod dynamic_map;
 use core::ops::Range;
 
 use data::map::cell::Cell;
-use super::shapes::tetrimino::{BLOCK_COUNT,BlockVariant};
+use super::shapes::tetrimino::{BLOCK_COUNT,ShapeVariant};
 
 ///Signed integer type used for describing a position axis. The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.
 pub type PosAxis  = i16;
@@ -55,11 +55,11 @@ pub trait Map{
         }
     }
 
-    ///Collision checks. Whether the given block at the given position will collide with a imprinted block on the map
-    fn block_intersects(&self, block: &BlockVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> where Self::Cell: cell::Cell + Copy{
+    ///Collision checks. Whether the given shape at the given position will collide with a imprinted shape on the map
+    fn shape_intersects(&self, shape: &ShapeVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> where Self::Cell: cell::Cell + Copy{
         for j in 0..BLOCK_COUNT{
             for i in 0..BLOCK_COUNT{
-                if block.collision_map()[j as usize][i as usize] {
+                if shape.collision_map()[j as usize][i as usize] {
                     let (x,y) = (i as PosAxis + x,j as PosAxis + y);
                     match self.position(x,y){
                         None                           => return Some((x,y)),
@@ -72,14 +72,14 @@ pub trait Map{
         None
     }
 
-    ///Imprints the given block at the given position on the map
-    fn imprint_block<F>(&mut self,block: &BlockVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
-        where F: Fn(&BlockVariant) -> Self::Cell//TODO: Probably makes Map not object safe
+    ///Imprints the given shape at the given position on the map
+    fn imprint_shape<F>(&mut self,shape: &ShapeVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
+        where F: Fn(&ShapeVariant) -> Self::Cell//TODO: Probably makes Map not object safe
     {
         for j in 0 .. BLOCK_COUNT{
             for i in 0 .. BLOCK_COUNT{
-                if block.collision_map()[j as usize][i as usize]{
-                    self.set_position(x+(i as PosAxis),y+(j as PosAxis),cell_constructor(block)).ok();
+                if shape.collision_map()[j as usize][i as usize]{
+                    self.set_position(x+(i as PosAxis),y+(j as PosAxis),cell_constructor(shape)).ok();
                 }
             }
         }

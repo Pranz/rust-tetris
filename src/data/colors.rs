@@ -11,7 +11,7 @@ pub const WHITE      : [f32; 4] = [1.0, 1.0, 1.0, 1.0];
 pub const DARK_WHITE : [f32; 4] = [0.8, 0.8, 0.8, 1.0];
 pub const LIGHT_BLACK: [f32; 4] = [0.2, 0.2, 0.2, 1.0];
 
-pub mod blocks{
+pub mod shapes{
 	pub const BLUE   : [f32; 4] = [134.0/255.0,175.0/255.0,220.0/255.0,1.0];
 	pub const CYAN   : [f32; 4] = [108.0/255.0,184.0/255.0,152.0/255.0,1.0];
 	pub const LIME   : [f32; 4] = [141.0/255.0,202.0/255.0, 95.0/255.0,1.0];

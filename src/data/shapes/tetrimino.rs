@@ -23,7 +23,7 @@ impl Shape{
     pub const LEN: usize = 7;
 
     ///Returns the data of the tetrimino shape
-    pub fn data(self) -> &'static [data::Block]{
+    pub fn data(self) -> &'static [data::Shape]{
         match self{
             Shape::I => &data::I,
             Shape::L => &data::L,
@@ -54,14 +54,14 @@ impl Rand for Shape{
 
 ///A shape with its rotation
 #[derive(PartialEq, Eq, Copy, Clone)]
-pub struct BlockVariant{
+pub struct ShapeVariant{
     shape: Shape,
     rotation: u8
 }
 
-impl BlockVariant{
+impl ShapeVariant{
     pub fn new(shape: Shape,rotation: u8) -> Self{
-        BlockVariant{
+        ShapeVariant{
             shape   : shape,
             rotation: rotation,
         }
@@ -100,12 +100,12 @@ impl BlockVariant{
     }*/
 }
 
-///Contains data arrays of all the possible blocks and its rotations in a 4x4 grid
+///Contains data arrays of all the possible shapes and its rotations in a 4x4 grid
 pub mod data{
-    ///Data of a block
-    pub type Block = [[bool; super::BLOCK_COUNT as usize]; super::BLOCK_COUNT as usize];
+    ///Data of a shape
+    pub type Shape = [[bool; super::BLOCK_COUNT as usize]; super::BLOCK_COUNT as usize];
 
-    pub static I: [Block; 2] = [
+    pub static I: [Shape; 2] = [
         [
             [false, false, true , false],//- - O -
             [false, false, true , false],//- - O -
@@ -119,7 +119,7 @@ pub mod data{
         ]
     ];
 
-    pub static L: [Block; 4] = [
+    pub static L: [Shape; 4] = [
         [
             [false, true , false, false],//O - - -
             [false, true , false, false],//O - - -
@@ -143,7 +143,7 @@ pub mod data{
         ]
     ];
 
-    pub static O: [Block; 1] = [
+    pub static O: [Shape; 1] = [
         [
             [true , true , false, false],//O O - -
             [true , true , false, false],//O O - -
@@ -152,7 +152,7 @@ pub mod data{
         ]
     ];
 
-    pub static J: [Block; 4] = [
+    pub static J: [Shape; 4] = [
         [
             [false, true , false, false],//- O - -
             [false, true , false, false],//- O - -
@@ -176,7 +176,7 @@ pub mod data{
         ]
     ];
 
-    pub static T: [Block; 4] = [
+    pub static T: [Shape; 4] = [
         [
             [false, false, false, false],//- - - -
             [false, false, false, false],//- - - -
@@ -200,7 +200,7 @@ pub mod data{
         ]
     ];
 
-    pub static S: [Block; 2] = [
+    pub static S: [Shape; 2] = [
         [
             [true , false, false, false],//O - - -
             [true , true , false, false],//O O - -
@@ -214,7 +214,7 @@ pub mod data{
         ]
     ];
 
-    pub static Z: [Block; 2] = [
+    pub static Z: [Shape; 2] = [
         [
             [false, false, false, false],//- - - -
             [false, false, true , false],//- - O -
