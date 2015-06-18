@@ -1,5 +1,6 @@
-#![feature(associated_consts,core,slice_patterns)]
+#![feature(associated_consts,collections,core,slice_patterns)]
 
+extern crate collections;
 extern crate core;
 extern crate glutin_window;
 extern crate graphics;
@@ -39,36 +40,41 @@ impl<Rng: rand::Rng> App<Rng>{
             //Clear screen
             graphics::clear(colors::BLACK,gl);
 
-            //Draw map
-            graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,tetris.map.width() as f64 * BLOCK_PIXEL_SIZE,tetris.map.height() as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
-            for (x,y,ShapeCell(cell)) in tetris.map.cells_positioned(){
-                if let Some(cell) = cell{
-                    let transform = context.transform.trans(x as f64 * BLOCK_PIXEL_SIZE,y as f64 * BLOCK_PIXEL_SIZE);
-                    graphics::rectangle(
-                        match cell{
-                            Shape::I => colors::shapes::RED,
-                            Shape::L => colors::shapes::MAGENTA,
-                            Shape::O => colors::shapes::BLUE,
-                            Shape::J => colors::shapes::ORANGE,
-                            Shape::T => colors::shapes::OLIVE,
-                            Shape::S => colors::shapes::LIME,
-                            Shape::Z => colors::shapes::CYAN,
-                        },
-                        square,
-                        transform,
-                        gl
-                    );
-                }
-            }
-
-            //Draw current shape(s)
-            for i in 0..BLOCK_COUNT{
-                for j in 0..BLOCK_COUNT{
-                    if tetris.player.shape.get(i as u8, j as u8){
-                        let transform = context.transform.trans((i as map::PosAxis + tetris.player.x) as f64 * BLOCK_PIXEL_SIZE, (j as map::PosAxis + tetris.player.y) as f64 * BLOCK_PIXEL_SIZE);
-                        graphics::rectangle(colors::WHITE,square,transform,gl);
+            match tetris.player_map_mut(0){
+                Some((player,map)) => {
+                    //Draw map
+                    graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map.width() as f64 * BLOCK_PIXEL_SIZE,map.height() as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
+                    for (x,y,ShapeCell(cell)) in map.cells_positioned(){
+                        if let Some(cell) = cell{
+                            let transform = context.transform.trans(x as f64 * BLOCK_PIXEL_SIZE,y as f64 * BLOCK_PIXEL_SIZE);
+                            graphics::rectangle(
+                                match cell{
+                                    Shape::I => colors::shapes::RED,
+                                    Shape::L => colors::shapes::MAGENTA,
+                                    Shape::O => colors::shapes::BLUE,
+                                    Shape::J => colors::shapes::ORANGE,
+                                    Shape::T => colors::shapes::OLIVE,
+                                    Shape::S => colors::shapes::LIME,
+                                    Shape::Z => colors::shapes::CYAN,
+                                },
+                                square,
+                                transform,
+                                gl
+                            );
+                        }
                     }
-                }
+
+                    //Draw current shape(s)
+                    for i in 0..BLOCK_COUNT{
+                        for j in 0..BLOCK_COUNT{
+                            if player.shape.get(i as u8, j as u8){
+                                let transform = context.transform.trans((i as map::PosAxis + player.x) as f64 * BLOCK_PIXEL_SIZE, (j as map::PosAxis + player.y) as f64 * BLOCK_PIXEL_SIZE);
+                                graphics::rectangle(colors::WHITE,square,transform,gl);
+                            }
+                        }
+                    }
+                },
+                None => ()
             }
 
             //Pause overlay
@@ -88,23 +94,25 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::Return => {self.tetris.paused = false},
             _ => {},
         }}else{match key{
-            Key::Right  => {self.tetris.move_shape( 1, 0);},
-            Key::Left   => {self.tetris.move_shape(-1, 0);},
-            Key::Down   => {self.tetris.player.move_time_count = if self.tetris.move_shape( 0, 1){0.0}else{self.tetris.player.move_frequency};},
-            Key::Up     => {self.tetris.rotate_and_resolve();},
-            Key::X      => {self.tetris.rotate_and_resolve();},
-            Key::Z      => {self.tetris.player.shape.previous_rotation();},//TODO: No resolve for previous rotation?
-            Key::R      => {self.tetris.map.clear();},
-            Key::D1     => {self.tetris.player.shape.set_shape(Shape::I);},
-            Key::D2     => {self.tetris.player.shape.set_shape(Shape::L);},
-            Key::D3     => {self.tetris.player.shape.set_shape(Shape::O);},
-            Key::D4     => {self.tetris.player.shape.set_shape(Shape::J);},
-            Key::D5     => {self.tetris.player.shape.set_shape(Shape::T);},
-            Key::D6     => {self.tetris.player.shape.set_shape(Shape::S);},
-            Key::D7     => {self.tetris.player.shape.set_shape(Shape::Z);},
-            Key::Home   => {self.tetris.player.y = 0;},
             Key::Return => {self.tetris.paused = true},
-            _ => {},
+            key => if let Some((player,map)) = self.tetris.player_map(0){match key{
+                Key::Right  => {self.tetris.move_shape(0, 1,0);},
+                Key::Left   => {self.tetris.move_shape(0,-1,0);},
+                Key::Down   => {player.move_time_count = if self.tetris.move_shape(0,0,1){0.0}else{player.move_frequency};},
+                Key::Up     => {self.tetris.rotate_and_resolve(0);},
+                Key::X      => {self.tetris.rotate_and_resolve(0);},
+                Key::Z      => {player.shape.previous_rotation();},//TODO: No resolve for previous rotation?
+                Key::R      => {map.clear();},
+                Key::D1     => {player.shape.set_shape(Shape::I);},
+                Key::D2     => {player.shape.set_shape(Shape::L);},
+                Key::D3     => {player.shape.set_shape(Shape::O);},
+                Key::D4     => {player.shape.set_shape(Shape::J);},
+                Key::D5     => {player.shape.set_shape(Shape::T);},
+                Key::D6     => {player.shape.set_shape(Shape::S);},
+                Key::D7     => {player.shape.set_shape(Shape::Z);},
+                Key::Home   => {player.y = 0;},
+                _           => {}
+            }},
         }}
     }
 }
