@@ -21,7 +21,7 @@ use data::{colors,map};
 use data::map::cell::ShapeCell;
 use data::map::Map;
 use data::shapes::tetrimino::{BLOCK_COUNT,Shape};
-use data::gamestate::GameState;
+use data::gamestate::{self,GameState};
 
 struct App<Rng>{
     gl: GlGraphics,
@@ -40,8 +40,8 @@ impl<Rng: rand::Rng> App<Rng>{
             //Clear screen
             graphics::clear(colors::BLACK,gl);
 
-            match tetris.player_map_mut(0){
-                Some((player,map)) => {
+            for (_,player) in tetris.players.iter(){match tetris.maps.get(&(player.map as usize)){
+                Some(map) => {
                     //Draw map
                     graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map.width() as f64 * BLOCK_PIXEL_SIZE,map.height() as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
                     for (x,y,ShapeCell(cell)) in map.cells_positioned(){
@@ -75,7 +75,7 @@ impl<Rng: rand::Rng> App<Rng>{
                     }
                 },
                 None => ()
-            }
+            }}
 
             //Pause overlay
             if tetris.paused{
@@ -95,14 +95,21 @@ impl<Rng: rand::Rng> App<Rng>{
             _ => {},
         }}else{match key{
             Key::Return => {self.tetris.paused = true},
-            key => if let Some((player,map)) = self.tetris.player_map(0){match key{
-                Key::Right  => {self.tetris.move_shape(0, 1,0);},
-                Key::Left   => {self.tetris.move_shape(0,-1,0);},
-                Key::Down   => {player.move_time_count = if self.tetris.move_shape(0,0,1){0.0}else{player.move_frequency};},
-                Key::Up     => {self.tetris.rotate_and_resolve(0);},
-                Key::X      => {self.tetris.rotate_and_resolve(0);},
+            key => if let Some(player) = self.tetris.players.get_mut(&0){match key{
+                Key::Left   => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){gamestate::move_player(player,map,-1,0);},
+                Key::Right  => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){gamestate::move_player(player,map, 1,0);},
+                Key::Down   => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){
+                    player.move_time_count = if gamestate::move_player(player,map,0,1){
+                        //Reset timer
+                        0.0
+                    }else{
+                        //Set timer and make the player move in the update step
+                        player.move_frequency
+                };},
+                Key::Up     => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){gamestate::rotate_and_resolve_player(player,map);},
+                Key::X      => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){gamestate::rotate_and_resolve_player(player,map);},
                 Key::Z      => {player.shape.previous_rotation();},//TODO: No resolve for previous rotation?
-                Key::R      => {map.clear();},
+                Key::R      => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){map.clear();},
                 Key::D1     => {player.shape.set_shape(Shape::I);},
                 Key::D2     => {player.shape.set_shape(Shape::L);},
                 Key::D3     => {player.shape.set_shape(Shape::O);},
@@ -139,9 +146,9 @@ fn main(){
 
     //Run the created application: Listen for events
     for e in window.events(){
-        //Render
-        if let Some(r) = e.render_args(){
-            app.render(&r);
+        //Keyboard event
+        if let Some(Button::Keyboard(k)) = e.press_args(){
+            app.on_key_press(k);
         }
 
         //Update
@@ -149,9 +156,9 @@ fn main(){
             app.update(&u);
         }
 
-        //Keyboard event
-        if let Some(Button::Keyboard(k)) = e.press_args(){
-            app.on_key_press(k);
+        //Render
+        if let Some(r) = e.render_args(){
+            app.render(&r);
         }
     }
 }

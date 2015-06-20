@@ -1,5 +1,6 @@
 use core::ops::Range;
 
+use super::super::shapes::tetrimino::ShapeVariant;
 use super::Map as MapTrait;
 
 ///Constant width of the map
@@ -64,6 +65,10 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         debug_assert!(y_to < self.height());
 
         self.0[y_from as usize] = self.0[y_to as usize];
+    }
+
+    fn shape_intersects(&self, shape: &ShapeVariant, x: super::PosAxis, y: super::PosAxis) -> Option<(super::PosAxis, super::PosAxis)>{
+        super::defaults::shape_intersects(self,shape,x,y)
     }
 }
 

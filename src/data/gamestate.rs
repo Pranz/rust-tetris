@@ -9,8 +9,8 @@ use super::map::dynamic_map::Map;
 use super::player::Player;
 use super::shapes::tetrimino::{BLOCK_COUNT,Shape,ShapeVariant};
 
-pub type PlayerId = u8;
 pub type MapId    = u8;
+pub type PlayerId = u8;
 
 pub struct GameState<Rng>{
     pub maps   : VecMap<Map<map::cell::ShapeCell>>,
@@ -20,24 +20,28 @@ pub struct GameState<Rng>{
 }
 
 impl<Rng: rand::Rng> GameState<Rng>{
-    pub fn new(mut rng: Rng) -> Self {
-        GameState{
+    pub fn new(rng: Rng) -> Self{
+        let mut out = GameState{
             maps: {let mut l = VecMap::new();l.insert(0,Map::new(5,25));l},
-            players: {let mut l = VecMap::new();l.insert(0,Player{
-                x              : 0,
-                y              : 0,
-                shape          : ShapeVariant::new(<Shape as Rand>::rand(&mut rng),0),
-                move_frequency : 1.0,
-                move_time_count: 0.0,
-                map_id         : 0,
-            });l},
+            players: VecMap::new(),
             rng   : rng,
             paused: false,
-        }
+        };
+
+        out.players.insert(0,Player{
+            x              : 0,
+            y              : 0,
+            shape          : ShapeVariant::new(<Shape as Rand>::rand(&mut out.rng),0),
+            move_frequency : 1.0,
+            move_time_count: 0.0,
+            map            : 0,
+        });
+
+        out
     }
 
     pub fn update(&mut self, args: &event::UpdateArgs){if !self.paused{
-        for (player_id,player) in self.players{match self.maps.get(&player_id){
+        for (_,player) in self.players.iter_mut(){match self.maps.get_mut(&(player.map as usize)){
             Some(map) => {
                 //Add the time since the last update to the time count
                 player.move_time_count += args.dt;
@@ -76,73 +80,36 @@ impl<Rng: rand::Rng> GameState<Rng>{
             None => ()
         }}
     }}
+}
 
-    ///Moves the current shape if there are no collisions at the new position.
-    ///Returns whether the movement was successful due to collisions.
-    pub fn move_shape(&mut self,player_id: PlayerId,dx: map::PosAxis, dy: map::PosAxis) -> bool{
-        match self.player_map(player_id){
-            Some((player,map)) => {
-                //Collision check
-                if map.shape_intersects(&player.shape,player.x + dx,player.y + dy).is_some(){
-                    //Collided => cannot move
-                    false
-                }else{
-                    //No collision, able to move and does so
-                    player.x += dx;
-                    player.y += dy;
-                    true
-                }
-            },
-            None => false
-        }
+///Moves player if there are no collisions at the new position.
+///Returns whether the movement was successful or not due to collisions.
+pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,dx: map::PosAxis, dy: map::PosAxis) -> bool{
+    //Collision check
+    if map.shape_intersects(&player.shape,player.x + dx,player.y + dy).is_some(){
+        //Collided => cannot move
+        false
+    }else{
+        //No collision, able to move and does so
+        player.x += dx;
+        player.y += dy;
+        true
     }
+}
 
-    ///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
-    ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
-    ///otherwise return true.
-    pub fn rotate_and_resolve(&mut self,player_id: PlayerId) -> bool {
-        match self.player_map(player_id){
-            Some((player,map)) => {
-                player.shape.next_rotation();
-                if let Some((x,_)) = map.shape_intersects(&player.shape,player.x,player.y){
-                    let center_x = player.x + 2;//TODO: Magic constants everywhere
-                    let sign = if x < center_x {1} else {-1};
-                    for i in 1..3 {
-                        if self.move_shape(player_id,i * sign, 0){return true;}
-                    }
-                    player.shape.previous_rotation();
-                    return false;
-                }
-                true
-            },
-            None => false
+///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
+///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
+///otherwise return true.
+pub fn rotate_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
+    player.shape.next_rotation();
+    if let Some((x,_)) = map.shape_intersects(&player.shape,player.x,player.y){
+        let center_x = player.x + 2;//TODO: Magic constants everywhere
+        let sign = if x < center_x {1} else {-1};
+        for i in 1..3 {
+            if move_player(player,map,i * sign, 0){return true;}
         }
+        player.shape.previous_rotation();
+        return false;
     }
-
-    pub fn player_map(&self,player_id: PlayerId) -> Option<(&Player,&Map<map::cell::ShapeCell>)>{
-        match self.players.get(&(player_id as usize)){
-            Some(player) => match self.maps.get(&(player.map_id as usize)){
-                Some(map) => Some((player,map)),
-                None => None
-            },
-            None => None
-        }
-    }
-
-    pub fn player_map_mut(&mut self,player_id: PlayerId) -> Option<(&mut Player,&mut Map<map::cell::ShapeCell>)>{
-        match self.players.get_mut(&(player_id as usize)){
-            Some(player) => match self.maps.get_mut(&(player.map_id as usize)){
-                Some(map) => Some((player,map)),
-                None => None
-            },
-            None => None
-        }
-    }
-
-    pub fn map_of_player(&self,player_id: PlayerId) -> Option<&Map<map::cell::ShapeCell>>{
-        match self.players.get(&(player_id as usize)){
-            Some(player) => self.maps.get(&(player.map_id as usize)),
-            None => None
-        }
-    }
+    true
 }

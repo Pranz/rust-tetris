@@ -56,21 +56,7 @@ pub trait Map{
     }
 
     ///Collision checks. Whether the given shape at the given position will collide with a imprinted shape on the map
-    fn shape_intersects(&self, shape: &ShapeVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)> where Self::Cell: cell::Cell + Copy{
-        for j in 0..BLOCK_COUNT{
-            for i in 0..BLOCK_COUNT{
-                if shape.collision_map()[j as usize][i as usize] {
-                    let (x,y) = (i as PosAxis + x,j as PosAxis + y);
-                    match self.position(x,y){
-                        None                           => return Some((x,y)),
-                        Some(pos) if pos.is_occupied() => return Some((x,y)),
-                        _ => ()
-                    };
-                }
-            }
-        }
-        None
-    }
+    fn shape_intersects(&self, shape: &ShapeVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)>;
 
     ///Imprints the given shape at the given position on the map
     fn imprint_shape<F>(&mut self,shape: &ShapeVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
@@ -154,5 +140,30 @@ impl<'m,M: Map> Iterator for PositionedCellIter<'m,M>
         self.x+=1;
 
         return Some((x,self.y,unsafe{self.map.pos(x as usize,self.y as usize)}));
+    }
+}
+
+pub mod defaults{
+    use super::super::shapes::tetrimino::{BLOCK_COUNT,ShapeVariant};
+    use super::{Map,PosAxis};
+    use super::cell::Cell;
+
+    pub fn shape_intersects<M>(map: &M, shape: &ShapeVariant, x: PosAxis, y: PosAxis) -> Option<(PosAxis, PosAxis)>
+        where M: Map,
+              <M as Map>::Cell: Cell + Copy
+    {
+        for j in 0..BLOCK_COUNT{
+            for i in 0..BLOCK_COUNT{
+                if shape.collision_map()[j as usize][i as usize] {
+                    let (x,y) = (i as PosAxis + x,j as PosAxis + y);
+                    match map.position(x,y){
+                        None                           => return Some((x,y)),
+                        Some(pos) if pos.is_occupied() => return Some((x,y)),
+                        _ => ()
+                    };
+                }
+            }
+        }
+        None
     }
 }

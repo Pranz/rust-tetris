@@ -7,5 +7,5 @@ pub struct Player{
     pub shape          : ShapeVariant,
     pub move_frequency : f64, //Unit: seconds/block
     pub move_time_count: f64, //Unit: seconds
-    pub map_id         : gamestate::MapId,
+    pub map            : gamestate::MapId,
 }

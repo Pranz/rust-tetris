@@ -1,6 +1,7 @@
 use core::ops::Range;
 use core::ptr;
 
+use super::super::shapes::tetrimino::ShapeVariant;
 use super::Map as MapTrait;
 use super::cell::Cell;
 
@@ -104,6 +105,10 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     fn move_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
         self.copy_row(y_from,y_to);
         self.clear_row(y_from);
+    }
+
+    fn shape_intersects(&self, shape: &ShapeVariant, x: super::PosAxis, y: super::PosAxis) -> Option<(super::PosAxis, super::PosAxis)>{
+        super::defaults::shape_intersects(self,shape,x,y)
     }
 }
 
