@@ -120,9 +120,9 @@ pub mod data{
 
     pub static L: [Shape; 4] = [
         [
-            [false, true , false, false],//O - - -
-            [false, true , false, false],//O - - -
-            [false, true , true , false],//O O - -
+            [false, true , false, false],//- O - -
+            [false, true , false, false],//- O - -
+            [false, true , true , false],//- O O -
             [false, false, false, false],//- - - -
         ],[
             [false, false, false, false],//- - - -
@@ -144,9 +144,9 @@ pub mod data{
 
     pub static O: [Shape; 1] = [
         [
-            [true , true , false, false],//O O - -
-            [true , true , false, false],//O O - -
             [false, false, false, false],//- - - -
+            [false, true , true , false],//- O O -
+            [false, true , true , false],//- O O -
             [false, false, false, false],//- - - -
         ]
     ];
@@ -178,32 +178,32 @@ pub mod data{
     pub static T: [Shape; 4] = [
         [
             [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
             [true , true , true , false],//O O O -
             [false, true , false, false],//- O - -
-        ],[
             [false, false, false, false],//- - - -
+        ],[
             [false, true , false, false],//- O - -
             [true , true , false, false],//O O - -
             [false, true , false, false],//- O - -
-        ],[
             [false, false, false, false],//- - - -
+        ],[
             [false, true , false, false],//- O - -
             [true , true , true , false],//O O O -
             [false, false, false, false],//- - - -
-        ],[
             [false, false, false, false],//- - - -
+        ],[
             [false, true , false, false],//- O - -
             [false, true , true , false],//- O O -
             [false, true , false, false],//- O - -
+            [false, false, false, false],//- - - -
         ]
     ];
 
     pub static S: [Shape; 2] = [
         [
-            [true , false, false, false],//O - - -
-            [true , true , false, false],//O O - -
             [false, true , false, false],//- O - -
+            [false, true , true , false],//- O O -
+            [false, false, true , false],//- - O -
             [false, false, false, false],//- - - -
         ],[
             [false, false, false, false],//- - - -
@@ -215,15 +215,15 @@ pub mod data{
 
     pub static Z: [Shape; 2] = [
         [
-            [false, false, false, false],//- - - -
             [false, false, true , false],//- - O -
             [false, true , true , false],//- O O -
             [false, true , false, false],//- O - -
-        ],[
             [false, false, false, false],//- - - -
+        ],[
             [false, false, false, false],//- - - -
             [true , true , false, false],//O O - -
             [false, true , true , false],//- O O -
+            [false, false, false, false],//- - - -
         ]
     ];
 }

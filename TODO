@@ -1,0 +1,19 @@
+Multiplayer
+Online multiplayer
+Multiplayer on same map
+Multiplayer on different maps
+Allow and customizable textures
+Allow and customizable sounds
+Allow and customizable animations
+Implement and customizable points
+Customizable colors
+Settings menu
+CLI arguments replacement for settings
+Different rotation systems
+Optional rotation resolving (wall kick and floor kick)
+Velocity of fast fall (slow drop)
+Direct fall (hard drop)
+Visible drop shadow
+Customizable block move hold repeat time (delated auto shift/autorepeat)
+Selectable block randomizer (problem with repeated S and Z)
+CPU AI
