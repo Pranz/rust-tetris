@@ -100,7 +100,7 @@ pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,dx: map::PosAxis, dy
 ///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
-pub fn rotate_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
+pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
     player.shape.next_rotation();
     if let Some((x,_)) = map.shape_intersects(&player.shape,player.x,player.y){
         let center_x = player.x + 2;//TODO: Magic constants everywhere
@@ -109,6 +109,23 @@ pub fn rotate_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bo
             if move_player(player,map,i * sign, 0){return true;}
         }
         player.shape.previous_rotation();
+        return false;
+    }
+    true
+}
+
+///Try to rotate (backwards). If this results in a collision, try to resolve this collision by
+///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
+///otherwise return true.
+pub fn rotate_previous_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
+    player.shape.previous_rotation();
+    if let Some((x,_)) = map.shape_intersects(&player.shape,player.x,player.y){
+        let center_x = player.x + 2;//TODO: Magic constants everywhere
+        let sign = if x < center_x {1} else {-1};
+        for i in 1..3 {
+            if move_player(player,map,i * sign, 0){return true;}
+        }
+        player.shape.next_rotation();
         return false;
     }
     true

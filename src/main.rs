@@ -65,11 +65,20 @@ impl<Rng: rand::Rng> App<Rng>{
                     }
 
                     //Draw current shape(s)
+                    let color = match player.shape.shape(){
+                        Shape::I => colors::shapes::LIGHT_RED,
+                        Shape::L => colors::shapes::LIGHT_MAGENTA,
+                        Shape::O => colors::shapes::LIGHT_BLUE,
+                        Shape::J => colors::shapes::LIGHT_ORANGE,
+                        Shape::T => colors::shapes::LIGHT_OLIVE,
+                        Shape::S => colors::shapes::LIGHT_LIME,
+                        Shape::Z => colors::shapes::LIGHT_CYAN,
+                    };
                     for i in 0..BLOCK_COUNT{
                         for j in 0..BLOCK_COUNT{
                             if player.shape.get(i as u8, j as u8){
                                 let transform = context.transform.trans((i as map::PosAxis + player.x) as f64 * BLOCK_PIXEL_SIZE, (j as map::PosAxis + player.y) as f64 * BLOCK_PIXEL_SIZE);
-                                graphics::rectangle(colors::WHITE,square,transform,gl);
+                                graphics::rectangle(color,square,transform,gl);
                             }
                         }
                     }
@@ -96,20 +105,6 @@ impl<Rng: rand::Rng> App<Rng>{
         }}else{match key{
             Key::Return => {self.tetris.paused = true},
             key => if let Some(player) = self.tetris.players.get_mut(&0){match key{
-                Key::Left   => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){gamestate::move_player(player,map,-1,0);},
-                Key::Right  => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){gamestate::move_player(player,map, 1,0);},
-                Key::Down   => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){
-                    player.move_time_count = if gamestate::move_player(player,map,0,1){
-                        //Reset timer
-                        0.0
-                    }else{
-                        //Set timer and make the player move in the update step
-                        player.move_frequency
-                };},
-                Key::Up     => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){gamestate::rotate_and_resolve_player(player,map);},
-                Key::X      => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){gamestate::rotate_and_resolve_player(player,map);},
-                Key::Z      => {player.shape.previous_rotation();},//TODO: No resolve for previous rotation?
-                Key::R      => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){map.clear();},
                 Key::D1     => {player.shape.set_shape(Shape::I);},
                 Key::D2     => {player.shape.set_shape(Shape::L);},
                 Key::D3     => {player.shape.set_shape(Shape::O);},
@@ -118,7 +113,23 @@ impl<Rng: rand::Rng> App<Rng>{
                 Key::D6     => {player.shape.set_shape(Shape::S);},
                 Key::D7     => {player.shape.set_shape(Shape::Z);},
                 Key::Home   => {player.y = 0;},
-                _           => {}
+                key         => if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){match key{
+                    Key::Left   => {gamestate::move_player(player,map,-1,0);},
+                    Key::Right  => {gamestate::move_player(player,map, 1,0);},
+                    Key::Down   => {
+                        player.move_time_count = if gamestate::move_player(player,map,0,1){
+                            //Reset timer
+                            0.0
+                        }else{
+                            //Set timer and make the player move in the update step
+                            player.move_frequency
+                    };},
+                    Key::Up     => {gamestate::rotate_next_and_resolve_player(player,map);},
+                    Key::X      => {gamestate::rotate_next_and_resolve_player(player,map);},
+                    Key::Z      => {gamestate::rotate_previous_and_resolve_player(player,map);},
+                    Key::R      => {map.clear();},
+                    _           => ()
+                }}
             }},
         }}
     }
