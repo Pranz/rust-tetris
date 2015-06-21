@@ -28,7 +28,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
         }
     }
 
-    pub fn update(&mut self, args: &event::UpdateArgs)
+    pub fn update(&mut self, args: &event::UpdateArgs)//TODO: Maybe move game logic to a separate Game structure? Neccessary?
         where Map: MapTrait<Cell = map::cell::ShapeCell>
     {if !self.paused{
         for (_,player) in self.players.iter_mut(){match self.maps.get_mut(&(player.map as usize)){
@@ -57,8 +57,9 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                         player.shape = ShapeVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
                         player.x = map.width() as map::PosAxis/2 - player.shape.center_x() as map::PosAxis;
                         player.y = 0;//TODO: Spawn above optionally: -(player.shape.height() as map::PosAxis);
+
                         //If the new shape at the starting position also collides with another shape
-                        if map.shape_intersects(&player.shape, player.x, player.y).is_some() {
+                        if map.shape_intersects(&player.shape, player.x, player.y).is_some(){//TODO: This won't work if the block is spawning outside of the map. Should check when imprint_block is executed and see if any of those positions is out of range
                             //Reset the map
                             map.clear();
                             player.move_time_count = 0.0;
@@ -73,6 +74,20 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
             None => ()
         }}
     }}
+
+    pub fn with_player<F: Fn(&mut Player)>(&mut self,player_id: PlayerId,f: F){
+        if let Some(player) = self.players.get_mut(&(player_id as usize)){
+            f(player);
+        }
+    }
+
+    pub fn with_player_map<F: Fn(&mut Player,&mut Map)>(&mut self,player_id: PlayerId,f: F){
+        if let Some(player) = self.players.get_mut(&(player_id as usize)){
+            if let Some(map) = self.maps.get_mut(&(player.map as usize)){
+                f(player,map);
+            }
+        }
+    }
 }
 
 ///Moves player if there are no collisions at the new position.
