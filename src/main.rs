@@ -20,6 +20,7 @@ use graphics::Transformed;
 use opengl_graphics::{GlGraphics,OpenGL};
 
 use data::{colors,map};
+use data::grid::{self,Grid};
 use data::map::cell::ShapeCell;
 use data::map::dynamic_map::Map;
 use data::map::Map as MapTrait;
@@ -50,7 +51,7 @@ impl<Rng: rand::Rng> App<Rng>{
                 graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map.width() as f64 * BLOCK_PIXEL_SIZE,map.height() as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
 
                 //Imprinted cells
-                for (x,y,ShapeCell(cell)) in map.cells_positioned(){
+                for (x,y,ShapeCell(cell)) in grid::iter::PositionedCellIter::new(map){
                     if let Some(cell) = cell{
                         let transform = context.transform.trans(x as f64 * BLOCK_PIXEL_SIZE,y as f64 * BLOCK_PIXEL_SIZE);
                         graphics::rectangle(
@@ -86,12 +87,10 @@ impl<Rng: rand::Rng> App<Rng>{
                     };
 
                     //Draw current shape(s)
-                    for i in 0..player.shape.width(){
-                        for j in 0..player.shape.height(){
-                            if player.shape.pos(i as u8, j as u8){
-                                let transform = context.transform.trans((i as map::PosAxis + player.x) as f64 * BLOCK_PIXEL_SIZE, (j as map::PosAxis + player.y) as f64 * BLOCK_PIXEL_SIZE);
-                                graphics::rectangle(color,square,transform,gl);
-                            }
+                    for (x,y,cell) in grid::iter::PositionedCellIter::new(&player.shape){
+                        if cell{
+                            let transform = context.transform.trans((x as map::PosAxis + player.x) as f64 * BLOCK_PIXEL_SIZE, (y as map::PosAxis + player.y) as f64 * BLOCK_PIXEL_SIZE);
+                            graphics::rectangle(color,square,transform,gl);
                         }
                     }
                 },
@@ -197,14 +196,14 @@ fn main(){
     });
 
     //Create player 1
-    app.tetris.players.insert(1,Player{
+    /*app.tetris.players.insert(1,Player{
         x              : 0,
         y              : 0,
         shape          : ShapeVariant::new(<Shape as rand::Rand>::rand(&mut app.tetris.rng),0),
         move_frequency : 1.0,
         move_time_count: 0.0,
         map            : 0,
-    });
+    });*/
 
     //Run the created application: Listen for events
     for e in window.events(){

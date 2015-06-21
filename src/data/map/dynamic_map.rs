@@ -1,6 +1,7 @@
 use core::ops::Range;
 use core::ptr;
 
+use super::super::grid::Grid;
 use super::super::shapes::tetrimino::ShapeVariant;
 use super::Map as MapTrait;
 use super::cell::Cell;
@@ -11,12 +12,30 @@ pub struct Map<Cell>{
     width : super::SizeAxis,
 }
 
-impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
+impl<Cell: Copy> Grid for Map<Cell>{
     type Cell = Cell;
+
+    #[inline(always)]
+    fn width(&self) -> super::SizeAxis{self.width}
+
+    #[inline(always)]
+    fn height(&self) -> super::SizeAxis{(self.slice.len()/(self.width as usize)) as super::SizeAxis}
+
+    #[inline(always)]
+    unsafe fn pos(&self,x: usize,y: usize) -> <Self as Grid>::Cell{
+        self.slice[x + y*(self.width as usize)]
+    }
+}
+
+impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
+    #[inline(always)]
+    unsafe fn set_pos(&mut self,x: usize,y: usize,state: <Self as Grid>::Cell){
+        self.slice[x + y*(self.width as usize)] = state;
+    }
 
     fn clear(&mut self){
         for cell in self.slice.iter_mut(){
-            *cell = <Self as MapTrait>::Cell::empty();
+            *cell = <Self as Grid>::Cell::empty();
         }
     }
 
@@ -66,27 +85,11 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         return full_row_count;
     }
 
-    #[inline(always)]
-    fn width(&self) -> super::SizeAxis{self.width}
-
-    #[inline(always)]
-    fn height(&self) -> super::SizeAxis{(self.slice.len()/(self.width as usize)) as super::SizeAxis}
-
-    #[inline(always)]
-    unsafe fn pos(&self,x: usize,y: usize) -> <Self as MapTrait>::Cell{
-        self.slice[x + y*(self.width as usize)]
-    }
-
-    #[inline(always)]
-    unsafe fn set_pos(&mut self,x: usize,y: usize,state: <Self as MapTrait>::Cell){
-        self.slice[x + y*(self.width as usize)] = state;
-    }
-
     fn clear_row(&mut self,y: super::SizeAxis){
         debug_assert!(y < self.height());
 
         for i in self.width * y .. self.width * (y+1){
-            self.slice[i as usize] = <Self as MapTrait>::Cell::empty();
+            self.slice[i as usize] = <Self as Grid>::Cell::empty();
         }
     }
 
@@ -107,19 +110,17 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         self.clear_row(y_from);
     }
 
-    fn shape_intersects(&self, shape: &ShapeVariant, x: super::PosAxis, y: super::PosAxis) -> Option<(super::PosAxis, super::PosAxis)>{
+    fn shape_intersects(&self, shape: &ShapeVariant, x: super::PosAxis, y: super::PosAxis) -> super::CellIntersection{
         super::defaults::shape_intersects(self,shape,x,y)
     }
 }
 
 impl<Cell: super::cell::Cell + Copy> Map<Cell>{
-    pub fn cells_positioned<'s>(&'s self) -> super::PositionedCellIter<'s,Self>{super::PositionedCellIter{map: self,x: 0,y: 0}}
-
     pub fn new(width: super::SizeAxis,height: super::SizeAxis) -> Self{
         use core::iter::{self,FromIterator};
 
         Map{
-            slice : Vec::from_iter(iter::repeat(<Self as MapTrait>::Cell::empty()).take((width as usize)*(height as usize))).into_boxed_slice(),
+            slice : Vec::from_iter(iter::repeat(<Self as Grid>::Cell::empty()).take((width as usize)*(height as usize))).into_boxed_slice(),
             width : width,
         }
     }
@@ -129,7 +130,7 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
         debug_assert!(y.end <= self.height());
 
         for i in self.width * y.start .. self.width * y.end{
-            self.slice[i as usize] = <Self as MapTrait>::Cell::empty();
+            self.slice[i as usize] = <Self as Grid>::Cell::empty();
         }
     }
 

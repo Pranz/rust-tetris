@@ -1,5 +1,6 @@
 use core::ops::Range;
 
+use super::super::grid::Grid;
 use super::super::shapes::tetrimino::ShapeVariant;
 use super::Map as MapTrait;
 
@@ -12,8 +13,26 @@ const HEIGHT: super::SizeAxis = 20;
 ///Rectangular static sized game map
 pub struct Map<Cell>([[Cell; WIDTH as usize]; HEIGHT as usize]);
 
-impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
+impl<Cell: Copy> Grid for Map<Cell>{
     type Cell = Cell;
+
+    #[inline(always)]
+    fn width(&self) -> super::SizeAxis{WIDTH}
+
+    #[inline(always)]
+    fn height(&self) -> super::SizeAxis{HEIGHT}
+
+    #[inline(always)]
+    unsafe fn pos(&self,x: usize,y: usize) -> Cell{
+        self.0[y][x]
+    }
+}
+
+impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
+    #[inline(always)]
+    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
+        self.0[y][x] = state;
+    }
 
     fn handle_full_rows(&mut self,y_check: Range<super::SizeAxis>) -> super::SizeAxis{
         debug_assert!(y_check.start < y_check.end);
@@ -36,22 +55,6 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     }
 
     #[inline(always)]
-    fn width(&self) -> super::SizeAxis{WIDTH}
-
-    #[inline(always)]
-    fn height(&self) -> super::SizeAxis{HEIGHT}
-
-    #[inline(always)]
-    unsafe fn pos(&self,x: usize,y: usize) -> Cell{
-        self.0[y][x]
-    }
-
-    #[inline(always)]
-    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
-        self.0[y][x] = state;
-    }
-
-    #[inline(always)]
     fn clear_row(&mut self,y: super::SizeAxis){
         debug_assert!(y < self.height());
 
@@ -67,15 +70,10 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         self.0[y_from as usize] = self.0[y_to as usize];
     }
 
-    fn shape_intersects(&self, shape: &ShapeVariant, x: super::PosAxis, y: super::PosAxis) -> Option<(super::PosAxis, super::PosAxis)>{
+    fn shape_intersects(&self, shape: &ShapeVariant, x: super::PosAxis, y: super::PosAxis) -> super::CellIntersection{
         super::defaults::shape_intersects(self,shape,x,y)
     }
 }
-
-impl<Cell: Copy> Map<Cell>{
-    pub fn cells_positioned<'s>(&'s self) -> super::PositionedCellIter<'s,Self>{super::PositionedCellIter{map: self,x: 0,y: 0}}
-}
-
 
 impl<Cell: super::cell::Cell + Copy> Default for Map<Cell>{
     fn default() -> Self{

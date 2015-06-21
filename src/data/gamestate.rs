@@ -3,6 +3,7 @@ use core::cmp;
 use piston::event;
 use rand::{self,Rand};
 
+use super::grid::Grid;
 use super::map;
 use super::map::Map as MapTrait;
 use super::player::Player;
@@ -42,32 +43,35 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                     player.move_time_count -= player.move_frequency;
 
                     //If there are a collision below
-                    if map.shape_intersects(&player.shape, player.x, player.y + 1).is_some(){
-                        //Imprint the current shape onto the map
-                        map.imprint_shape(&player.shape,player.x,player.y,|variant| map::cell::ShapeCell(Some(variant.shape())));
+                    match map.shape_intersects(&player.shape, player.x, player.y + 1){
+                        map::CellIntersection::Imprint(_,_) |
+                        map::CellIntersection::OutOfBounds(_,_) => {
+                            //Imprint the current shape onto the map
+                            map.imprint_shape(&player.shape,player.x,player.y,|variant| map::cell::ShapeCell(Some(variant.shape())));
 
-                        //Handles the filled rows
-                        let min_y = cmp::max(0,player.y) as map::SizeAxis;
-                        let max_y = cmp::min(min_y + player.shape.height(),map.height());
-                        if min_y!=max_y{
-                            map.handle_full_rows(min_y .. max_y);
+                            //Handles the filled rows
+                            let min_y = cmp::max(0,player.y) as map::SizeAxis;
+                            let max_y = cmp::min(min_y + player.shape.height(),map.height());
+                            if min_y!=max_y{
+                                map.handle_full_rows(min_y .. max_y);
+                            }
+
+                            //Select a new shape at random, setting its position to the starting position
+                            player.shape = ShapeVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
+                            player.x = map.width() as map::PosAxis/2 - player.shape.center_x() as map::PosAxis;
+                            player.y = 0;//TODO: Spawn above optionally: -(player.shape.height() as map::PosAxis);
+
+                            //If the new shape at the starting position also collides with another shape
+                            if let map::CellIntersection::Imprint(_,_) = map.shape_intersects(&player.shape, player.x, player.y){//TODO: This won't work if the block is spawning outside of the map. Should check when imprint_block is executed and see if any of those positions is out of range
+                                //Reset the map
+                                map.clear();
+                                player.move_time_count = 0.0;
+                            }
+                        },
+                        map::CellIntersection::None =>{
+                            //Move the current shape downwards
+                            player.y += 1;
                         }
-
-                        //Select a new shape at random, setting its position to the starting position
-                        player.shape = ShapeVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
-                        player.x = map.width() as map::PosAxis/2 - player.shape.center_x() as map::PosAxis;
-                        player.y = 0;//TODO: Spawn above optionally: -(player.shape.height() as map::PosAxis);
-
-                        //If the new shape at the starting position also collides with another shape
-                        if map.shape_intersects(&player.shape, player.x, player.y).is_some(){//TODO: This won't work if the block is spawning outside of the map. Should check when imprint_block is executed and see if any of those positions is out of range
-                            //Reset the map
-                            map.clear();
-                            player.move_time_count = 0.0;
-                        }
-                    }
-                    else{
-                        //Move the current shape downwards
-                        player.y += 1;
                     }
                 }
             },
@@ -94,14 +98,17 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
 ///Returns whether the movement was successful or not due to collisions.
 pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,dx: map::PosAxis, dy: map::PosAxis) -> bool{
     //Collision check
-    if map.shape_intersects(&player.shape,player.x + dx,player.y + dy).is_some(){
+    match map.shape_intersects(&player.shape,player.x + dx,player.y + dy){
         //Collided => cannot move
-        false
-    }else{
+        map::CellIntersection::Imprint(_,_) |
+        map::CellIntersection::OutOfBounds(_,_) => false,
+
         //No collision, able to move and does so
-        player.x += dx;
-        player.y += dy;
-        true
+        map::CellIntersection::None => {
+            player.x += dx;
+            player.y += dy;
+            true
+        }
     }
 }
 
@@ -110,16 +117,20 @@ pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,dx: map::PosAxis, dy
 ///otherwise return true.
 pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
     player.shape.next_rotation();
-    if let Some((x,_)) = map.shape_intersects(&player.shape,player.x,player.y){
-        let center_x = player.x + 2;//TODO: Magic constants everywhere
-        let sign = if x < center_x {1} else {-1};
-        for i in 1..3 {
-            if move_player(player,map,i * sign, 0){return true;}
-        }
-        player.shape.previous_rotation();
-        return false;
+    match map.shape_intersects(&player.shape,player.x,player.y){
+        map::CellIntersection::Imprint(x,_) |
+        map::CellIntersection::OutOfBounds(x,_) => {
+            let center_x = player.x + 2;//TODO: Magic constants everywhere
+            let sign = if x < center_x {1} else {-1};
+            for i in 1..3 {
+                if move_player(player,map,i * sign, 0){return true;}
+            }
+            player.shape.previous_rotation();
+
+            false
+        },
+        _ => true
     }
-    true
 }
 
 ///Try to rotate (backwards). If this results in a collision, try to resolve this collision by
@@ -127,14 +138,18 @@ pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) 
 ///otherwise return true.
 pub fn rotate_previous_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
     player.shape.previous_rotation();
-    if let Some((x,_)) = map.shape_intersects(&player.shape,player.x,player.y){
-        let center_x = player.x + 2;//TODO: Magic constants everywhere
-        let sign = if x < center_x {1} else {-1};
-        for i in 1..3 {
-            if move_player(player,map,i * sign, 0){return true;}
-        }
-        player.shape.next_rotation();
-        return false;
+    match map.shape_intersects(&player.shape,player.x,player.y){
+        map::CellIntersection::Imprint(x,_) |
+        map::CellIntersection::OutOfBounds(x,_) => {
+            let center_x = player.x + 2;//TODO: Magic constants everywhere
+            let sign = if x < center_x {1} else {-1};
+            for i in 1..3 {
+                if move_player(player,map,i * sign, 0){return true;}
+            }
+            player.shape.next_rotation();
+
+            false
+        },
+        _ => true
     }
-    true
 }

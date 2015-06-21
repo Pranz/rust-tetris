@@ -3,6 +3,7 @@
 use num::FromPrimitive;
 use rand::{Rand,Rng};
 
+use super::super::grid::Grid;
 use super::super::map;
 
 ///All possible tetrimino shapes
@@ -83,11 +84,6 @@ impl ShapeVariant{
         }
     }
 
-    pub fn pos(&self, x: map::SizeAxis, y: map::SizeAxis) -> bool{
-        let (width,data) = self.shape.data(self.rotation as usize);
-        data[(x as usize) + (y as usize * width as usize)]
-    }
-
     pub fn next_rotation(&mut self){
         self.rotation = (self.rotation + 1) % self.shape.rotations() as u8;
     }
@@ -108,12 +104,6 @@ impl ShapeVariant{
         self.rotation %= shape.rotations() as u8;
     }
 
-    #[inline(always)]
-    pub fn width(self) -> map::SizeAxis{self.shape.size().0}
-
-    #[inline(always)]
-    pub fn height(self) -> map::SizeAxis{self.shape.size().1}
-
     /*pub fn random_rotation<R: Rng>(&mut self,rng: &mut R){
         self.rotation = rng.gen_range(0,self.shape.data().len() as u8)
     }*/
@@ -129,6 +119,21 @@ impl ShapeVariant{
     pub fn center(&self) -> (map::SizeAxis,map::SizeAxis){
         (self.center_x(),self.center_y())
     }
+}
+
+impl Grid for ShapeVariant{
+    type Cell = bool;
+
+    unsafe fn pos(&self, x: usize, y: usize) -> bool{
+        let (width,data) = self.shape.data(self.rotation as usize);
+        data[x + (y * width as usize)]
+    }
+
+    #[inline(always)]
+    fn width(&self) -> map::SizeAxis{self.shape.size().0}
+
+    #[inline(always)]
+    fn height(&self) -> map::SizeAxis{self.shape.size().1}
 }
 
 ///Contains data arrays of all the possible shapes and its rotations in a 4x4 grid

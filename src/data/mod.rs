@@ -2,6 +2,7 @@
 
 pub mod colors;
 pub mod gamestate;
+pub mod grid;
 pub mod map;
 pub mod player;
 pub mod shapes;
