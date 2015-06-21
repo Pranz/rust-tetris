@@ -35,8 +35,13 @@ struct App<Rng>{
 
 impl<Rng: rand::Rng> App<Rng>{
     fn render(&mut self, args: &event::RenderArgs){
-        //Unit square
         const BLOCK_PIXEL_SIZE: f64 = 24.0;
+
+        fn map_render_pos(map_no: usize) -> (f64,f64){
+            (map_no as f64 * 12.0 * BLOCK_PIXEL_SIZE,0.0)
+        }
+
+        //Unit square
         let square = graphics::rectangle::square(0.0,0.0,BLOCK_PIXEL_SIZE);
 
         //Draw in the current viewport
@@ -46,14 +51,19 @@ impl<Rng: rand::Rng> App<Rng>{
             graphics::clear(colors::BLACK,gl);
 
             //Draw maps
-            for (_,map) in tetris.maps.iter(){
+            for (map_id,map) in tetris.maps.iter(){
+                let transform = {
+                    let (x,y) = map_render_pos(map_id);
+                    context.transform.trans(x,y)
+                };
+
                 //Background
-                graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map.width() as f64 * BLOCK_PIXEL_SIZE,map.height() as f64 * BLOCK_PIXEL_SIZE],context.transform,gl);
+                graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map.width() as f64 * BLOCK_PIXEL_SIZE,map.height() as f64 * BLOCK_PIXEL_SIZE],transform,gl);
 
                 //Imprinted cells
                 for (x,y,ShapeCell(cell)) in grid::iter::PositionedCellIter::new(map){
                     if let Some(cell) = cell{
-                        let transform = context.transform.trans(x as f64 * BLOCK_PIXEL_SIZE,y as f64 * BLOCK_PIXEL_SIZE);
+                        let transform = transform.trans(x as f64 * BLOCK_PIXEL_SIZE,y as f64 * BLOCK_PIXEL_SIZE);
                         graphics::rectangle(
                             match cell{
                                 Shape::I => colors::shapes::RED,
@@ -75,7 +85,12 @@ impl<Rng: rand::Rng> App<Rng>{
             //Draw players
             for (_,player) in tetris.players.iter(){match tetris.maps.get(&(player.map as usize)){
                 Some(_) => {
-                    //Select colors
+                    let transform = {
+                        let (x,y) = map_render_pos(player.map as usize);
+                        context.transform.trans(x,y)
+                    };
+
+                    //Select color
                     let color = match player.shape.shape(){
                         Shape::I => colors::shapes::LIGHT_RED,
                         Shape::L => colors::shapes::LIGHT_MAGENTA,
@@ -89,7 +104,7 @@ impl<Rng: rand::Rng> App<Rng>{
                     //Draw current shape(s)
                     for (x,y,cell) in grid::iter::PositionedCellIter::new(&player.shape){
                         if cell{
-                            let transform = context.transform.trans((x as map::PosAxis + player.x) as f64 * BLOCK_PIXEL_SIZE, (y as map::PosAxis + player.y) as f64 * BLOCK_PIXEL_SIZE);
+                            let transform = transform.trans((x as map::PosAxis + player.x) as f64 * BLOCK_PIXEL_SIZE, (y as map::PosAxis + player.y) as f64 * BLOCK_PIXEL_SIZE);
                             graphics::rectangle(color,square,transform,gl);
                         }
                     }
@@ -156,6 +171,21 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::NumPad1 => self.tetris.with_player_map(1,|player,map|{gamestate::rotate_next_and_resolve_player(player,map);}),
             Key::NumPad0 => self.tetris.with_player_map(1,|player,map|{gamestate::rotate_previous_and_resolve_player(player,map);}),
 
+            //Player 2
+            Key::A => self.tetris.with_player_map(2,|player,map|{gamestate::move_player(player,map,-1,0);}),
+            Key::D => self.tetris.with_player_map(2,|player,map|{gamestate::move_player(player,map, 1,0);}),
+            Key::S => self.tetris.with_player_map(2,|player,map|{
+                player.move_time_count = if gamestate::move_player(player,map,0,1){
+                    //Reset timer
+                    0.0
+                }else{
+                    //Set timer and make the player move in the update step
+                    player.move_frequency
+            };}),
+            Key::LShift => self.tetris.with_player_map(1,|player,map|{gamestate::rotate_next_and_resolve_player(player,map);}),
+            Key::Space => self.tetris.with_player_map(1,|player,map|{gamestate::rotate_previous_and_resolve_player(player,map);}),
+
+
             //Other keys
             _ => ()
         }}
@@ -184,6 +214,7 @@ fn main(){
 
     //Create map
     app.tetris.maps.insert(0,Map::new(10,20));
+    app.tetris.maps.insert(1,Map::new(10,20));
 
     //Create player 0
     app.tetris.players.insert(0,Player{
@@ -196,14 +227,24 @@ fn main(){
     });
 
     //Create player 1
-    /*app.tetris.players.insert(1,Player{
+    app.tetris.players.insert(1,Player{
         x              : 0,
         y              : 0,
         shape          : ShapeVariant::new(<Shape as rand::Rand>::rand(&mut app.tetris.rng),0),
         move_frequency : 1.0,
         move_time_count: 0.0,
-        map            : 0,
-    });*/
+        map            : 1,
+    });
+
+    //Create player 2
+    app.tetris.players.insert(2,Player{
+        x              : 0,
+        y              : 0,
+        shape          : ShapeVariant::new(<Shape as rand::Rand>::rand(&mut app.tetris.rng),0),
+        move_frequency : 1.0,
+        move_time_count: 0.0,
+        map            : 1,
+    });
 
     //Run the created application: Listen for events
     for e in window.events(){
