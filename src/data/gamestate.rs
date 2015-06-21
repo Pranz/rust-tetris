@@ -5,42 +5,32 @@ use rand::{self,Rand};
 
 use super::map;
 use super::map::Map as MapTrait;
-use super::map::dynamic_map::Map;
 use super::player::Player;
-use super::shapes::tetrimino::{BLOCK_COUNT,Shape,ShapeVariant};
+use super::shapes::tetrimino::{Shape,ShapeVariant};
 
 pub type MapId    = u8;
 pub type PlayerId = u8;
 
-pub struct GameState<Rng>{
-    pub maps   : VecMap<Map<map::cell::ShapeCell>>,
+pub struct GameState<Map,Rng>{
+    pub maps   : VecMap<Map>,
     pub players: VecMap<Player>,
     pub rng    : Rng,
-    pub paused : bool,
+    pub paused : bool
 }
 
-impl<Rng: rand::Rng> GameState<Rng>{
+impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
     pub fn new(rng: Rng) -> Self{
-        let mut out = GameState{
-            maps: {let mut l = VecMap::new();l.insert(0,Map::new(5,25));l},
+        GameState{
+            maps   : VecMap::new(),
             players: VecMap::new(),
-            rng   : rng,
-            paused: false,
-        };
-
-        out.players.insert(0,Player{
-            x              : 0,
-            y              : 0,
-            shape          : ShapeVariant::new(<Shape as Rand>::rand(&mut out.rng),0),
-            move_frequency : 1.0,
-            move_time_count: 0.0,
-            map            : 0,
-        });
-
-        out
+            rng    : rng,
+            paused : false,
+        }
     }
 
-    pub fn update(&mut self, args: &event::UpdateArgs){if !self.paused{
+    pub fn update(&mut self, args: &event::UpdateArgs)
+        where Map: MapTrait<Cell = map::cell::ShapeCell>
+    {if !self.paused{
         for (_,player) in self.players.iter_mut(){match self.maps.get_mut(&(player.map as usize)){
             Some(map) => {
                 //Add the time since the last update to the time count
@@ -52,18 +42,21 @@ impl<Rng: rand::Rng> GameState<Rng>{
                     player.move_time_count -= player.move_frequency;
 
                     //If there are a collision below
-                    if map.shape_intersects(&player.shape, player.x as map::PosAxis, player.y as map::PosAxis + 1).is_some() {
+                    if map.shape_intersects(&player.shape, player.x, player.y + 1).is_some(){
                         //Imprint the current shape onto the map
                         map.imprint_shape(&player.shape,player.x,player.y,|variant| map::cell::ShapeCell(Some(variant.shape())));
 
                         //Handles the filled rows
-                        let map_height = map.height();
-                        map.handle_full_rows(cmp::max(0,player.y) as map::SizeAxis .. cmp::min(player.y as map::SizeAxis + BLOCK_COUNT,map_height));
+                        let min_y = cmp::max(0,player.y) as map::SizeAxis;
+                        let max_y = cmp::min(min_y + player.shape.height(),map.height());
+                        if min_y!=max_y{
+                            map.handle_full_rows(min_y .. max_y);
+                        }
 
                         //Select a new shape at random, setting its position to the starting position
                         player.shape = ShapeVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
-                        player.x = map.width() as map::PosAxis/2 - BLOCK_COUNT as map::PosAxis/2;//TODO: Top middle of map
-                        player.y = 0;
+                        player.x = map.width() as map::PosAxis/2 - player.shape.center_x() as map::PosAxis;
+                        player.y = 0;//TODO: Spawn above optionally: -(player.shape.height() as map::PosAxis);
                         //If the new shape at the starting position also collides with another shape
                         if map.shape_intersects(&player.shape, player.x, player.y).is_some() {
                             //Reset the map

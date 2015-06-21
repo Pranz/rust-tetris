@@ -2,8 +2,10 @@
 
 extern crate collections;
 extern crate core;
+#[macro_use] extern crate enum_primitive;
 extern crate glutin_window;
 extern crate graphics;
+extern crate num;
 extern crate opengl_graphics;
 extern crate piston;
 extern crate rand;
@@ -19,13 +21,15 @@ use opengl_graphics::{GlGraphics,OpenGL};
 
 use data::{colors,map};
 use data::map::cell::ShapeCell;
-use data::map::Map;
-use data::shapes::tetrimino::{BLOCK_COUNT,Shape};
+use data::map::dynamic_map::Map;
+use data::map::Map as MapTrait;
+use data::player::Player;
+use data::shapes::tetrimino::{Shape,ShapeVariant};
 use data::gamestate::{self,GameState};
 
 struct App<Rng>{
     gl: GlGraphics,
-    tetris: GameState<Rng>,
+    tetris: GameState<Map<map::cell::ShapeCell>,Rng>,
 }
 
 impl<Rng: rand::Rng> App<Rng>{
@@ -74,9 +78,9 @@ impl<Rng: rand::Rng> App<Rng>{
                         Shape::S => colors::shapes::LIGHT_LIME,
                         Shape::Z => colors::shapes::LIGHT_CYAN,
                     };
-                    for i in 0..BLOCK_COUNT{
-                        for j in 0..BLOCK_COUNT{
-                            if player.shape.get(i as u8, j as u8){
+                    for i in 0..player.shape.width(){
+                        for j in 0..player.shape.height(){
+                            if player.shape.pos(i as u8, j as u8){
                                 let transform = context.transform.trans((i as map::PosAxis + player.x) as f64 * BLOCK_PIXEL_SIZE, (j as map::PosAxis + player.y) as f64 * BLOCK_PIXEL_SIZE);
                                 graphics::rectangle(color,square,transform,gl);
                             }
@@ -154,6 +158,19 @@ fn main(){
         gl: GlGraphics::new(opengl),
         tetris: GameState::new(rand::StdRng::new().unwrap()),
     };
+
+    //Create map
+    app.tetris.maps.insert(0,Map::new(10,20));
+
+    //Create player
+    app.tetris.players.insert(0,Player{
+        x              : 0,
+        y              : 0,
+        shape          : ShapeVariant::new(<Shape as rand::Rand>::rand(&mut app.tetris.rng),0),
+        move_frequency : 1.0,
+        move_time_count: 0.0,
+        map            : 0,
+    });
 
     //Run the created application: Listen for events
     for e in window.events(){

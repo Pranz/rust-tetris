@@ -57,7 +57,7 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
 
                 //Simulate row gravity (Part 3)
                 //Clear the rows that has been affected by gravity
-                self.clear_rows(0 .. full_row_count);
+                self.clear_rows(0 .. full_row_count*2);
 
                 return full_row_count;
             }

@@ -1,12 +1,12 @@
 //!A basic tetrimino shape (4 blocks)
 
+use num::FromPrimitive;
 use rand::{Rand,Rng};
 
 use super::super::map;
 
-pub const BLOCK_COUNT: map::SizeAxis = 4;//TODO: Move this to Shape as an associated constant (Shape::BLOCK_COUNT) when rustc panic "Path not fully resolved" is fixed. May be issue 22933.
-
 ///All possible tetrimino shapes
+enum_from_primitive!{
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub enum Shape{
     I,
@@ -16,37 +16,54 @@ pub enum Shape{
     T,
     S,
     Z,
-}
+}}
 impl Shape{
     ///Number of possible tetrimino shapes
     pub const LEN: usize = 7;
 
     ///Returns the data of the tetrimino shape
-    pub fn data(self) -> &'static [data::Shape]{
+    pub fn data(self,rotation: usize) -> (map::SizeAxis,&'static [bool]){
         match self{
-            Shape::I => &data::I,
-            Shape::L => &data::L,
-            Shape::O => &data::O,
-            Shape::J => &data::J,
-            Shape::T => &data::T,
-            Shape::S => &data::S,
-            Shape::Z => &data::Z,
+            Shape::I => {let &(w,_,ref data) = &data::I;(w,&data[rotation])},
+            Shape::L => {let &(w,_,ref data) = &data::L;(w,&data[rotation])},
+            Shape::O => {let &(w,_,ref data) = &data::O;(w,&data[rotation])},
+            Shape::J => {let &(w,_,ref data) = &data::J;(w,&data[rotation])},
+            Shape::T => {let &(w,_,ref data) = &data::T;(w,&data[rotation])},
+            Shape::S => {let &(w,_,ref data) = &data::S;(w,&data[rotation])},
+            Shape::Z => {let &(w,_,ref data) = &data::Z;(w,&data[rotation])},
+        }
+    }
+
+    ///Returns the number of rotations for the current shape
+    pub fn rotations(self) -> usize{
+        match self{
+            Shape::I => data::I.2.len(),
+            Shape::L => data::L.2.len(),
+            Shape::O => data::O.2.len(),
+            Shape::J => data::J.2.len(),
+            Shape::T => data::T.2.len(),
+            Shape::S => data::S.2.len(),
+            Shape::Z => data::Z.2.len(),
+        }
+    }
+
+    pub fn size(self) -> (map::SizeAxis,map::SizeAxis){
+        match self{
+            Shape::I => {let (w,h,_) = data::I;(w,h)},
+            Shape::L => {let (w,h,_) = data::L;(w,h)},
+            Shape::O => {let (w,h,_) = data::O;(w,h)},
+            Shape::J => {let (w,h,_) = data::J;(w,h)},
+            Shape::T => {let (w,h,_) = data::T;(w,h)},
+            Shape::S => {let (w,h,_) = data::S;(w,h)},
+            Shape::Z => {let (w,h,_) = data::Z;(w,h)},
         }
     }
 }
 impl Rand for Shape{
     fn rand<R: Rng>(rng: &mut R) -> Self{
-        use self::Shape::*;
-
-        match rng.gen_range(0,Shape::LEN as u8){
-            0 => I,
-            1 => L,
-            2 => O,
-            3 => J,
-            4 => T,
-            5 => S,
-            6 => Z,
-            _ => unreachable!()
+        match Shape::from_u8(rng.gen_range(0,Shape::LEN as u8)){
+            Some(out) => out,
+            None => unreachable!()
         }
     }
 }
@@ -66,21 +83,18 @@ impl ShapeVariant{
         }
     }
 
-    pub fn collision_map(&self) -> &'static [[bool; BLOCK_COUNT as usize]]{
-        &self.shape.data()[self.rotation as usize]
-    }
-
-    pub fn get(&self, x: map::SizeAxis, y: map::SizeAxis) -> bool{
-        self.collision_map()[y as usize][x as usize]
+    pub fn pos(&self, x: map::SizeAxis, y: map::SizeAxis) -> bool{
+        let (width,data) = self.shape.data(self.rotation as usize);
+        data[(x as usize) + (y as usize * width as usize)]
     }
 
     pub fn next_rotation(&mut self){
-        self.rotation = (self.rotation + 1) % self.shape.data().len() as u8;
+        self.rotation = (self.rotation + 1) % self.shape.rotations() as u8;
     }
 
     pub fn previous_rotation(&mut self){
         self.rotation = if self.rotation == 0{
-            self.shape.data().len() as u8
+            self.shape.rotations() as u8
         }else{
             self.rotation
         } - 1;
@@ -91,139 +105,138 @@ impl ShapeVariant{
 
     pub fn set_shape(&mut self,shape: Shape){
         self.shape = shape;
-        self.rotation %= shape.data().len() as u8;
+        self.rotation %= shape.rotations() as u8;
     }
+
+    #[inline(always)]
+    pub fn width(self) -> map::SizeAxis{self.shape.size().0}
+
+    #[inline(always)]
+    pub fn height(self) -> map::SizeAxis{self.shape.size().1}
 
     /*pub fn random_rotation<R: Rng>(&mut self,rng: &mut R){
         self.rotation = rng.gen_range(0,self.shape.data().len() as u8)
     }*/
+
+    pub fn center_x(&self) -> map::SizeAxis{
+        self.width()/2
+    }
+
+    pub fn center_y(&self) -> map::SizeAxis{
+        self.height()/2
+    }
+
+    pub fn center(&self) -> (map::SizeAxis,map::SizeAxis){
+        (self.center_x(),self.center_y())
+    }
 }
 
 ///Contains data arrays of all the possible shapes and its rotations in a 4x4 grid
 pub mod data{
-    ///Data of a shape
-    pub type Shape = [[bool; super::BLOCK_COUNT as usize]; super::BLOCK_COUNT as usize];
+    use super::super::super::map::SizeAxis;
 
-    pub static I: [Shape; 2] = [
+    pub static I: (SizeAxis,SizeAxis,[[bool; 4*4]; 2]) = (4,4,[
         [
-            [false, false, true , false],//- - O -
-            [false, false, true , false],//- - O -
-            [false, false, true , false],//- - O -
-            [false, false, true , false],//- - O -
+            false, false, true , false,//- - O -
+            false, false, true , false,//- - O -
+            false, false, true , false,//- - O -
+            false, false, true , false,//- - O -
         ],[
-            [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
-            [true , true , true , true ],//O O O O
-            [false, false, false, false],//- - - -
+            false, false, false, false,//- - - -
+            false, false, false, false,//- - - -
+            true , true , true , true ,//O O O O
+            false, false, false, false,//- - - -
         ]
-    ];
+    ]);
 
-    pub static L: [Shape; 4] = [
+    pub static L: (SizeAxis,SizeAxis,[[bool; 3*3]; 4]) = (3,3,[
         [
-            [false, true , false, false],//- O - -
-            [false, true , false, false],//- O - -
-            [false, true , true , false],//- O O -
-            [false, false, false, false],//- - - -
+            false, true , false,//- O -
+            false, true , false,//- O -
+            false, true , true ,//- O O
         ],[
-            [false, false, false, false],//- - - -
-            [true , true , true , false],//O O O -
-            [true , false, false, false],//O - - -
-            [false, false, false, false],//- - - -
+            false, false, false,//- - -
+            true , true , true ,//O O O
+            true , false, false,//O - -
         ],[
-            [true , true , false, false],//O O - -
-            [false, true , false, false],//- O - -
-            [false, true , false, false],//- O - -
-            [false, false, false, false],//- - - -
+            true , true , false,//O O -
+            false, true , false,//- O -
+            false, true , false,//- O -
         ],[
-            [false, false, true , false],//- - O -
-            [true , true , true , false],//O O O -
-            [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
+            false, false, true ,//- - O
+            true , true , true ,//O O O
+            false, false, false,//- - -
         ]
-    ];
+    ]);
 
-    pub static O: [Shape; 1] = [
+    pub static O: (SizeAxis,SizeAxis,[[bool; 2*2]; 1]) = (2,2,[
         [
-            [false, false, false, false],//- - - -
-            [false, true , true , false],//- O O -
-            [false, true , true , false],//- O O -
-            [false, false, false, false],//- - - -
+            true , true,//O O
+            true , true,//O O
         ]
-    ];
+    ]);
 
-    pub static J: [Shape; 4] = [
+    pub static J: (SizeAxis,SizeAxis,[[bool; 3*3]; 4]) = (3,3,[
         [
-            [false, true , false, false],//- O - -
-            [false, true , false, false],//- O - -
-            [true , true , false, false],//O O - -
-            [false, false, false, false],//- - - -
+            false, true , false,//- O -
+            false, true , false,//- O -
+            true , true , false,//O O -
         ],[
-            [true , false, false, false],//O - - -
-            [true , true , true , false],//O O O -
-            [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
+            true , false, false,//O - -
+            true , true , true ,//O O O
+            false, false, false,//- - -
         ],[
-            [false, true , true , false],//- O O -
-            [false, true , false, false],//- O - -
-            [false, true , false, false],//- O - -
-            [false, false, false, false],//- - - -
+            false, true , true ,//- O O
+            false, true , false,//- O -
+            false, true , false,//- O -
         ],[
-            [false, false, false, false],//- - - -
-            [true , true , true , false],//O O O -
-            [false, false, true , false],//- - O -
-            [false, false, false, false],//- - - -
+            false, false, false,//- - -
+            true , true , true ,//O O O
+            false, false, true ,//- - O
         ]
-    ];
+    ]);
 
-    pub static T: [Shape; 4] = [
+    pub static T: (SizeAxis,SizeAxis,[[bool; 3*3]; 4]) = (3,3,[
         [
-            [false, false, false, false],//- - - -
-            [true , true , true , false],//O O O -
-            [false, true , false, false],//- O - -
-            [false, false, false, false],//- - - -
+            false, false, false,//- - -
+            true , true , true ,//O O O
+            false, true , false,//- O -
         ],[
-            [false, true , false, false],//- O - -
-            [true , true , false, false],//O O - -
-            [false, true , false, false],//- O - -
-            [false, false, false, false],//- - - -
+            false, true , false,//- O -
+            true , true , false,//O O -
+            false, true , false,//- O -
         ],[
-            [false, true , false, false],//- O - -
-            [true , true , true , false],//O O O -
-            [false, false, false, false],//- - - -
-            [false, false, false, false],//- - - -
+            false, true , false,//- O -
+            true , true , true ,//O O O
+            false, false, false,//- - -
         ],[
-            [false, true , false, false],//- O - -
-            [false, true , true , false],//- O O -
-            [false, true , false, false],//- O - -
-            [false, false, false, false],//- - - -
+            false, true , false,//- O -
+            false, true , true ,//- O O
+            false, true , false,//- O -
         ]
-    ];
+    ]);
 
-    pub static S: [Shape; 2] = [
+    pub static S: (SizeAxis,SizeAxis,[[bool; 3*3]; 2]) = (3,3,[
         [
-            [false, true , false, false],//- O - -
-            [false, true , true , false],//- O O -
-            [false, false, true , false],//- - O -
-            [false, false, false, false],//- - - -
+            false, true , false,//- O -
+            false, true , true ,//- O O
+            false, false, true ,//- - O
         ],[
-            [false, false, false, false],//- - - -
-            [false, true , true , false],//- O O -
-            [true , true , false, false],//O O - -
-            [false, false, false, false],//- - - -
+            false, false, false,//- - -
+            false, true , true ,//- O O
+            true , true , false,//O O -
         ]
-    ];
+    ]);
 
-    pub static Z: [Shape; 2] = [
+    pub static Z: (SizeAxis,SizeAxis,[[bool; 3*3]; 2]) = (3,3,[
         [
-            [false, false, true , false],//- - O -
-            [false, true , true , false],//- O O -
-            [false, true , false, false],//- O - -
-            [false, false, false, false],//- - - -
+            false, false, true ,//- - O
+            false, true , true ,//- O O
+            false, true , false,//- O -
         ],[
-            [false, false, false, false],//- - - -
-            [true , true , false, false],//O O - -
-            [false, true , true , false],//- O O -
-            [false, false, false, false],//- - - -
+            false, false, false,//- - -
+            true , true , false,//O O -
+            false, true , true ,//- O O
         ]
-    ];
+    ]);
 }

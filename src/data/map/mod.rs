@@ -9,7 +9,7 @@ pub mod dynamic_map;
 use core::ops::Range;
 
 use data::map::cell::Cell;
-use super::shapes::tetrimino::{BLOCK_COUNT,ShapeVariant};
+use super::shapes::tetrimino::ShapeVariant;
 
 ///Signed integer type used for describing a position axis. The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.
 pub type PosAxis  = i16;
@@ -62,9 +62,10 @@ pub trait Map{
     fn imprint_shape<F>(&mut self,shape: &ShapeVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
         where F: Fn(&ShapeVariant) -> Self::Cell//TODO: Probably makes Map not object safe
     {
-        for j in 0 .. BLOCK_COUNT{
-            for i in 0 .. BLOCK_COUNT{
-                if shape.collision_map()[j as usize][i as usize]{
+        for j in 0 .. shape.height(){
+            for i in 0 .. shape.width(){
+                if shape.pos(i,j){
+                    //TODO: Range checks every iteration
                     self.set_position(x+(i as PosAxis),y+(j as PosAxis),cell_constructor(shape)).ok();
                 }
             }
@@ -144,7 +145,7 @@ impl<'m,M: Map> Iterator for PositionedCellIter<'m,M>
 }
 
 pub mod defaults{
-    use super::super::shapes::tetrimino::{BLOCK_COUNT,ShapeVariant};
+    use super::super::shapes::tetrimino::ShapeVariant;
     use super::{Map,PosAxis};
     use super::cell::Cell;
 
@@ -152,9 +153,9 @@ pub mod defaults{
         where M: Map,
               <M as Map>::Cell: Cell + Copy
     {
-        for j in 0..BLOCK_COUNT{
-            for i in 0..BLOCK_COUNT{
-                if shape.collision_map()[j as usize][i as usize] {
+        for j in 0..shape.height(){
+            for i in 0..shape.width(){
+                if shape.pos(i,j){
                     let (x,y) = (i as PosAxis + x,j as PosAxis + y);
                     match map.position(x,y){
                         None                           => return Some((x,y)),
