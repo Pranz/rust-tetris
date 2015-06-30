@@ -79,13 +79,13 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
         }}
     }}
 
-    pub fn with_player<F: Fn(&mut Player)>(&mut self,player_id: PlayerId,f: F){
+    pub fn with_player<F: FnOnce(&mut Player)>(&mut self,player_id: PlayerId,f: F){
         if let Some(player) = self.players.get_mut(&(player_id as usize)){
             f(player);
         }
     }
 
-    pub fn with_player_map<F: Fn(&mut Player,&mut Map)>(&mut self,player_id: PlayerId,f: F){
+    pub fn with_player_map<F: FnOnce(&mut Player,&mut Map)>(&mut self,player_id: PlayerId,f: F){
         if let Some(player) = self.players.get_mut(&(player_id as usize)){
             if let Some(map) = self.maps.get_mut(&(player.map as usize)){
                 f(player,map);

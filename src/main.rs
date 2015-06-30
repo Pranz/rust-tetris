@@ -1,4 +1,4 @@
-#![feature(associated_consts,collections,core,slice_patterns)]
+#![feature(associated_consts,collections,core,slice_patterns,vecmap)]
 
 extern crate collections;
 extern crate core;
@@ -10,6 +10,7 @@ extern crate opengl_graphics;
 extern crate piston;
 extern crate rand;
 
+pub mod ai;
 pub mod data;
 
 use piston::window::WindowSettings;
@@ -246,15 +247,20 @@ fn main(){
         map            : 1,
     });
 
+    let mut ai = ai::simple_bfs::Ai::new();
+
     //Run the created application: Listen for events
     for e in window.events(){
-        //Keyboard event
+        //Player inflicted input: Keyboard events
         if let Some(Button::Keyboard(k)) = e.press_args(){
             app.on_key_press(k);
         }
 
         //Update
         if let Some(u) = e.update_args(){
+            //AI
+            app.tetris.with_player_map(2,|player,map|{ai.update(&u,player,map);});
+
             app.update(&u);
         }
 
