@@ -1,8 +1,8 @@
 use piston::event;
 
-use data::gamestate;
 use data::player::Player;
 use data::map::Map;
+use gamestate;
 
 pub struct Ai{
 	bounce: bool,

@@ -1,8 +1,8 @@
 use piston::event;
 
-use data::gamestate;
 use data::player::Player;
 use data::map::{self,Map};
+use gamestate;
 
 pub struct Ai{
 	move_time: f64,
@@ -35,7 +35,7 @@ impl Ai{
 	}
 
 	pub fn event<M: Map>(&mut self,event: gamestate::Event,player: &mut Player,map: &mut M){
-		use data::gamestate::Event::*;
+		use gamestate::Event::*;
 
 		match event{
 			PlayerMoveGravity => (),

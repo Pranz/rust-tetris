@@ -1,4 +1,5 @@
-use super::{gamestate,map};
+use super::super::gamestate;
+use super::map;
 use super::shapes::tetrimino::ShapeVariant;
 
 pub struct Player{

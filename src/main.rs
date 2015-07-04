@@ -12,6 +12,7 @@ extern crate rand;
 
 pub mod ai;
 pub mod data;
+pub mod gamestate;
 
 use piston::window::WindowSettings;
 use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
@@ -28,7 +29,7 @@ use data::map::dynamic_map::Map;
 use data::map::Map as MapTrait;
 use data::player::Player;
 use data::shapes::tetrimino::{Shape,ShapeVariant};
-use data::gamestate::{self,GameState};
+use gamestate::GameState;
 
 struct App<Rng>{
     gl: GlGraphics,

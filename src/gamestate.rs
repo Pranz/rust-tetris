@@ -3,12 +3,12 @@ use core::cmp;
 use piston::event;
 use rand::{self,Rand};
 
-use super::super::ai::fill_one::Ai;
-use super::grid::Grid;
-use super::map;
-use super::map::Map as MapTrait;
-use super::player::Player;
-use super::shapes::tetrimino::{Shape,ShapeVariant};
+use super::ai::fill_one::Ai;
+use super::data::grid::Grid;
+use super::data::map;
+use super::data::map::Map as MapTrait;
+use super::data::player::Player;
+use super::data::shapes::tetrimino::{Shape,ShapeVariant};
 
 pub type MapId    = u8;
 pub type PlayerId = u8;
@@ -52,7 +52,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
         where Map: MapTrait<Cell = map::cell::ShapeCell>
     {if !self.paused{
         //Players
-        for (player_id,player) in self.players.iter_mut(){
+        'player_loop: for (player_id,player) in self.players.iter_mut(){
             if let Some(map) = self.maps.get_mut(&(player.map as usize)){
                 //AI, if any
                 let mut ai = self.ai.get_mut(&(player_id as usize));
@@ -89,6 +89,18 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                                 //Reset the map
                                 map.clear();
                                 player.move_time_count = 0.0;
+
+                                //Reset all players in the map
+                                /*for (_,p) in self.players.iter_mut(){if p.map == player.map{
+                                    //Select a new shape at random, setting its position to the starting position
+                                    p.shape = ShapeVariant::new(<Shape as Rand>::rand(&mut self.rng),0);
+                                    p.x = map.width() as map::PosAxis/2 - p.shape.center_x() as map::PosAxis;
+                                    p.y = 0;//TODO: Spawn above optionally: -(player.shape.height() as map::PosAxis);
+
+                                    p.move_time_count = 0.0;
+                                }}
+
+                                break 'player_loop;*/
                             }
 
                             if let Some(ref mut ai) = ai{
