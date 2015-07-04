@@ -3,6 +3,7 @@ use core::cmp;
 use piston::event;
 use rand::{self,Rand};
 
+use super::super::ai::fill_one::Ai;
 use super::grid::Grid;
 use super::map;
 use super::map::Map as MapTrait;
@@ -12,9 +13,26 @@ use super::shapes::tetrimino::{Shape,ShapeVariant};
 pub type MapId    = u8;
 pub type PlayerId = u8;
 
-pub struct GameState<Map,Rng>{
+pub enum Event{
+    //MapStart(MapId),
+    //MapUpdate(MapId),
+    //MapEnd(MapId),
+    //PlayerAdd(PlayerId,MapId),
+    //PlayerRemove(PlayerId,MapId),
+    //PlayerMapChange(PlayerId,MapId,MapId),
+    //PlayerRotate(PlayerId),
+    //PlayerRotateCollide(PlayerId,MapId),
+    //PlayerMove(PlayerId,MapId,map::PosAxis,map::PosAxis),
+    //PlayerMoveCollide(PlayerId,MapId,map::PosAxis,map::PosAxis),
+    PlayerMoveGravity,//(PlayerId,MapId,map::PosAxis),
+    PlayerImprint,//(PlayerId,MapId,map::PosAxis,map::PosAxis),
+    PlayerNewShape,//(PlayerId,MapId,map::PosAxis,map::PosAxis),
+}
+
+pub struct GameState<Map,Rng>{//TODO: Move out of the `data` module
     pub maps   : VecMap<Map>,
     pub players: VecMap<Player>,
+    pub ai     : VecMap<Ai>,
     pub rng    : Rng,
     pub paused : bool
 }
@@ -24,16 +42,21 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
         GameState{
             maps   : VecMap::new(),
             players: VecMap::new(),
+            ai     : VecMap::new(),
             rng    : rng,
             paused : false,
         }
     }
 
-    pub fn update(&mut self, args: &event::UpdateArgs)//TODO: Maybe move game logic to a separate Game structure? Neccessary?
+    pub fn update(&mut self, args: &event::UpdateArgs)
         where Map: MapTrait<Cell = map::cell::ShapeCell>
     {if !self.paused{
-        for (_,player) in self.players.iter_mut(){match self.maps.get_mut(&(player.map as usize)){
-            Some(map) => {
+        //Players
+        for (player_id,player) in self.players.iter_mut(){
+            if let Some(map) = self.maps.get_mut(&(player.map as usize)){
+                //AI, if any
+                let mut ai = self.ai.get_mut(&(player_id as usize));
+
                 //Add the time since the last update to the time count
                 player.move_time_count += args.dt;
 
@@ -67,16 +90,24 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                                 map.clear();
                                 player.move_time_count = 0.0;
                             }
+
+                            if let Some(ref mut ai) = ai{
+                                ai.event(Event::PlayerImprint,player,map);
+                                ai.event(Event::PlayerNewShape,player,map);
+                            }
                         },
                         map::CellIntersection::None =>{
                             //Move the current shape downwards
                             player.y += 1;
+                            if let Some(ref mut ai) = ai{ai.event(Event::PlayerMoveGravity,player,map);}
                         }
                     }
                 }
-            },
-            None => ()
-        }}
+
+                //AI update
+                if let Some(ref mut ai) = ai{ai.update(args,player,map);}
+            }
+        }
     }}
 
     pub fn with_player<F: FnOnce(&mut Player)>(&mut self,player_id: PlayerId,f: F){

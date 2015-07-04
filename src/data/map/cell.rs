@@ -1,11 +1,13 @@
 use super::super::shapes::tetrimino::Shape;
 
-pub trait Cell{
+pub trait Cell: Sized{
     ///Constructs an empty cell
     fn empty() -> Self;
 
     ///Returns whether this cell is non-empty
     fn is_occupied(self) -> bool;
+
+    fn is_empty(self) -> bool{!self.is_occupied()}
 }
 
 #[derive(Clone,Copy,Eq,PartialEq)]

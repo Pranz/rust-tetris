@@ -25,4 +25,6 @@ impl Ai{
 			self.move_time -= 0.3;
 		}
 	}
+
+	pub fn event<M: Map>(&mut self,_: gamestate::Event,_: &mut Player,_: &mut M){}
 }

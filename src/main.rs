@@ -20,6 +20,7 @@ use glutin_window::GlutinWindow as Window;
 use graphics::Transformed;
 use opengl_graphics::{GlGraphics,OpenGL};
 
+use ai::fill_one::Ai;
 use data::{colors,map};
 use data::grid::{self,Grid};
 use data::map::cell::ShapeCell;
@@ -247,7 +248,7 @@ fn main(){
         map            : 1,
     });
 
-    let mut ai = ai::simple_bfs::Ai::new();
+    app.tetris.ai.insert(2,Ai::new());
 
     //Run the created application: Listen for events
     for e in window.events(){
@@ -258,9 +259,6 @@ fn main(){
 
         //Update
         if let Some(u) = e.update_args(){
-            //AI
-            app.tetris.with_player_map(2,|player,map|{ai.update(&u,player,map);});
-
             app.update(&u);
         }
 

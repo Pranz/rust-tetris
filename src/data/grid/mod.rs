@@ -1,4 +1,5 @@
 pub mod iter;
+pub mod union;
 
 use super::map::{PosAxis,SizeAxis};
 
