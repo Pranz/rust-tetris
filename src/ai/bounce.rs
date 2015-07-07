@@ -17,7 +17,7 @@ impl Ai{
 
 	pub fn update<M: Map>(&mut self,args: &event::UpdateArgs,player: &mut Player,map: &mut M){
 		self.move_time+= args.dt;
-		
+
 		if self.move_time > 0.3{
 			if !gamestate::move_player(player,map,if self.bounce{1}else{-1},0){
 				self.bounce = !self.bounce;

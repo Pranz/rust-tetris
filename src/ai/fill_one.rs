@@ -19,7 +19,7 @@ impl Ai{
 
 	pub fn update<M: Map>(&mut self,args: &event::UpdateArgs,player: &mut Player,map: &mut M){
 		self.move_time-= args.dt;
-		
+
 		if self.move_time <= 0.0{
 			if player.x > self.target_x{
 				gamestate::move_player(player,map,-1,0);

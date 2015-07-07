@@ -3,12 +3,14 @@
 extern crate collections;
 extern crate core;
 #[macro_use] extern crate enum_primitive;
-extern crate glutin_window;
 extern crate graphics;
 extern crate num;
 extern crate opengl_graphics;
 extern crate piston;
 extern crate rand;
+#[cfg(feature = "include_sdl2")]  extern crate sdl2_window;
+#[cfg(feature = "include_glfw")]  extern crate glfw_window;
+#[cfg(feature = "include_glutin")]extern crate glutin_window;
 
 pub mod ai;
 pub mod data;
@@ -17,9 +19,11 @@ pub mod gamestate;
 use piston::window::WindowSettings;
 use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
 use piston::input::{Button,Key};
-use glutin_window::GlutinWindow as Window;
 use graphics::Transformed;
 use opengl_graphics::{GlGraphics,OpenGL};
+#[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
+#[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
+#[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
 use ai::fill_one::Ai;
 use data::{colors,map};
@@ -201,12 +205,12 @@ fn main(){
 
     //Create a window.
     let window = Window::new(
-        opengl,
         WindowSettings::new(
             "Polyminos Falling",
             [800, 600]
         )
         .exit_on_esc(true)
+        .opengl(opengl)
     );
 
     //Create a new application

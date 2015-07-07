@@ -5,9 +5,27 @@ authors = ["Pranz <jesper.fridefors@gmail.com", "Lolirofle <lolipopple@hotmail.c
 
 [dependencies]
 enum_primitive = "0.0.2"
-num = "0.1.25"
-piston = "0.1.4"
-piston2d-graphics = "0.1.4"
-pistoncore-glutin_window = "0.1.0"
-piston2d-opengl_graphics = "0.1.0"
-rand = "0.3.8"
+num = "0.1"
+rand = "0.3"
+
+piston = "0.2.2"
+piston2d-graphics = "0.3"
+piston2d-opengl_graphics = "0.3"
+
+[dependencies.pistoncore-sdl2_window]
+version = "0.3"
+optional = true
+
+[dependencies.pistoncore-glfw_window]
+version = "0.2"
+optional = true
+
+[dependencies.pistoncore-glutin_window]
+version = "0.3"
+optional = true
+
+[features]
+default = ["include_glutin"]
+include_sdl2   = ["pistoncore-sdl2_window"]
+include_glfw   = ["pistoncore-glfw_window"]
+include_glutin = ["pistoncore-glutin_window"]
