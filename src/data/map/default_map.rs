@@ -1,14 +1,14 @@
 use core::ops::Range;
 
-use super::super::grid::Grid;
+use super::super::grid::{self,Grid};
 use super::super::shapes::tetrimino::ShapeVariant;
 use super::Map as MapTrait;
 
 ///Constant width of the map
-const WIDTH : super::SizeAxis = 10;
+const WIDTH : grid::SizeAxis = 10;
 
 ///Constant height of the map
-const HEIGHT: super::SizeAxis = 20;
+const HEIGHT: grid::SizeAxis = 20;
 
 ///Rectangular static sized game map
 pub struct Map<Cell>([[Cell; WIDTH as usize]; HEIGHT as usize]);
@@ -17,10 +17,10 @@ impl<Cell: Copy> Grid for Map<Cell>{
     type Cell = Cell;
 
     #[inline(always)]
-    fn width(&self) -> super::SizeAxis{WIDTH}
+    fn width(&self) -> grid::SizeAxis{WIDTH}
 
     #[inline(always)]
-    fn height(&self) -> super::SizeAxis{HEIGHT}
+    fn height(&self) -> grid::SizeAxis{HEIGHT}
 
     #[inline(always)]
     unsafe fn pos(&self,x: usize,y: usize) -> Cell{
@@ -34,11 +34,11 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         self.0[y][x] = state;
     }
 
-    fn handle_full_rows(&mut self,y_check: Range<super::SizeAxis>) -> super::SizeAxis{
+    fn handle_full_rows(&mut self,y_check: Range<grid::SizeAxis>) -> grid::SizeAxis{
         debug_assert!(y_check.start < y_check.end);
         debug_assert!(y_check.end <= HEIGHT);
 
-        let mut terminated_rows: super::SizeAxis = 0;
+        let mut terminated_rows: grid::SizeAxis = 0;
 
         for y_lowest in y_check.rev(){
             let y_lowest = y_lowest + terminated_rows;
@@ -55,14 +55,14 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     }
 
     #[inline(always)]
-    fn clear_row(&mut self,y: super::SizeAxis){
+    fn clear_row(&mut self,y: grid::SizeAxis){
         debug_assert!(y < self.height());
 
         self.0[y as usize] = [Cell::empty(); WIDTH as usize];
     }
 
     #[inline(always)]
-    fn copy_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
+    fn copy_row(&mut self,y_from: grid::SizeAxis,y_to: grid::SizeAxis){
         debug_assert!(y_from != y_to);
         debug_assert!(y_from < self.height());
         debug_assert!(y_to < self.height());
@@ -70,8 +70,8 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         self.0[y_from as usize] = self.0[y_to as usize];
     }
 
-    fn shape_intersects(&self, shape: &ShapeVariant, x: super::PosAxis, y: super::PosAxis) -> super::CellIntersection{
-        super::defaults::shape_intersects(self,shape,x,y)
+    fn shape_intersects(&self,shape: &ShapeVariant,pos: grid::Pos) -> super::CellIntersection{
+        super::defaults::shape_intersects(self,shape,pos)
     }
 }
 

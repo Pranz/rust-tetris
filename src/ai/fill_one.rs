@@ -1,34 +1,33 @@
 use piston::event;
 
+use data::grid;
+use data::map::Map;
 use data::player::Player;
-use data::map::{self,Map};
 use gamestate;
 
 pub struct Ai{
 	move_time: f64,
-	target_x: map::PosAxis,
-	target_y: map::PosAxis,
+	target: grid::Pos,
 }
 
 impl Ai{
 	pub fn new() -> Self{Ai{
 		move_time: 0.0,
-		target_x: 0,
-		target_y: 0,
+		target: grid::Pos{x: 0,y: 0},
 	}}
 
 	pub fn update<M: Map>(&mut self,args: &event::UpdateArgs,player: &mut Player,map: &mut M){
 		self.move_time-= args.dt;
 
 		if self.move_time <= 0.0{
-			if player.x > self.target_x{
-				gamestate::move_player(player,map,-1,0);
+			if player.pos.x > self.target.x{
+				gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});
 				self.move_time+=0.3;
-			}else if player.x < self.target_x{
-				gamestate::move_player(player,map,1,0);
+			}else if player.pos.x < self.target.x{
+				gamestate::move_player(player,map,grid::Pos{x: 1,y: 0});
 				self.move_time+=0.3;
 			}else{
-				gamestate::move_player(player,map,0,1);
+				gamestate::move_player(player,map,grid::Pos{x: 0,y: 1});
 				self.move_time+=0.1;
 			}
 		}
@@ -41,7 +40,7 @@ impl Ai{
 			PlayerMoveGravity => (),
 			PlayerImprint => (),
 			PlayerNewShape => {
-				self.target_x = (self.target_x + 1) % (map.width() as map::PosAxis);
+				self.target.x = (self.target.x + 1) % (map.width() as grid::PosAxis);
 			},
 		}
 	}

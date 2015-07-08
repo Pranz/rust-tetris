@@ -3,8 +3,7 @@
 use num::FromPrimitive;
 use rand::{Rand,Rng};
 
-use super::super::grid::Grid;
-use super::super::map;
+use super::super::grid::{self,Grid};
 
 ///All possible tetrimino shapes
 enum_from_primitive!{
@@ -23,7 +22,7 @@ impl Shape{
     pub const LEN: usize = 7;
 
     ///Returns the data of the tetrimino shape
-    pub fn data(self,rotation: usize) -> (map::SizeAxis,&'static [bool]){
+    pub fn data(self,rotation: usize) -> (grid::SizeAxis,&'static [bool]){
         match self{
             Shape::I => {let &(w,_,ref data) = &data::I;(w,&data[rotation])},
             Shape::L => {let &(w,_,ref data) = &data::L;(w,&data[rotation])},
@@ -48,15 +47,15 @@ impl Shape{
         }
     }
 
-    pub fn size(self) -> (map::SizeAxis,map::SizeAxis){
+    pub fn size(self) -> grid::Size{
         match self{
-            Shape::I => {let (w,h,_) = data::I;(w,h)},
-            Shape::L => {let (w,h,_) = data::L;(w,h)},
-            Shape::O => {let (w,h,_) = data::O;(w,h)},
-            Shape::J => {let (w,h,_) = data::J;(w,h)},
-            Shape::T => {let (w,h,_) = data::T;(w,h)},
-            Shape::S => {let (w,h,_) = data::S;(w,h)},
-            Shape::Z => {let (w,h,_) = data::Z;(w,h)},
+            Shape::I => {let (w,h,_) = data::I;grid::Size{x: w,y: h}},
+            Shape::L => {let (w,h,_) = data::L;grid::Size{x: w,y: h}},
+            Shape::O => {let (w,h,_) = data::O;grid::Size{x: w,y: h}},
+            Shape::J => {let (w,h,_) = data::J;grid::Size{x: w,y: h}},
+            Shape::T => {let (w,h,_) = data::T;grid::Size{x: w,y: h}},
+            Shape::S => {let (w,h,_) = data::S;grid::Size{x: w,y: h}},
+            Shape::Z => {let (w,h,_) = data::Z;grid::Size{x: w,y: h}},
         }
     }
 }
@@ -108,16 +107,16 @@ impl ShapeVariant{
         self.rotation = rng.gen_range(0,self.shape.data().len() as u8)
     }*/
 
-    pub fn center_x(&self) -> map::SizeAxis{
+    pub fn center_x(&self) -> grid::SizeAxis{
         self.width()/2
     }
 
-    pub fn center_y(&self) -> map::SizeAxis{
+    pub fn center_y(&self) -> grid::SizeAxis{
         self.height()/2
     }
 
-    pub fn center(&self) -> (map::SizeAxis,map::SizeAxis){
-        (self.center_x(),self.center_y())
+    pub fn center(&self) -> grid::Size{
+        grid::Size{x: self.center_x(),y: self.center_y()}
     }
 }
 
@@ -130,15 +129,18 @@ impl Grid for ShapeVariant{
     }
 
     #[inline(always)]
-    fn width(&self) -> map::SizeAxis{self.shape.size().0}
+    fn width(&self) -> grid::SizeAxis{self.shape.size().x}
 
     #[inline(always)]
-    fn height(&self) -> map::SizeAxis{self.shape.size().1}
+    fn height(&self) -> grid::SizeAxis{self.shape.size().y}
+
+    #[inline(always)]
+    fn size(&self) -> grid::Size{self.shape.size()}
 }
 
 ///Contains data arrays of all the possible shapes and its rotations in a 4x4 grid
 pub mod data{
-    use super::super::super::map::SizeAxis;
+    use super::super::super::grid::SizeAxis;
 
     pub static I: (SizeAxis,SizeAxis,[[bool; 4*4]; 2]) = (4,4,[
         [

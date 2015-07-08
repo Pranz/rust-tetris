@@ -2,6 +2,7 @@ use piston::event;
 
 use data::player::Player;
 use data::map::Map;
+use data::grid;
 use gamestate;
 
 pub struct Ai{
@@ -19,7 +20,7 @@ impl Ai{
 		self.move_time+= args.dt;
 
 		if self.move_time > 0.3{
-			if !gamestate::move_player(player,map,if self.bounce{1}else{-1},0){
+			if !gamestate::move_player(player,map,grid::Pos{x: if self.bounce{1}else{-1},y: 0}){
 				self.bounce = !self.bounce;
 			}
 			self.move_time -= 0.3;

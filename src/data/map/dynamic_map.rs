@@ -1,7 +1,7 @@
 use core::ops::Range;
 use core::ptr;
 
-use super::super::grid::Grid;
+use super::super::grid::{self,Grid};
 use super::super::shapes::tetrimino::ShapeVariant;
 use super::Map as MapTrait;
 use super::cell::Cell;
@@ -9,17 +9,17 @@ use super::cell::Cell;
 ///Rectangular dynamic sized game map
 pub struct Map<Cell>{
     slice : Box<[Cell]>,
-    width : super::SizeAxis,
+    width : grid::SizeAxis,
 }
 
 impl<Cell: Copy> Grid for Map<Cell>{
     type Cell = Cell;
 
     #[inline(always)]
-    fn width(&self) -> super::SizeAxis{self.width}
+    fn width(&self) -> grid::SizeAxis{self.width}
 
     #[inline(always)]
-    fn height(&self) -> super::SizeAxis{(self.slice.len()/(self.width as usize)) as super::SizeAxis}
+    fn height(&self) -> grid::SizeAxis{(self.slice.len()/(self.width as usize)) as grid::SizeAxis}
 
     #[inline(always)]
     unsafe fn pos(&self,x: usize,y: usize) -> <Self as Grid>::Cell{
@@ -39,12 +39,12 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         }
     }
 
-    fn handle_full_rows(&mut self,y_check: Range<super::SizeAxis>) -> super::SizeAxis{
+    fn handle_full_rows(&mut self,y_check: Range<grid::SizeAxis>) -> grid::SizeAxis{
         debug_assert!(y_check.start < y_check.end);
         debug_assert!(y_check.end <= self.height());
 
         let y_check_start = y_check.start;
-        let mut full_row_count: super::SizeAxis = 0;
+        let mut full_row_count: grid::SizeAxis = 0;
         let mut y_check = y_check.rev();
 
         //For each row that should be checked
@@ -85,7 +85,7 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         return full_row_count;
     }
 
-    fn clear_row(&mut self,y: super::SizeAxis){
+    fn clear_row(&mut self,y: grid::SizeAxis){
         debug_assert!(y < self.height());
 
         for i in self.width * y .. self.width * (y+1){
@@ -93,7 +93,7 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         }
     }
 
-    fn copy_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
+    fn copy_row(&mut self,y_from: grid::SizeAxis,y_to: grid::SizeAxis){
         debug_assert!(y_from != y_to);
         debug_assert!(y_from < self.height());
         debug_assert!(y_to < self.height());
@@ -105,18 +105,18 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
         )};
     }
 
-    fn move_row(&mut self,y_from: super::SizeAxis,y_to: super::SizeAxis){
+    fn move_row(&mut self,y_from: grid::SizeAxis,y_to: grid::SizeAxis){
         self.copy_row(y_from,y_to);
         self.clear_row(y_from);
     }
 
-    fn shape_intersects(&self, shape: &ShapeVariant, x: super::PosAxis, y: super::PosAxis) -> super::CellIntersection{
-        super::defaults::shape_intersects(self,shape,x,y)
+    fn shape_intersects(&self, shape: &ShapeVariant, pos: grid::Pos) -> super::CellIntersection{
+        super::defaults::shape_intersects(self,shape,pos)
     }
 }
 
 impl<Cell: super::cell::Cell + Copy> Map<Cell>{
-    pub fn new(width: super::SizeAxis,height: super::SizeAxis) -> Self{
+    pub fn new(width: grid::SizeAxis,height: grid::SizeAxis) -> Self{
         use core::iter::{self,FromIterator};
 
         Map{
@@ -125,7 +125,7 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
         }
     }
 
-    pub fn clear_rows(&mut self,y: Range<super::SizeAxis>){
+    pub fn clear_rows(&mut self,y: Range<grid::SizeAxis>){
         debug_assert!(y.start < y.end);
         debug_assert!(y.end <= self.height());
 
@@ -134,24 +134,24 @@ impl<Cell: super::cell::Cell + Copy> Map<Cell>{
         }
     }
 
-    pub fn move_rows(&mut self,y: Range<super::SizeAxis>,steps: super::PosAxis){
+    pub fn move_rows(&mut self,y: Range<grid::SizeAxis>,steps: grid::PosAxis){
         debug_assert!(y.start < y.end);
         debug_assert!(y.end <= self.height());
         debug_assert!(steps != 0);
-        debug_assert!(y.start as super::PosAxis + steps > 0);
-        debug_assert!(y.end   as super::PosAxis + steps < self.height() as super::PosAxis);
+        debug_assert!(y.start as grid::PosAxis + steps > 0);
+        debug_assert!(y.end   as grid::PosAxis + steps < self.height() as grid::PosAxis);
 
         let src  = (self.width as usize) * (y.start as usize);
-        let dest = (self.width as usize) * ((y.start as super::PosAxis + steps) as usize);
+        let dest = (self.width as usize) * ((y.start as grid::PosAxis + steps) as usize);
         let size = self.width as usize * y.len();
 
-        if steps.abs() < y.len() as super::PosAxis{
+        if steps.abs() < y.len() as grid::PosAxis{
             unsafe{ptr::copy(&self.slice[src],&mut self.slice[dest],size)};
 
             if steps > 0{
-                self.clear_rows(y.start .. y.start + steps as super::SizeAxis);
+                self.clear_rows(y.start .. y.start + steps as grid::SizeAxis);
             }else{
-                self.clear_rows(y.start + (-steps) as super::SizeAxis .. y.start);
+                self.clear_rows(y.start + (-steps) as grid::SizeAxis .. y.start);
             }
         }else{
             unsafe{ptr::copy_nonoverlapping(&self.slice[src],&mut self.slice[dest],size)};

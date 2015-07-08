@@ -8,24 +8,18 @@ pub mod dynamic_map;
 
 use core::ops::Range;
 
-use super::grid::{self,Grid};
+use super::grid::{self,Grid,PosAxis,SizeAxis,Pos};
 use super::map::cell::Cell;
 use super::shapes::tetrimino::ShapeVariant;
-
-///Signed integer type used for describing a position axis. The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.
-pub type PosAxis  = i16;
-
-///Unsigned integer type used for describing a size axis.
-pub type SizeAxis = u8;
 
 pub trait Map: Grid{
     ///Sets the cell at the given position.
     ///Returns Err when out of bounds or failing to set the cell at the given position.
-    fn set_position(&mut self,x: PosAxis,y: PosAxis,state: Self::Cell) -> Result<(),()>{
-        if self.is_position_out_of_bounds(x,y){
+    fn set_position(&mut self,pos: Pos,state: Self::Cell) -> Result<(),()>{
+        if self.is_position_out_of_bounds(pos){
             Err(())
         }else{
-            unsafe{self.set_pos(x as usize,y as usize,state)};
+            unsafe{self.set_pos(pos.x as usize,pos.y as usize,state)};
             Ok(())
         }
     }
@@ -46,16 +40,16 @@ pub trait Map: Grid{
     }
 
     ///Collision checks. Whether the given shape at the given position will collide with a imprinted shape on the map
-    fn shape_intersects(&self, shape: &ShapeVariant, x: PosAxis, y: PosAxis) -> CellIntersection;
+    fn shape_intersects(&self,shape: &ShapeVariant,pos: Pos) -> CellIntersection;
 
     ///Imprints the given shape at the given position on the map
-    fn imprint_shape<F>(&mut self,shape: &ShapeVariant, x: PosAxis, y: PosAxis,cell_constructor: F)
+    fn imprint_shape<F>(&mut self,shape: &ShapeVariant,pos: Pos,cell_constructor: F)
         where F: Fn(&ShapeVariant) -> Self::Cell//TODO: Probably makes Map not object safe
     {
-        for (cell_x,cell_y,cell) in grid::iter::PositionedCellIter::new(shape){
+        for (cell_pos,cell) in grid::iter::PositionedCellIter::new(shape){
             if cell{
                 //TODO: Range checks every iteration
-                self.set_position(x+(cell_x as PosAxis),y+(cell_y as PosAxis),cell_constructor(shape)).ok();
+                self.set_position(Pos{x: pos.x+(cell_pos.x as PosAxis),y: pos.y+(cell_pos.y as PosAxis)},cell_constructor(shape)).ok();
             }
         }
     }
@@ -87,27 +81,27 @@ pub trait Map: Grid{
 }
 
 pub enum CellIntersection{
-    Imprint(PosAxis,PosAxis),
-    OutOfBounds(PosAxis,PosAxis),
+    Imprint(Pos),
+    OutOfBounds(Pos),
     None
 }
 
 pub mod defaults{
-    use super::super::grid::{self,Grid};
+    use super::super::grid::{self,Grid,PosAxis,Pos};
     use super::super::shapes::tetrimino::ShapeVariant;
-    use super::{Map,PosAxis};
     use super::cell::Cell;
+    use super::Map;
 
-    pub fn shape_intersects<M>(map: &M, shape: &ShapeVariant, x: PosAxis, y: PosAxis) -> super::CellIntersection
+    pub fn shape_intersects<M>(map: &M,shape: &ShapeVariant,pos: Pos) -> super::CellIntersection
         where M: Map,
               <M as Grid>::Cell: Cell + Copy
     {
-        for (cell_x,cell_y,cell) in grid::iter::PositionedCellIter::new(shape){
+        for (cell_pos,cell) in grid::iter::PositionedCellIter::new(shape){
             if cell{
-                let (x,y) = (cell_x as PosAxis + x,cell_y as PosAxis + y);
-                match map.position(x,y){
-                    None                           => return super::CellIntersection::OutOfBounds(x,y),
-                    Some(pos) if pos.is_occupied() => return super::CellIntersection::Imprint(x,y),
+                let pos = Pos{x: cell_pos.x as PosAxis + pos.x,y: cell_pos.y as PosAxis + pos.y};
+                match map.position(pos){
+                    None                                     => return super::CellIntersection::OutOfBounds(pos),
+                    Some(map_cell) if map_cell.is_occupied() => return super::CellIntersection::Imprint(pos),
                     _ => ()
                 };
             }

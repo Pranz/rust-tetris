@@ -1,6 +1,6 @@
-use super::super::map::{PosAxis,SizeAxis};
 use super::super::map::cell::Cell;
 use super::Grid as GridTrait;
+use super::{PosAxis,SizeAxis,Pos};
 
 pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{
 	pub a: &'ga GA,
@@ -16,8 +16,8 @@ impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>
 {
 	type Cell = <GA as GridTrait>::Cell;
 
-    fn is_position_out_of_bounds(&self,x: PosAxis,y: PosAxis) -> bool{
-        self.a.is_position_out_of_bounds(x,y)
+    fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
+        self.a.is_position_out_of_bounds(pos)
     }
 
     fn width(&self) -> SizeAxis{self.a.width()}
