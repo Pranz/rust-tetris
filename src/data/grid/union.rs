@@ -1,12 +1,11 @@
 use super::super::map::cell::Cell;
 use super::Grid as GridTrait;
-use super::{PosAxis,SizeAxis,Pos};
+use super::{SizeAxis,Pos};
 
 pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{
 	pub a: &'ga GA,
 	pub b: &'gb GB,
-	pub b_x: PosAxis,
-	pub b_y: PosAxis,
+	pub b_pos: Pos,
 }
 
 impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>
@@ -26,7 +25,7 @@ impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>
     unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell{
     	let out = self.a.pos(x,y);
     	if out.is_empty(){
-    		self.b.pos(self.b_x as usize + x,self.b_y as usize + y)
+    		self.b.pos(self.b_pos.x as usize + x,self.b_pos.y as usize + y)
     	}else{
     		out
     	}

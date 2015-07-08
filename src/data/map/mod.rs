@@ -43,9 +43,7 @@ pub trait Map: Grid{
     fn shape_intersects(&self,shape: &ShapeVariant,pos: Pos) -> CellIntersection;
 
     ///Imprints the given shape at the given position on the map
-    fn imprint_shape<F>(&mut self,shape: &ShapeVariant,pos: Pos,cell_constructor: F)
-        where F: Fn(&ShapeVariant) -> Self::Cell//TODO: Probably makes Map not object safe
-    {
+    fn imprint_shape(&mut self,shape: &ShapeVariant,pos: Pos,cell_constructor: &fn(&ShapeVariant) -> Self::Cell){
         for (cell_pos,cell) in grid::iter::PositionedCellIter::new(shape){
             if cell{
                 //TODO: Range checks every iteration

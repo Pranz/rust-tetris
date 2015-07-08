@@ -12,7 +12,7 @@ extern crate rand;
 #[cfg(feature = "include_glfw")]  extern crate glfw_window;
 #[cfg(feature = "include_glutin")]extern crate glutin_window;
 
-pub mod ai;
+pub mod controller;
 pub mod data;
 pub mod gamestate;
 
@@ -25,7 +25,7 @@ use opengl_graphics::{GlGraphics,OpenGL};
 #[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
-use ai::fill_one::Ai;
+use controller::ai;
 use data::{colors,map};
 use data::grid::{self,Grid};
 use data::map::cell::ShapeCell;
@@ -229,16 +229,16 @@ fn main(){
     });
 
     //Create player 1
-    app.tetris.add_player(1,player::Settings{
+    let player1 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
-    });
+    }).unwrap();
+    app.tetris.controllers.insert(player1 as usize,Box::new(ai::bounce::Controller::new()));
 
     //Create player 2
-    app.tetris.add_player(1,player::Settings{
+    let player2 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
-    });
-
-    app.tetris.ai.insert(2,Ai::new());
+    }).unwrap();
+    app.tetris.controllers.insert(player2 as usize,Box::new(ai::fill_one::Controller::new()));
 
     //Run the created application: Listen for events
     for e in window.events(){

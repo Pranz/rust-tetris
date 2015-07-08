@@ -3,7 +3,7 @@ use core::{cmp,mem};
 use piston::event;
 use rand::{self,Rand};
 
-use super::ai::fill_one::Ai;
+use super::controller::Controller;
 use super::data::grid::{self,Grid};
 use super::data::map;
 use super::data::map::Map as MapTrait;
@@ -29,22 +29,26 @@ pub enum Event{
     PlayerNewShape,//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
 }
 
+fn imprint_cell(variant: &ShapeVariant) -> map::cell::ShapeCell{
+    map::cell::ShapeCell(Some(variant.shape()))
+}
+
 pub struct GameState<Map,Rng>{//TODO: Move out of the `data` module
-    pub maps   : VecMap<Map>,
-    pub players: VecMap<Player>,
-    pub ai     : VecMap<Ai>,
-    pub rng    : Rng,//TODO: See http://doc.rust-lang.org/rand/src/rand/lib.rs.html#724-726 for getting a seed
-    pub paused : bool
+    pub maps       : VecMap<Map>,
+    pub players    : VecMap<Player>,
+    pub controllers: VecMap<Box<Controller<Map>>>,
+    pub rng        : Rng,//TODO: See http://doc.rust-lang.org/rand/src/rand/lib.rs.html#724-726 for getting a seed
+    pub paused     : bool
 }
 
 impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
     pub fn new(rng: Rng) -> Self{
         GameState{
-            maps   : VecMap::new(),
-            players: VecMap::new(),
-            ai     : VecMap::new(),
-            rng    : rng,
-            paused : false,
+            maps       : VecMap::new(),
+            players    : VecMap::new(),
+            controllers: VecMap::new(),
+            rng        : rng,
+            paused     : false,
         }
     }
 
@@ -61,7 +65,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
         'player_loop: for (player_id,player) in self.players.iter_mut(){
             if let Some(map) = self.maps.get_mut(&(player.map as usize)){
                 //AI, if any
-                let mut ai = self.ai.get_mut(&(player_id as usize));
+                let mut controller = self.controllers.get_mut(&(player_id as usize));
 
                 //Add the time since the last update to the time count
                 player.move_time_count += args.dt;
@@ -76,7 +80,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                         map::CellIntersection::Imprint(_) |
                         map::CellIntersection::OutOfBounds(_) => {
                             //Imprint the current shape onto the map
-                            map.imprint_shape(&player.shape,player.pos,|variant| map::cell::ShapeCell(Some(variant.shape())));
+                            map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&ShapeVariant) -> map::cell::ShapeCell));
 
                             //Handles the filled rows
                             let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
@@ -91,21 +95,21 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                                 break 'player_loop;
                             }
 
-                            if let Some(ref mut ai) = ai{
-                                ai.event(Event::PlayerImprint,player,map);
-                                ai.event(Event::PlayerNewShape,player,map);
+                            if let Some(ref mut controller) = controller{
+                                controller.event(Event::PlayerImprint,player,map);
+                                controller.event(Event::PlayerNewShape,player,map);
                             }
                         },
                         map::CellIntersection::None =>{
                             //Move the current shape downwards
                             player.pos.y += 1;
-                            if let Some(ref mut ai) = ai{ai.event(Event::PlayerMoveGravity,player,map);}
+                            if let Some(ref mut controller) = controller{controller.event(Event::PlayerMoveGravity,player,map);}
                         }
                     }
                 }
 
                 //AI update
-                if let Some(ref mut ai) = ai{ai.update(args,player,map);}
+                if let Some(ref mut controller) = controller{controller.update(args,player,map);}
             }
         }
 

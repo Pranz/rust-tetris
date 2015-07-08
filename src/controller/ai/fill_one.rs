@@ -1,22 +1,25 @@
 use piston::event;
 
+use super::super::Controller as ControllerTrait;
 use data::grid;
 use data::map::Map;
 use data::player::Player;
 use gamestate;
 
-pub struct Ai{
+pub struct Controller{
 	move_time: f64,
 	target: grid::Pos,
 }
 
-impl Ai{
-	pub fn new() -> Self{Ai{
+impl Controller{
+	pub fn new() -> Self{Controller{
 		move_time: 0.0,
 		target: grid::Pos{x: 0,y: 0},
 	}}
+}
 
-	pub fn update<M: Map>(&mut self,args: &event::UpdateArgs,player: &mut Player,map: &mut M){
+impl<M: Map> ControllerTrait<M> for Controller{
+	fn update(&mut self,args: &event::UpdateArgs,player: &mut Player,map: &mut M){
 		self.move_time-= args.dt;
 
 		if self.move_time <= 0.0{
@@ -33,7 +36,7 @@ impl Ai{
 		}
 	}
 
-	pub fn event<M: Map>(&mut self,event: gamestate::Event,player: &mut Player,map: &mut M){
+	fn event(&mut self,event: gamestate::Event,player: &mut Player,map: &mut M){
 		use gamestate::Event::*;
 
 		match event{

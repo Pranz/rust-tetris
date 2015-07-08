@@ -24,38 +24,38 @@ impl Shape{
     ///Returns the data of the tetrimino shape
     pub fn data(self,rotation: usize) -> (grid::SizeAxis,&'static [bool]){
         match self{
-            Shape::I => {let &(w,_,ref data) = &data::I;(w,&data[rotation])},
-            Shape::L => {let &(w,_,ref data) = &data::L;(w,&data[rotation])},
-            Shape::O => {let &(w,_,ref data) = &data::O;(w,&data[rotation])},
-            Shape::J => {let &(w,_,ref data) = &data::J;(w,&data[rotation])},
-            Shape::T => {let &(w,_,ref data) = &data::T;(w,&data[rotation])},
-            Shape::S => {let &(w,_,ref data) = &data::S;(w,&data[rotation])},
-            Shape::Z => {let &(w,_,ref data) = &data::Z;(w,&data[rotation])},
+            Shape::I => {let &(grid::Size{x,..},ref data) = &data::I;(x,&data[rotation])},
+            Shape::L => {let &(grid::Size{x,..},ref data) = &data::L;(x,&data[rotation])},
+            Shape::O => {let &(grid::Size{x,..},ref data) = &data::O;(x,&data[rotation])},
+            Shape::J => {let &(grid::Size{x,..},ref data) = &data::J;(x,&data[rotation])},
+            Shape::T => {let &(grid::Size{x,..},ref data) = &data::T;(x,&data[rotation])},
+            Shape::S => {let &(grid::Size{x,..},ref data) = &data::S;(x,&data[rotation])},
+            Shape::Z => {let &(grid::Size{x,..},ref data) = &data::Z;(x,&data[rotation])},
         }
     }
 
     ///Returns the number of rotations for the current shape
     pub fn rotations(self) -> usize{
         match self{
-            Shape::I => data::I.2.len(),
-            Shape::L => data::L.2.len(),
-            Shape::O => data::O.2.len(),
-            Shape::J => data::J.2.len(),
-            Shape::T => data::T.2.len(),
-            Shape::S => data::S.2.len(),
-            Shape::Z => data::Z.2.len(),
+            Shape::I => data::I.1.len(),
+            Shape::L => data::L.1.len(),
+            Shape::O => data::O.1.len(),
+            Shape::J => data::J.1.len(),
+            Shape::T => data::T.1.len(),
+            Shape::S => data::S.1.len(),
+            Shape::Z => data::Z.1.len(),
         }
     }
 
     pub fn size(self) -> grid::Size{
         match self{
-            Shape::I => {let (w,h,_) = data::I;grid::Size{x: w,y: h}},
-            Shape::L => {let (w,h,_) = data::L;grid::Size{x: w,y: h}},
-            Shape::O => {let (w,h,_) = data::O;grid::Size{x: w,y: h}},
-            Shape::J => {let (w,h,_) = data::J;grid::Size{x: w,y: h}},
-            Shape::T => {let (w,h,_) = data::T;grid::Size{x: w,y: h}},
-            Shape::S => {let (w,h,_) = data::S;grid::Size{x: w,y: h}},
-            Shape::Z => {let (w,h,_) = data::Z;grid::Size{x: w,y: h}},
+            Shape::I => data::I.0,
+            Shape::L => data::L.0,
+            Shape::O => data::O.0,
+            Shape::J => data::J.0,
+            Shape::T => data::T.0,
+            Shape::S => data::S.0,
+            Shape::Z => data::Z.0,
         }
     }
 }
@@ -140,9 +140,9 @@ impl Grid for ShapeVariant{
 
 ///Contains data arrays of all the possible shapes and its rotations in a 4x4 grid
 pub mod data{
-    use super::super::super::grid::SizeAxis;
+    use super::super::super::grid::Size;
 
-    pub static I: (SizeAxis,SizeAxis,[[bool; 4*4]; 2]) = (4,4,[
+    pub static I: (Size,[[bool; 4*4]; 2]) = (Size{x: 4,y: 4},[
         [
             false, false, true , false,//- - O -
             false, false, true , false,//- - O -
@@ -156,7 +156,7 @@ pub mod data{
         ]
     ]);
 
-    pub static L: (SizeAxis,SizeAxis,[[bool; 3*3]; 4]) = (3,3,[
+    pub static L: (Size,[[bool; 3*3]; 4]) = (Size{x: 3,y: 3},[
         [
             false, true , false,//- O -
             false, true , false,//- O -
@@ -176,14 +176,14 @@ pub mod data{
         ]
     ]);
 
-    pub static O: (SizeAxis,SizeAxis,[[bool; 2*2]; 1]) = (2,2,[
+    pub static O: (Size,[[bool; 2*2]; 1]) = (Size{x: 2,y: 2},[
         [
             true , true,//O O
             true , true,//O O
         ]
     ]);
 
-    pub static J: (SizeAxis,SizeAxis,[[bool; 3*3]; 4]) = (3,3,[
+    pub static J: (Size,[[bool; 3*3]; 4]) = (Size{x: 3,y: 3},[
         [
             false, true , false,//- O -
             false, true , false,//- O -
@@ -203,7 +203,7 @@ pub mod data{
         ]
     ]);
 
-    pub static T: (SizeAxis,SizeAxis,[[bool; 3*3]; 4]) = (3,3,[
+    pub static T: (Size,[[bool; 3*3]; 4]) = (Size{x: 3,y: 3},[
         [
             false, false, false,//- - -
             true , true , true ,//O O O
@@ -223,7 +223,7 @@ pub mod data{
         ]
     ]);
 
-    pub static S: (SizeAxis,SizeAxis,[[bool; 3*3]; 2]) = (3,3,[
+    pub static S: (Size,[[bool; 3*3]; 2]) = (Size{x: 3,y: 3},[
         [
             false, true , false,//- O -
             false, true , true ,//- O O
@@ -235,7 +235,7 @@ pub mod data{
         ]
     ]);
 
-    pub static Z: (SizeAxis,SizeAxis,[[bool; 3*3]; 2]) = (3,3,[
+    pub static Z: (Size,[[bool; 3*3]; 2]) = (Size{x: 3,y: 3},[
         [
             false, false, true ,//- - O
             false, true , true ,//- O O
