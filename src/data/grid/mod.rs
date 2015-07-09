@@ -1,5 +1,6 @@
+pub mod difference;
+pub mod imprint;
 pub mod iter;
-pub mod union;
 
 ///Signed integer type used for describing a position axis.
 ///The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.

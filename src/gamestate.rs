@@ -210,20 +210,26 @@ pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,delta: grid::Pos) ->
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
 pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    player.shape.next_rotation();
-    match map.shape_intersects(&player.shape,player.pos){
+    let next_rotation = player.shape.next_rotation();
+
+    match map.shape_intersects(&next_rotation,player.pos){
         map::CellIntersection::Imprint(pos) |
         map::CellIntersection::OutOfBounds(pos) => {
-            let center_x = player.pos.x + 2;//TODO: Magic constants everywhere
+            let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
             let sign = if pos.x < center_x {1} else {-1};
-            for i in 1..3 {
-                if move_player(player,map,grid::Pos{x: i * sign,y: 0}){return true;}
+            for i in 1..player.shape.width(){
+                if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
+                    player.shape = next_rotation;
+                    return true;
+                }
             }
-            player.shape.previous_rotation();
 
             false
         },
-        _ => true
+        _ => {
+            player.shape = next_rotation;
+            true
+        }
     }
 }
 
@@ -231,20 +237,26 @@ pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) 
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
 pub fn rotate_previous_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    player.shape.previous_rotation();
-    match map.shape_intersects(&player.shape,player.pos){
+    let prev_rotation = player.shape.previous_rotation();
+
+    match map.shape_intersects(&prev_rotation,player.pos){
         map::CellIntersection::Imprint(pos) |
         map::CellIntersection::OutOfBounds(pos) => {
-            let center_x = player.pos.x + 2;//TODO: Magic constants everywhere
+            let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
             let sign = if pos.x < center_x {1} else {-1};
-            for i in 1..3 {
-                if move_player(player,map,grid::Pos{x: i * sign,y: 0}){return true;}
+            for i in 1..player.shape.width() {
+                if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
+                    player.shape = prev_rotation;
+                    return true;
+                }
             }
-            player.shape.next_rotation();
 
             false
         },
-        _ => true
+        _ => {
+            player.shape = prev_rotation;
+            true
+        }
     }
 }
 
