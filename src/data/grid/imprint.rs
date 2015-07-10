@@ -29,7 +29,7 @@ impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>
             let x = self.b_pos.x as usize + x;
             let y = self.b_pos.y as usize + y;
 
-            if self.b.is_position_out_of_bounds(Pos{x: x as PosAxis,y: y as PosAxis}){
+            if !self.b.is_position_out_of_bounds(Pos{x: x as PosAxis,y: y as PosAxis}){
                 return self.b.pos(x,y)
             }
     	}

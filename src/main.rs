@@ -229,11 +229,11 @@ fn main(){
     });
 
     //Create player 1
-    let player1 = app.tetris.add_player(1,player::Settings{
+    /*let player1 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
     }).unwrap();
     app.tetris.controllers.insert(player1 as usize,Box::new(ai::bounce::Controller::new()));
-
+*/
     //Create player 2
     let player2 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,

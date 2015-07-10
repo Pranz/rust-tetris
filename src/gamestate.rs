@@ -281,3 +281,15 @@ pub fn respawn_player<M: MapTrait>(player: &mut Player,map: &M,new_shape: Shape)
         _ => true
     }
 }
+
+pub fn fast_fallen_shape<M: MapTrait>(shape: &ShapeVariant,map: &M,shape_pos: grid::Pos) -> grid::Pos{
+    for y in shape_pos.y .. map.height() as grid::PosAxis{
+        match map.shape_intersects(&shape,grid::Pos{x: shape_pos.x,y: y+1}){
+            map::CellIntersection::Imprint(_)     |
+            map::CellIntersection::OutOfBounds(_) => return grid::Pos{x: shape_pos.x,y: y},
+            _ => ()
+        };
+    }
+
+    unreachable!()
+}

@@ -1,5 +1,6 @@
 pub mod difference;
 pub mod imprint;
+pub mod imprint_bool;
 pub mod iter;
 
 ///Signed integer type used for describing a position axis.

@@ -98,6 +98,13 @@ impl ShapeVariant{
         ..self
     }}
 
+    pub fn with_rotation(self,rotation: u8) -> Self{ShapeVariant{
+        rotation: rotation % self.shape.rotations(),
+        ..self
+    }}
+
+    pub fn rotation(&self) -> u8{self.rotation}
+
     #[inline(always)]
     pub fn shape(&self) -> Shape{self.shape}
 
