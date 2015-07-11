@@ -26,18 +26,16 @@ use opengl_graphics::{GlGraphics,OpenGL};
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
 use controller::ai;
-use data::{colors,map};
+use data::{cell,colors,player};
 use data::grid::{self,Grid};
-use data::map::cell::ShapeCell;
 use data::map::dynamic_map::Map;
 use data::map::Map as MapTrait;
-use data::player;
 use data::shapes::tetrimino::Shape;
 use gamestate::GameState;
 
 struct App<Rng>{
     gl: GlGraphics,
-    tetris: GameState<Map<map::cell::ShapeCell>,Rng>,
+    tetris: GameState<Map<cell::ShapeCell>,Rng>,
 }
 
 impl<Rng: rand::Rng> App<Rng>{
@@ -68,7 +66,7 @@ impl<Rng: rand::Rng> App<Rng>{
                 graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map.width() as f64 * BLOCK_PIXEL_SIZE,map.height() as f64 * BLOCK_PIXEL_SIZE],transform,gl);
 
                 //Imprinted cells
-                for (cell_pos,ShapeCell(cell)) in grid::iter::PositionedCellIter::new(map){
+                for (cell_pos,cell::ShapeCell(cell)) in grid::cells_iter::Iter::new(map){
                     if let Some(cell) = cell{
                         let transform = transform.trans(cell_pos.x as f64 * BLOCK_PIXEL_SIZE,cell_pos.y as f64 * BLOCK_PIXEL_SIZE);
                         graphics::rectangle(
@@ -109,7 +107,7 @@ impl<Rng: rand::Rng> App<Rng>{
                     };
 
                     //Draw current shape(s)
-                    for (cell_pos,cell) in grid::iter::PositionedCellIter::new(&player.shape){
+                    for (cell_pos,cell) in grid::cells_iter::Iter::new(&player.shape){
                         if cell{
                             let transform = transform.trans((cell_pos.x as grid::PosAxis + player.pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + player.pos.y) as f64 * BLOCK_PIXEL_SIZE);
                             graphics::rectangle(color,square,transform,gl);
@@ -238,7 +236,7 @@ fn main(){
     let player2 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
     }).unwrap();
-    app.tetris.controllers.insert(player2 as usize,Box::new(ai::fill_one::Controller::new()));
+    app.tetris.controllers.insert(player2 as usize,Box::new(ai::fill_one::Controller::default()));
 
     //Run the created application: Listen for events
     for e in window.events(){

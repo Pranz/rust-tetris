@@ -1,7 +1,13 @@
+pub mod cells_iter;
+pub mod column;
+pub mod columns_iter;
 pub mod difference;
 pub mod imprint;
 pub mod imprint_bool;
-pub mod iter;
+pub mod row;
+pub mod rows_iter;
+
+use super::cell::Cell as CellTrait;
 
 ///Signed integer type used for describing a position axis.
 ///The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.
@@ -52,4 +58,17 @@ pub trait Grid{
     ///    x < height()
     ///    y < height()
     unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell;
+}
+
+pub fn is_grid_out_of_bounds<GIn,GOut>(outside: &GOut,inside: &GIn,inside_offset: Pos) -> bool
+    where GIn : Grid,
+          GOut: Grid,
+          <GIn  as Grid>::Cell: CellTrait + Copy,
+{
+    for (pos,cell) in cells_iter::Iter::new(inside){
+        if cell.is_occupied() && outside.is_position_out_of_bounds(Pos{x: inside_offset.x + pos.x as PosAxis,y: inside_offset.y + pos.y as PosAxis}){
+            return true;
+        }
+    }
+    false
 }

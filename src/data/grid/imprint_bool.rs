@@ -1,4 +1,4 @@
-use super::super::map::cell::Cell;
+use super::super::cell::Cell;
 use super::Grid as GridTrait;
 use super::{PosAxis,SizeAxis,Pos};
 
@@ -7,22 +7,6 @@ pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{
 	pub a: &'ga GA,
 	pub b: &'gb GB,
 	pub b_pos: Pos,
-}
-
-impl<'ga,'gb,GA,GB> Grid<'ga,'gb,GA,GB>
-    where GA: GridTrait + 'ga,
-          GB: GridTrait + 'gb,
-          <GA as GridTrait>::Cell: Cell + Copy,
-          <GB as GridTrait>::Cell: Cell + Copy,
-{
-    pub fn is_imprint_outside(&self) -> bool{
-        for (pos,cell) in super::iter::PositionedCellIter::new(self.b){
-            if cell.is_occupied() && self.a.is_position_out_of_bounds(Pos{x: self.b_pos.x + pos.x as PosAxis,y: self.b_pos.y + pos.y as PosAxis}){
-                return true;
-            }
-        }
-        false
-    }
 }
 
 impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>

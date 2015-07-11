@@ -1,4 +1,4 @@
-use super::super::map::cell::Cell;
+use super::super::cell::Cell;
 use super::Grid as GridTrait;
 use super::{PosAxis,SizeAxis,Pos};
 

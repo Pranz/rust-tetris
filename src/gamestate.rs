@@ -4,6 +4,7 @@ use piston::event;
 use rand::{self,Rand};
 
 use super::controller::Controller;
+use super::data::cell;
 use super::data::grid::{self,Grid};
 use super::data::map;
 use super::data::map::Map as MapTrait;
@@ -29,8 +30,8 @@ pub enum Event{
     PlayerNewShape,//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
 }
 
-fn imprint_cell(variant: &ShapeVariant) -> map::cell::ShapeCell{
-    map::cell::ShapeCell(Some(variant.shape()))
+fn imprint_cell(variant: &ShapeVariant) -> cell::ShapeCell{
+    cell::ShapeCell(Some(variant.shape()))
 }
 
 pub struct GameState<Map,Rng>{//TODO: Move out of the `data` module
@@ -53,7 +54,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
     }
 
     pub fn update(&mut self, args: &event::UpdateArgs)
-        where Map: MapTrait<Cell = map::cell::ShapeCell>
+        where Map: MapTrait<Cell = cell::ShapeCell>
     {if !self.paused{
         //After action
         enum Action{
@@ -80,7 +81,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                         map::CellIntersection::Imprint(_) |
                         map::CellIntersection::OutOfBounds(_) => {
                             //Imprint the current shape onto the map
-                            map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&ShapeVariant) -> map::cell::ShapeCell));
+                            map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&ShapeVariant) -> cell::ShapeCell));
 
                             //Handles the filled rows
                             let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
@@ -170,7 +171,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
 
     pub fn reset_map(&mut self,map_id: MapId)
         where Map: MapTrait,
-              <Map as Grid>::Cell: map::cell::Cell
+              <Map as Grid>::Cell: cell::Cell
     {
         let self2 = unsafe{mem::transmute::<&mut Self,&mut Self>(self)};
         let self3 = unsafe{mem::transmute::<&mut Self,&mut Self>(self)};
