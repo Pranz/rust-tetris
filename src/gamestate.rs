@@ -24,9 +24,10 @@ pub enum Event{
     //PlayerRotateCollide(PlayerId,MapId),
     //PlayerMove(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
     //PlayerMoveCollide(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
+    PlayerRowsClear{n: grid::SizeAxis},
     PlayerMoveGravity,//(PlayerId,MapId,grid::PosAxis),
     PlayerImprint,//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
-    PlayerNewShape,//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
+    PlayerNewShape{old: ShapeVariant,new: Shape},//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
 }
 
 fn imprint_cell(variant: &ShapeVariant) -> map::cell::ShapeCell{
@@ -76,35 +77,29 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                     player.move_time_count -= player.settings.move_frequency;
 
                     //If there are a collision below
-                    match map.shape_intersects(&player.shape,grid::Pos{x: player.pos.x,y: player.pos.y + 1}){
-                        map::CellIntersection::Imprint(_) |
-                        map::CellIntersection::OutOfBounds(_) => {
-                            //Imprint the current shape onto the map
-                            map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&ShapeVariant) -> map::cell::ShapeCell));
+                    if move_player(player,map,grid::Pos{x: 0,y: 1}){
+                        if let Some(ref mut controller) = controller{controller.event(Event::PlayerMoveGravity,player,map);}
+                    }else{
+                        //Imprint the current shape onto the map
+                        map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&ShapeVariant) -> map::cell::ShapeCell));
 
-                            //Handles the filled rows
-                            let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
-                            let max_y = cmp::min(min_y + player.shape.height(),map.height());
-                            if min_y!=max_y{
-                                map.handle_full_rows(min_y .. max_y);
-                            }
-
-                            //Respawn player and check for collision at spawn position
-                            if !respawn_player(player,map,<Shape as Rand>::rand(&mut self.rng)){
-                                action = Action::ResetMap(player.map);
-                                break 'player_loop;
-                            }
-
-                            if let Some(ref mut controller) = controller{
-                                controller.event(Event::PlayerImprint,player,map);
-                                controller.event(Event::PlayerNewShape,player,map);
-                            }
-                        },
-                        map::CellIntersection::None =>{
-                            //Move the current shape downwards
-                            player.pos.y += 1;
-                            if let Some(ref mut controller) = controller{controller.event(Event::PlayerMoveGravity,player,map);}
+                        //Handles the filled rows
+                        let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
+                        let max_y = cmp::min(min_y + player.shape.height(),map.height());
+                        if min_y!=max_y{
+                            let rows = map.handle_full_rows(min_y .. max_y);
+                            if let Some(ref mut controller) = controller{controller.event(Event::PlayerRowsClear{n: rows},player,map);}
                         }
+
+                        //Respawn player and check for collision at spawn position
+                        let shape = <Shape as Rand>::rand(&mut self.rng);
+                        if let Some(ref mut controller) = controller{controller.event(Event::PlayerNewShape{old: player.shape,new: shape},player,map);}
+                        if !respawn_player(player,map,shape){
+                            action = Action::ResetMap(player.map);
+                            break 'player_loop;
+                        }
+
+                        if let Some(ref mut controller) = controller{controller.event(Event::PlayerImprint,player,map);}
                     }
                 }
 
@@ -119,24 +114,27 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
         };
     }}
 
-    pub fn with_player<F: FnOnce(&mut Player)>(&mut self,player_id: PlayerId,f: F){
+    pub fn with_player<F: FnOnce(&mut Player) -> R,R>(&mut self,player_id: PlayerId,f: F) -> Option<R>{
         if let Some(player) = self.players.get_mut(&(player_id as usize)){
-            f(player);
+            return Some(f(player))
         }
+        None
     }
 
-    pub fn with_player_map<F: FnOnce(&mut Player,&mut Map)>(&mut self,player_id: PlayerId,f: F){
+    pub fn with_player_map<F: FnOnce(&mut Player,&mut Map)-> R,R>(&mut self,player_id: PlayerId,f: F) -> Option<R>{
         if let Some(player) = self.players.get_mut(&(player_id as usize)){
             if let Some(map) = self.maps.get_mut(&(player.map as usize)){
-                f(player,map);
+                return Some(f(player,map))
             }
         }
+        None
     }
 
-    pub fn with_map<F: FnOnce(&mut Map)>(&mut self,map_id: MapId,f: F){
+    pub fn with_map<F: FnOnce(&mut Map) -> R,R>(&mut self,map_id: MapId,f: F) -> Option<R>{
         if let Some(map) = self.maps.get_mut(&(map_id as usize)){
-            f(map);
+            return Some(f(map))
         }
+        None
     }
 
     pub fn with_map_players<F: FnMut(&mut Player)>(&mut self,map_id: MapId,mut f: F){
@@ -159,6 +157,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                 shape          : shape,
                 map            : map_id,
                 move_time_count: 0.0,
+                points         : 0,
                 settings       : settings
             });
 

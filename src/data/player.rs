@@ -7,6 +7,7 @@ pub struct Player{
     pub shape          : ShapeVariant,
     pub map            : gamestate::MapId,
 	pub move_time_count: f64, //Unit: seconds
+	pub points         : u32,
     pub settings       : Settings,
 }
 

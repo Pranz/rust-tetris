@@ -42,7 +42,8 @@ impl<M: Map> ControllerTrait<M> for Controller{
 		match event{
 			PlayerMoveGravity => (),
 			PlayerImprint => (),
-			PlayerNewShape => {
+			PlayerRowsClear{..} => (),
+			PlayerNewShape{..} => {
 				self.target.x = (self.target.x + 1) % (map.width() as grid::PosAxis);
 			},
 		}
