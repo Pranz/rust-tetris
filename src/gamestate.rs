@@ -4,6 +4,7 @@ use piston::event;
 use rand::{self,Rand};
 
 use super::controller::Controller;
+use super::data::cell;
 use super::data::grid::{self,Grid};
 use super::data::map;
 use super::data::map::Map as MapTrait;
@@ -30,8 +31,8 @@ pub enum Event{
     PlayerNewShape{old: ShapeVariant,new: Shape},//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
 }
 
-fn imprint_cell(variant: &ShapeVariant) -> map::cell::ShapeCell{
-    map::cell::ShapeCell(Some(variant.shape()))
+fn imprint_cell(variant: &ShapeVariant) -> cell::ShapeCell{
+    cell::ShapeCell(Some(variant.shape()))
 }
 
 pub struct GameState<Map,Rng>{//TODO: Move out of the `data` module
@@ -54,7 +55,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
     }
 
     pub fn update(&mut self, args: &event::UpdateArgs)
-        where Map: MapTrait<Cell = map::cell::ShapeCell>
+        where Map: MapTrait<Cell = cell::ShapeCell>
     {if !self.paused{
         //After action
         enum Action{
@@ -81,7 +82,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                         if let Some(ref mut controller) = controller{controller.event(Event::PlayerMoveGravity,player,map);}
                     }else{
                         //Imprint the current shape onto the map
-                        map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&ShapeVariant) -> map::cell::ShapeCell));
+                        map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&ShapeVariant) -> cell::ShapeCell));
 
                         //Handles the filled rows
                         let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
@@ -169,7 +170,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
 
     pub fn reset_map(&mut self,map_id: MapId)
         where Map: MapTrait,
-              <Map as Grid>::Cell: map::cell::Cell
+              <Map as Grid>::Cell: cell::Cell
     {
         let self2 = unsafe{mem::transmute::<&mut Self,&mut Self>(self)};
         let self3 = unsafe{mem::transmute::<&mut Self,&mut Self>(self)};
@@ -209,20 +210,26 @@ pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,delta: grid::Pos) ->
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
 pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    player.shape.next_rotation();
-    match map.shape_intersects(&player.shape,player.pos){
+    let next_rotation = player.shape.next_rotation();
+
+    match map.shape_intersects(&next_rotation,player.pos){
         map::CellIntersection::Imprint(pos) |
         map::CellIntersection::OutOfBounds(pos) => {
-            let center_x = player.pos.x + 2;//TODO: Magic constants everywhere
+            let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
             let sign = if pos.x < center_x {1} else {-1};
-            for i in 1..3 {
-                if move_player(player,map,grid::Pos{x: i * sign,y: 0}){return true;}
+            for i in 1..player.shape.width(){
+                if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
+                    player.shape = next_rotation;
+                    return true;
+                }
             }
-            player.shape.previous_rotation();
 
             false
         },
-        _ => true
+        _ => {
+            player.shape = next_rotation;
+            true
+        }
     }
 }
 
@@ -230,20 +237,26 @@ pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) 
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
 pub fn rotate_previous_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    player.shape.previous_rotation();
-    match map.shape_intersects(&player.shape,player.pos){
+    let prev_rotation = player.shape.previous_rotation();
+
+    match map.shape_intersects(&prev_rotation,player.pos){
         map::CellIntersection::Imprint(pos) |
         map::CellIntersection::OutOfBounds(pos) => {
-            let center_x = player.pos.x + 2;//TODO: Magic constants everywhere
+            let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
             let sign = if pos.x < center_x {1} else {-1};
-            for i in 1..3 {
-                if move_player(player,map,grid::Pos{x: i * sign,y: 0}){return true;}
+            for i in 1..player.shape.width() {
+                if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
+                    player.shape = prev_rotation;
+                    return true;
+                }
             }
-            player.shape.next_rotation();
 
             false
         },
-        _ => true
+        _ => {
+            player.shape = prev_rotation;
+            true
+        }
     }
 }
 
@@ -267,4 +280,16 @@ pub fn respawn_player<M: MapTrait>(player: &mut Player,map: &M,new_shape: Shape)
         map::CellIntersection::Imprint(_) => false,
         _ => true
     }
+}
+
+pub fn fast_fallen_shape<M: MapTrait>(shape: &ShapeVariant,map: &M,shape_pos: grid::Pos) -> grid::Pos{
+    for y in shape_pos.y .. map.height() as grid::PosAxis{
+        match map.shape_intersects(&shape,grid::Pos{x: shape_pos.x,y: y+1}){
+            map::CellIntersection::Imprint(_)     |
+            map::CellIntersection::OutOfBounds(_) => return grid::Pos{x: shape_pos.x,y: y},
+            _ => ()
+        };
+    }
+
+    unreachable!()
 }

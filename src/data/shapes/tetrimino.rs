@@ -22,7 +22,8 @@ impl Shape{
     pub const LEN: usize = 7;
 
     ///Returns the data of the tetrimino shape
-    pub fn data(self,rotation: usize) -> (grid::SizeAxis,&'static [bool]){
+    pub fn data(self,rotation: u8) -> (grid::SizeAxis,&'static [bool]){
+        let rotation = rotation as usize;
         match self{
             Shape::I => {let &(grid::Size{x,..},ref data) = &data::I;(x,&data[rotation])},
             Shape::L => {let &(grid::Size{x,..},ref data) = &data::L;(x,&data[rotation])},
@@ -35,8 +36,8 @@ impl Shape{
     }
 
     ///Returns the number of rotations for the current shape
-    pub fn rotations(self) -> usize{
-        match self{
+    pub fn rotations(self) -> u8{
+        (match self{
             Shape::I => data::I.1.len(),
             Shape::L => data::L.1.len(),
             Shape::O => data::O.1.len(),
@@ -44,7 +45,7 @@ impl Shape{
             Shape::T => data::T.1.len(),
             Shape::S => data::S.1.len(),
             Shape::Z => data::Z.1.len(),
-        }
+        }) as u8
     }
 
     pub fn size(self) -> grid::Size{
@@ -79,28 +80,37 @@ impl ShapeVariant{
     pub fn new(shape: Shape,rotation: u8) -> Self{
         ShapeVariant{
             shape   : shape,
-            rotation: rotation,
+            rotation: rotation % shape.rotations(),
         }
     }
 
-    pub fn next_rotation(&mut self){
-        self.rotation = (self.rotation + 1) % self.shape.rotations() as u8;
-    }
+    pub fn next_rotation(self) -> Self{ShapeVariant{
+        rotation: (self.rotation + 1) % self.shape.rotations(),
+        ..self
+    }}
 
-    pub fn previous_rotation(&mut self){
-        self.rotation = if self.rotation == 0{
-            self.shape.rotations() as u8
+    pub fn previous_rotation(self) -> Self{ShapeVariant{
+        rotation: if self.rotation == 0{
+            self.shape.rotations()
         }else{
             self.rotation
-        } - 1;
-    }
+        } - 1,
+        ..self
+    }}
+
+    pub fn with_rotation(self,rotation: u8) -> Self{ShapeVariant{
+        rotation: rotation % self.shape.rotations(),
+        ..self
+    }}
+
+    pub fn rotation(&self) -> u8{self.rotation}
 
     #[inline(always)]
     pub fn shape(&self) -> Shape{self.shape}
 
     pub fn set_shape(&mut self,shape: Shape){
         self.shape = shape;
-        self.rotation %= shape.rotations() as u8;
+        self.rotation %= shape.rotations();
     }
 
     /*pub fn random_rotation<R: Rng>(&mut self,rng: &mut R){
@@ -124,7 +134,7 @@ impl Grid for ShapeVariant{
     type Cell = bool;
 
     unsafe fn pos(&self, x: usize, y: usize) -> bool{
-        let (width,data) = self.shape.data(self.rotation as usize);
+        let (width,data) = self.shape.data(self.rotation);
         data[x + (y * width as usize)]
     }
 

@@ -4,7 +4,7 @@ use core::ptr;
 use super::super::grid::{self,Grid};
 use super::super::shapes::tetrimino::ShapeVariant;
 use super::Map as MapTrait;
-use super::cell::Cell;
+use super::super::cell::Cell as CellTrait;
 
 ///Rectangular dynamic sized game map
 pub struct Map<Cell>{
@@ -27,7 +27,7 @@ impl<Cell: Copy> Grid for Map<Cell>{
     }
 }
 
-impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
+impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
     #[inline(always)]
     unsafe fn set_pos(&mut self,x: usize,y: usize,state: <Self as Grid>::Cell){
         self.slice[x + y*(self.width as usize)] = state;
@@ -115,7 +115,7 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     }
 }
 
-impl<Cell: super::cell::Cell + Copy> Map<Cell>{
+impl<Cell: CellTrait + Copy> Map<Cell>{
     pub fn new(width: grid::SizeAxis,height: grid::SizeAxis) -> Self{
         use core::iter::{self,FromIterator};
 

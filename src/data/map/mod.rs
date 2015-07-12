@@ -1,6 +1,5 @@
 //!A game map
 
-pub mod cell;
 pub mod default_map;
 pub mod dynamic_map;
 
@@ -9,7 +8,7 @@ pub mod dynamic_map;
 use core::ops::Range;
 
 use super::grid::{self,Grid,PosAxis,SizeAxis,Pos};
-use super::map::cell::Cell;
+use super::cell::Cell as CellTrait;
 use super::shapes::tetrimino::ShapeVariant;
 
 pub trait Map: Grid{
@@ -31,7 +30,7 @@ pub trait Map: Grid{
     unsafe fn set_pos(&mut self,x: usize,y: usize,state: Self::Cell);
 
     //Clears the map
-    fn clear(&mut self) where <Self as Grid>::Cell: cell::Cell{
+    fn clear(&mut self) where <Self as Grid>::Cell: CellTrait{
         for y in 0..self.height(){
             for x in 0..self.width(){
                 unsafe{self.set_pos(x as usize,y as usize,Self::Cell::empty())};
@@ -44,7 +43,7 @@ pub trait Map: Grid{
 
     ///Imprints the given shape at the given position on the map
     fn imprint_shape(&mut self,shape: &ShapeVariant,pos: Pos,cell_constructor: &fn(&ShapeVariant) -> Self::Cell){
-        for (cell_pos,cell) in grid::iter::PositionedCellIter::new(shape){
+        for (cell_pos,cell) in grid::cells_iter::Iter::new(shape){
             if cell{
                 //TODO: Range checks every iteration
                 self.set_position(Pos{x: pos.x+(cell_pos.x as PosAxis),y: pos.y+(cell_pos.y as PosAxis)},cell_constructor(shape)).ok();
@@ -87,14 +86,14 @@ pub enum CellIntersection{
 pub mod defaults{
     use super::super::grid::{self,Grid,PosAxis,Pos};
     use super::super::shapes::tetrimino::ShapeVariant;
-    use super::cell::Cell;
+    use super::super::cell::Cell as CellTrait;
     use super::Map;
 
     pub fn shape_intersects<M>(map: &M,shape: &ShapeVariant,pos: Pos) -> super::CellIntersection
         where M: Map,
-              <M as Grid>::Cell: Cell + Copy
+              <M as Grid>::Cell: CellTrait + Copy
     {
-        for (cell_pos,cell) in grid::iter::PositionedCellIter::new(shape){
+        for (cell_pos,cell) in grid::cells_iter::Iter::new(shape){
             if cell{
                 let pos = Pos{x: cell_pos.x as PosAxis + pos.x,y: cell_pos.y as PosAxis + pos.y};
                 match map.position(pos){

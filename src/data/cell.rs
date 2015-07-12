@@ -1,4 +1,4 @@
-use super::super::shapes::tetrimino::Shape;
+use super::shapes::tetrimino::Shape;
 
 pub trait Cell: Sized{
     ///Constructs an empty cell

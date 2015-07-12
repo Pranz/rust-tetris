@@ -1,5 +1,6 @@
 use core::ops::Range;
 
+use super::super::cell::Cell as CellTrait;
 use super::super::grid::{self,Grid};
 use super::super::shapes::tetrimino::ShapeVariant;
 use super::Map as MapTrait;
@@ -28,7 +29,7 @@ impl<Cell: Copy> Grid for Map<Cell>{
     }
 }
 
-impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
+impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
     #[inline(always)]
     unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
         self.0[y][x] = state;
@@ -75,7 +76,7 @@ impl<Cell: super::cell::Cell + Copy> MapTrait for Map<Cell>{
     }
 }
 
-impl<Cell: super::cell::Cell + Copy> Default for Map<Cell>{
+impl<Cell: CellTrait + Copy> Default for Map<Cell>{
     fn default() -> Self{
         Map([[Cell::empty(); WIDTH as usize]; HEIGHT as usize])
     }
