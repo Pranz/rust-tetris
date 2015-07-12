@@ -55,7 +55,7 @@ impl<M> ControllerTrait<M> for Controller
 
 		if self.rotate_time_count <= 0.0{
 			if player.shape.rotation() != self.target_rotation{
-				player.shape = player.shape.next_rotation();
+				player.shape = player.shape.rotated_anticlockwise();
 				self.rotate_time_count+=0.5;
 			}
 		}
@@ -68,16 +68,14 @@ impl<M> ControllerTrait<M> for Controller
 			PlayerMoveGravity => (),
 			PlayerImprint => (),
 			PlayerRowsClear{..} => (),
-			PlayerNewShape{..} => {
+			PlayerNewShape{new: new_shape,..} => {
 				self.move_time_count = 0.0;
 				self.rotate_time_count = 0.0;
 
 				let mut o = f32::INFINITY;
 
-				for rotation in 0 .. player.shape.shape().rotations(){
-					for x in -(player.shape.width() as grid::PosAxis)+1 .. map.width() as grid::PosAxis{
-						let shape = player.shape.with_rotation(rotation);
-
+				for shape in new_shape.rotations(){
+					for x in -(shape.width() as grid::PosAxis)+1 .. map.width() as grid::PosAxis{
 						if !grid::is_grid_out_of_bounds(map,&shape,grid::Pos{x: x,y: 0}){
 							let optimality_test_map = grid::imprint_bool::Grid{
 								a: map,
@@ -96,7 +94,7 @@ impl<M> ControllerTrait<M> for Controller
 							if o2 < o{
 								o = o2;
 								self.target.x = x;
-								self.target_rotation = rotation;
+								self.target_rotation = shape.rotation();
 							}
 						}
 					}

@@ -1,10 +1,10 @@
 use super::super::gamestate;
 use super::grid;
-use super::shapes::tetrimino::ShapeVariant;
+use super::shapes::tetrimino::RotatedShape;
 
 pub struct Player{
     pub pos            : grid::Pos,
-    pub shape          : ShapeVariant,
+    pub shape          : RotatedShape,
     pub map            : gamestate::MapId,
 	pub move_time_count: f64, //Unit: seconds
 	pub points         : u32,

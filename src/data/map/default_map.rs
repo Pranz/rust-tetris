@@ -2,7 +2,7 @@ use core::ops::Range;
 
 use super::super::cell::Cell as CellTrait;
 use super::super::grid::{self,Grid};
-use super::super::shapes::tetrimino::ShapeVariant;
+use super::super::shapes::tetrimino::RotatedShape;
 use super::Map as MapTrait;
 
 ///Constant width of the map
@@ -71,7 +71,7 @@ impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
         self.0[y_from as usize] = self.0[y_to as usize];
     }
 
-    fn shape_intersects(&self,shape: &ShapeVariant,pos: grid::Pos) -> super::CellIntersection{
+    fn shape_intersects(&self,shape: &RotatedShape,pos: grid::Pos) -> super::CellIntersection{
         super::defaults::shape_intersects(self,shape,pos)
     }
 }

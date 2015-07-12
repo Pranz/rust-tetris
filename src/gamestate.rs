@@ -9,7 +9,7 @@ use super::data::grid::{self,Grid};
 use super::data::map;
 use super::data::map::Map as MapTrait;
 use super::data::player::{self,Player};
-use super::data::shapes::tetrimino::{Shape,ShapeVariant};
+use super::data::shapes::tetrimino::{Shape,RotatedShape};
 
 pub type MapId    = u8;
 pub type PlayerId = u8;
@@ -28,10 +28,10 @@ pub enum Event{
     PlayerRowsClear{n: grid::SizeAxis},
     PlayerMoveGravity,//(PlayerId,MapId,grid::PosAxis),
     PlayerImprint,//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
-    PlayerNewShape{old: ShapeVariant,new: Shape},//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
+    PlayerNewShape{old: RotatedShape,new: Shape},//(PlayerId,MapId,grid::PosAxis,grid::PosAxis),
 }
 
-fn imprint_cell(variant: &ShapeVariant) -> cell::ShapeCell{
+fn imprint_cell(variant: &RotatedShape) -> cell::ShapeCell{
     cell::ShapeCell(Some(variant.shape()))
 }
 
@@ -82,7 +82,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                         if let Some(ref mut controller) = controller{controller.event(Event::PlayerMoveGravity,player,map);}
                     }else{
                         //Imprint the current shape onto the map
-                        map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&ShapeVariant) -> cell::ShapeCell));
+                        map.imprint_shape(&player.shape,player.pos,&(imprint_cell as fn(&RotatedShape) -> cell::ShapeCell));
 
                         //Handles the filled rows
                         let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
@@ -94,12 +94,12 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
 
                         //Respawn player and check for collision at spawn position
                         let shape = <Shape as Rand>::rand(&mut self.rng);
-                        if let Some(ref mut controller) = controller{controller.event(Event::PlayerNewShape{old: player.shape,new: shape},player,map);}
                         if !respawn_player(player,map,shape){
                             action = Action::ResetMap(player.map);
                             break 'player_loop;
                         }
 
+                        if let Some(ref mut controller) = controller{controller.event(Event::PlayerNewShape{old: player.shape,new: shape},player,map);}
                         if let Some(ref mut controller) = controller{controller.event(Event::PlayerImprint,player,map);}
                     }
                 }
@@ -151,7 +151,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
     {
         if let Some(map) = self.maps.get_mut(&(map_id as usize)){
             let new_id = self.players.len();
-            let shape = ShapeVariant::new(<Shape as rand::Rand>::rand(&mut self.rng),0);
+            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(&mut self.rng));
 
             self.players.insert(new_id,Player{
                 pos            : respawn_position(shape,map),
@@ -209,17 +209,17 @@ pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,delta: grid::Pos) ->
 ///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
-pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    let next_rotation = player.shape.next_rotation();
+pub fn rotate_anticlockwise_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
+    let rotated_anticlockwise = player.shape.rotated_anticlockwise();
 
-    match map.shape_intersects(&next_rotation,player.pos){
+    match map.shape_intersects(&rotated_anticlockwise,player.pos){
         map::CellIntersection::Imprint(pos) |
         map::CellIntersection::OutOfBounds(pos) => {
             let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
             let sign = if pos.x < center_x {1} else {-1};
             for i in 1..player.shape.width(){
                 if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
-                    player.shape = next_rotation;
+                    player.shape = rotated_anticlockwise;
                     return true;
                 }
             }
@@ -227,7 +227,7 @@ pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) 
             false
         },
         _ => {
-            player.shape = next_rotation;
+            player.shape = rotated_anticlockwise;
             true
         }
     }
@@ -236,8 +236,8 @@ pub fn rotate_next_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) 
 ///Try to rotate (backwards). If this results in a collision, try to resolve this collision by
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
-pub fn rotate_previous_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    let prev_rotation = player.shape.previous_rotation();
+pub fn rotate_clockwise_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
+    let prev_rotation = player.shape.rotated_clockwise();
 
     match map.shape_intersects(&prev_rotation,player.pos){
         map::CellIntersection::Imprint(pos) |
@@ -261,7 +261,7 @@ pub fn rotate_previous_and_resolve_player<M: MapTrait>(player: &mut Player,map: 
 }
 
 ///Returns the origin position based on the player and map
-pub fn respawn_position<M: MapTrait>(shape: ShapeVariant,map: &M) -> grid::Pos{
+pub fn respawn_position<M: MapTrait>(shape: RotatedShape,map: &M) -> grid::Pos{
     grid::Pos{
         x: map.width() as grid::PosAxis/2 - shape.center_x() as grid::PosAxis,
         y: 0//TODO: Spawn above optionally: -(player.shape.height() as grid::PosAxis);
@@ -272,7 +272,7 @@ pub fn respawn_position<M: MapTrait>(shape: ShapeVariant,map: &M) -> grid::Pos{
 ///Returns whether the respawning was successful or not due to collisions.
 pub fn respawn_player<M: MapTrait>(player: &mut Player,map: &M,new_shape: Shape) -> bool{
     //Select a new shape at random, setting its position to the starting position
-    player.shape = ShapeVariant::new(new_shape,0);
+    player.shape = RotatedShape::new(new_shape);
     player.pos = respawn_position(player.shape,map);
 
     //If the new shape at the starting position also collides with another shape
@@ -282,7 +282,7 @@ pub fn respawn_player<M: MapTrait>(player: &mut Player,map: &M,new_shape: Shape)
     }
 }
 
-pub fn fast_fallen_shape<M: MapTrait>(shape: &ShapeVariant,map: &M,shape_pos: grid::Pos) -> grid::Pos{
+pub fn fast_fallen_shape<M: MapTrait>(shape: &RotatedShape,map: &M,shape_pos: grid::Pos) -> grid::Pos{
     for y in shape_pos.y .. map.height() as grid::PosAxis{
         match map.shape_intersects(&shape,grid::Pos{x: shape_pos.x,y: y+1}){
             map::CellIntersection::Imprint(_)     |

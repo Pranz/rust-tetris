@@ -36,7 +36,7 @@ impl Shape{
     }
 
     ///Returns the number of rotations for the current shape
-    pub fn rotations(self) -> u8{
+    fn rotation_count(self) -> u8{
         (match self{
             Shape::I => data::I.1.len(),
             Shape::L => data::L.1.len(),
@@ -48,7 +48,7 @@ impl Shape{
         }) as u8
     }
 
-    pub fn size(self) -> grid::Size{
+    fn size(self) -> grid::Size{
         match self{
             Shape::I => data::I.0,
             Shape::L => data::L.0,
@@ -58,6 +58,11 @@ impl Shape{
             Shape::S => data::S.0,
             Shape::Z => data::Z.0,
         }
+    }
+
+    #[inline(always)]
+    pub fn rotations(self) -> ShapeRotations{
+        ShapeRotations(RotatedShape{shape: self,rotation: self.rotation_count()})
     }
 }
 impl Rand for Shape{
@@ -71,66 +76,59 @@ impl Rand for Shape{
 
 ///A shape with its rotation
 #[derive(PartialEq, Eq, Copy, Clone)]
-pub struct ShapeVariant{
+pub struct RotatedShape{
     shape: Shape,
     rotation: u8
 }
 
-impl ShapeVariant{
-    pub fn new(shape: Shape,rotation: u8) -> Self{
-        ShapeVariant{
+impl RotatedShape{
+    #[inline(always)]pub fn new(shape: Shape) -> Self{
+        RotatedShape{
             shape   : shape,
-            rotation: rotation % shape.rotations(),
+            rotation: 0,
         }
     }
 
-    pub fn next_rotation(self) -> Self{ShapeVariant{
-        rotation: (self.rotation + 1) % self.shape.rotations(),
+    pub fn rotated_anticlockwise(self) -> Self{RotatedShape{
+        rotation: (self.rotation + 1) % self.shape.rotation_count(),
         ..self
     }}
 
-    pub fn previous_rotation(self) -> Self{ShapeVariant{
+    pub fn rotated_clockwise(self) -> Self{RotatedShape{
         rotation: if self.rotation == 0{
-            self.shape.rotations()
+            self.shape.rotation_count()
         }else{
             self.rotation
         } - 1,
         ..self
     }}
 
-    pub fn with_rotation(self,rotation: u8) -> Self{ShapeVariant{
-        rotation: rotation % self.shape.rotations(),
+    #[inline(always)]pub fn rotation_count(self) -> u8{
+        self.shape.rotation_count()
+    }
+
+    #[inline(always)]pub fn with_rotation(self,rotation: u8) -> Self{RotatedShape{
+        rotation: rotation % self.shape.rotation_count(),
         ..self
     }}
 
-    pub fn rotation(&self) -> u8{self.rotation}
+    #[inline(always)]pub fn rotation(&self) -> u8{self.rotation}
+    #[inline(always)]pub fn shape(&self) -> Shape{self.shape}
 
-    #[inline(always)]
-    pub fn shape(&self) -> Shape{self.shape}
-
-    pub fn set_shape(&mut self,shape: Shape){
-        self.shape = shape;
-        self.rotation %= shape.rotations();
-    }
-
-    /*pub fn random_rotation<R: Rng>(&mut self,rng: &mut R){
-        self.rotation = rng.gen_range(0,self.shape.data().len() as u8)
-    }*/
-
-    pub fn center_x(&self) -> grid::SizeAxis{
+    #[inline(always)]pub fn center_x(&self) -> grid::SizeAxis{
         self.width()/2
     }
 
-    pub fn center_y(&self) -> grid::SizeAxis{
+    #[inline(always)]pub fn center_y(&self) -> grid::SizeAxis{
         self.height()/2
     }
 
-    pub fn center(&self) -> grid::Size{
+    #[inline(always)]pub fn center(&self) -> grid::Size{
         grid::Size{x: self.center_x(),y: self.center_y()}
     }
 }
 
-impl Grid for ShapeVariant{
+impl Grid for RotatedShape{
     type Cell = bool;
 
     unsafe fn pos(&self, x: usize, y: usize) -> bool{
@@ -138,14 +136,23 @@ impl Grid for ShapeVariant{
         data[x + (y * width as usize)]
     }
 
-    #[inline(always)]
-    fn width(&self) -> grid::SizeAxis{self.shape.size().x}
+    #[inline(always)]fn width(&self) -> grid::SizeAxis{self.shape.size().x}
+    #[inline(always)]fn height(&self) -> grid::SizeAxis{self.shape.size().y}
+    #[inline(always)]fn size(&self) -> grid::Size{self.shape.size()}
+}
 
-    #[inline(always)]
-    fn height(&self) -> grid::SizeAxis{self.shape.size().y}
+pub struct ShapeRotations(RotatedShape);
+impl Iterator for ShapeRotations{
+    type Item = RotatedShape;
 
-    #[inline(always)]
-    fn size(&self) -> grid::Size{self.shape.size()}
+    fn next(&mut self) -> Option<<Self as Iterator>::Item>{
+        if self.0.rotation > 0{
+            self.0.rotation-= 1;
+            Some(self.0)
+        }else{
+            None
+        }
+    }
 }
 
 ///Contains data arrays of all the possible shapes and its rotations in a 4x4 grid

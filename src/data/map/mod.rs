@@ -9,7 +9,7 @@ use core::ops::Range;
 
 use super::grid::{self,Grid,PosAxis,SizeAxis,Pos};
 use super::cell::Cell as CellTrait;
-use super::shapes::tetrimino::ShapeVariant;
+use super::shapes::tetrimino::RotatedShape;
 
 pub trait Map: Grid{
     ///Sets the cell at the given position.
@@ -39,10 +39,10 @@ pub trait Map: Grid{
     }
 
     ///Collision checks. Whether the given shape at the given position will collide with a imprinted shape on the map
-    fn shape_intersects(&self,shape: &ShapeVariant,pos: Pos) -> CellIntersection;
+    fn shape_intersects(&self,shape: &RotatedShape,pos: Pos) -> CellIntersection;
 
     ///Imprints the given shape at the given position on the map
-    fn imprint_shape(&mut self,shape: &ShapeVariant,pos: Pos,cell_constructor: &fn(&ShapeVariant) -> Self::Cell){
+    fn imprint_shape(&mut self,shape: &RotatedShape,pos: Pos,cell_constructor: &fn(&RotatedShape) -> Self::Cell){
         for (cell_pos,cell) in grid::cells_iter::Iter::new(shape){
             if cell{
                 //TODO: Range checks every iteration
@@ -85,11 +85,11 @@ pub enum CellIntersection{
 
 pub mod defaults{
     use super::super::grid::{self,Grid,PosAxis,Pos};
-    use super::super::shapes::tetrimino::ShapeVariant;
+    use super::super::shapes::tetrimino::RotatedShape;
     use super::super::cell::Cell as CellTrait;
     use super::Map;
 
-    pub fn shape_intersects<M>(map: &M,shape: &ShapeVariant,pos: Pos) -> super::CellIntersection
+    pub fn shape_intersects<M>(map: &M,shape: &RotatedShape,pos: Pos) -> super::CellIntersection
         where M: Map,
               <M as Grid>::Cell: CellTrait + Copy
     {
