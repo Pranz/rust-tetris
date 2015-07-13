@@ -11,6 +11,7 @@ use super::grid::{self,Grid,PosAxis,SizeAxis,Pos};
 use super::cell::Cell as CellTrait;
 use super::shapes::tetrimino::RotatedShape;
 
+///Common trait for a Map grid used in a game
 pub trait Map: Grid{
     ///Sets the cell at the given position.
     ///Returns Err when out of bounds or failing to set the cell at the given position.
@@ -77,12 +78,19 @@ pub trait Map: Grid{
     }
 }
 
+///When checking for intersections, these are the different kinds of intersections that can occur
 pub enum CellIntersection{
+    ///Intersects with another imprinted cell in the map
     Imprint(Pos),
+
+    ///Intersects with the boundary of the map or the outside non-existent cells
     OutOfBounds(Pos),
+
+    ///No intersection
     None
 }
 
+///Default methods for a map
 pub mod defaults{
     use super::super::grid::{self,Grid,PosAxis,Pos};
     use super::super::shapes::tetrimino::RotatedShape;

@@ -4,6 +4,7 @@ use super::super::cell::Cell;
 use super::Grid as GridTrait;
 use super::{SizeAxis,Pos};
 
+///This grid only contains the cells where the cell occupation from both differs
 pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{
 	pub a: &'ga GA,
 	pub b: &'gb GB,

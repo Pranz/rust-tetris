@@ -4,6 +4,7 @@ use super::super::cell::Cell;
 use super::Grid as GridTrait;
 use super::{PosAxis,SizeAxis,Pos};
 
+///Represents a row in a grid
 #[derive(Copy,Clone,Eq,PartialEq)]
 pub struct Grid<'g,G: 'g>{
     pub grid: &'g G,
@@ -32,6 +33,7 @@ impl<'g,G> GridTrait for Grid<'g,G>
     }
 }
 
+///Iterates through a row's column cells
 #[derive(Copy,Clone,Eq,PartialEq)]
 pub struct Iter<'g,G: 'g>{
     grid: Grid<'g,G>,
@@ -71,6 +73,6 @@ impl<'g,G> iter::ExactSizeIterator for Iter<'g,G>
           <G as GridTrait>::Cell: Copy
 {
     fn len(&self) -> usize{
-        self.grid.grid.width() as usize
+        (self.grid.grid.width() - self.column) as usize
     }
 }

@@ -162,6 +162,12 @@ impl<Rng: rand::Rng> App<Rng>{
                     //Set timer and make the player move in the update step
                     player.settings.move_frequency
             };});},
+            Key::End    => {self.tetris.with_player_map(0,|player,map|{
+                player.pos = gamestate::fast_fallen_shape(&player.shape,map,player.pos);
+
+                //Set timer and make the player move in the update step
+                player.move_time_count = player.settings.move_frequency;
+            });},
             Key::Up     => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
             Key::X      => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
             Key::Z      => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},

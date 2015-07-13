@@ -36,7 +36,7 @@ fn imprint_cell(variant: &RotatedShape) -> cell::ShapeCell{
     cell::ShapeCell(Some(variant.shape()))
 }
 
-pub struct GameState<Map,Rng>{//TODO: Move out of the `data` module
+pub struct GameState<Map,Rng>{
     pub maps       : VecMap<Map>,
     pub players    : VecMap<Player>,
     pub controllers: VecMap<Box<Controller<Map>>>,

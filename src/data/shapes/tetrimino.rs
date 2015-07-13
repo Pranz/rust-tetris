@@ -48,6 +48,7 @@ impl Shape{
         }) as u8
     }
 
+    ///Returns the width and height in blocks
     fn size(self) -> grid::Size{
         match self{
             Shape::I => data::I.0,
@@ -89,11 +90,13 @@ impl RotatedShape{
         }
     }
 
+    ///Returns the current shape rotated 90° anticlockwise
     pub fn rotated_anticlockwise(self) -> Self{RotatedShape{
         rotation: (self.rotation + 1) % self.shape.rotation_count(),
         ..self
     }}
 
+    ///Returns the current shape rotated 90° clockwise
     pub fn rotated_clockwise(self) -> Self{RotatedShape{
         rotation: if self.rotation == 0{
             self.shape.rotation_count()
@@ -103,26 +106,36 @@ impl RotatedShape{
         ..self
     }}
 
+    ///Number of possible rotations in the range 0 to 360° where the state step is 90° and the rotation state's cells is not equivalent of another rotation state's cells
+    ///Requirements:
+    ///    1 <= return_value <= 4
     #[inline(always)]pub fn rotation_count(self) -> u8{
         self.shape.rotation_count()
     }
 
+    ///Returns the current shape rotated an absolute number of times from the initial rotation with a 90° step
     #[inline(always)]pub fn with_rotation(self,rotation: u8) -> Self{RotatedShape{
         rotation: rotation % self.shape.rotation_count(),
         ..self
     }}
 
+    ///Returns the absolute number of rotations from the current shape's initial position
     #[inline(always)]pub fn rotation(&self) -> u8{self.rotation}
+
+    ///Returns the shape without rotation
     #[inline(always)]pub fn shape(&self) -> Shape{self.shape}
 
+    ///Returns the horizontal center point (x) of the rotated shape
     #[inline(always)]pub fn center_x(&self) -> grid::SizeAxis{
         self.width()/2
     }
 
+    ///Returns the vertical center point (y) of the rotated shape
     #[inline(always)]pub fn center_y(&self) -> grid::SizeAxis{
         self.height()/2
     }
 
+    ///Returns the center point (x,y) of the rotated shape
     #[inline(always)]pub fn center(&self) -> grid::Size{
         grid::Size{x: self.center_x(),y: self.center_y()}
     }
@@ -141,6 +154,7 @@ impl Grid for RotatedShape{
     #[inline(always)]fn size(&self) -> grid::Size{self.shape.size()}
 }
 
+///Iterator for every rotation the shape has that isn't equivalent to another in the 360° range with a 90° step
 pub struct ShapeRotations(RotatedShape);
 impl Iterator for ShapeRotations{
     type Item = RotatedShape;

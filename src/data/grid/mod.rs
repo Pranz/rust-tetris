@@ -24,6 +24,7 @@ pub struct Pos {pub x: PosAxis,pub y: PosAxis}
 #[derive(Copy,Clone,Eq,PartialEq)]
 pub struct Size{pub x: SizeAxis,pub y: SizeAxis}
 
+///Common trait for a two-dimensional (2D) grid
 pub trait Grid{
 	type Cell;
 
@@ -57,9 +58,11 @@ pub trait Grid{
     ///Requirements:
     ///    x < height()
     ///    y < height()
+    ///    is_position_out_of_bounds(Pos{x,y}) == false
     unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell;
 }
 
+///Checks whether the `inside`'s occupied cells are inside `outside`
 pub fn is_grid_out_of_bounds<GIn,GOut>(outside: &GOut,inside: &GIn,inside_offset: Pos) -> bool
     where GIn : Grid,
           GOut: Grid,

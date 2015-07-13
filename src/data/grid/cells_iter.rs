@@ -1,6 +1,7 @@
 use super::super::grid::Size;
 use super::Grid;
 
+///Iterates through a grid's cells
 #[derive(Copy,Clone,Eq,PartialEq)]
 pub struct Iter<'g,Grid: 'g>{
     grid: &'g Grid,

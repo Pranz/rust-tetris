@@ -3,6 +3,7 @@ use core::iter;
 use super::super::grid::SizeAxis;
 use super::{row,Grid};
 
+///Iterates through a grid's rows
 #[derive(Copy,Clone,Eq,PartialEq)]
 pub struct Iter<'g,Grid: 'g>{
     grid: &'g Grid,
