@@ -3,6 +3,7 @@ use super::Grid as GridTrait;
 use super::{PosAxis,SizeAxis,Pos};
 
 ///Imprints `b` on `a`
+#[derive(Copy,Clone,Eq,PartialEq)]
 pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{
 	pub a: &'ga GA,
 	pub b: &'gb GB,
@@ -33,7 +34,7 @@ impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>
                 return self.b.pos(x,y)
             }
     	}
-    	
+
         out
     }
 }

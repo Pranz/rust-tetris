@@ -6,6 +6,7 @@ use data::map::Map;
 use data::grid;
 use gamestate;
 
+#[derive(Copy,Clone,PartialEq)]
 pub struct Controller{
 	bounce: bool,
 	move_time: f64,

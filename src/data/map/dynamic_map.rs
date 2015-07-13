@@ -1,3 +1,4 @@
+use core::iter::{self,FromIterator};
 use core::ops::Range;
 use core::ptr;
 
@@ -7,9 +8,17 @@ use super::Map as MapTrait;
 use super::super::cell::Cell as CellTrait;
 
 ///Rectangular dynamic sized game map
+#[derive(Eq,PartialEq)]
 pub struct Map<Cell>{
     slice : Box<[Cell]>,
     width : grid::SizeAxis,
+}
+
+impl<Cell: Copy> Clone for Map<Cell>{
+    fn clone(&self) -> Self{Map{
+        slice: Vec::from_iter(self.slice.iter().map(|cell| *cell)).into_boxed_slice(),
+        width: self.width
+    }}
 }
 
 impl<Cell: Copy> Grid for Map<Cell>{
@@ -116,14 +125,10 @@ impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
 }
 
 impl<Cell: CellTrait + Copy> Map<Cell>{
-    pub fn new(width: grid::SizeAxis,height: grid::SizeAxis) -> Self{
-        use core::iter::{self,FromIterator};
-
-        Map{
-            slice : Vec::from_iter(iter::repeat(<Self as Grid>::Cell::empty()).take((width as usize)*(height as usize))).into_boxed_slice(),
-            width : width,
-        }
-    }
+    pub fn new(width: grid::SizeAxis,height: grid::SizeAxis) -> Self{Map{
+        slice : Vec::from_iter(iter::repeat(<Self as Grid>::Cell::empty()).take((width as usize)*(height as usize))).into_boxed_slice(),
+        width : width,
+    }}
 
     pub fn clear_rows(&mut self,y: Range<grid::SizeAxis>){
         debug_assert!(y.start < y.end);

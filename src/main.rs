@@ -240,7 +240,7 @@ fn main(){
     let player2 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
     }).unwrap();
-    app.tetris.controllers.insert(player2 as usize,Box::new(ai::fill_one::Controller::default()));
+    app.tetris.controllers.insert(player2 as usize,Box::new(ai::bruteforce::Controller::default()));
 
     //Run the created application: Listen for events
     for e in window.events(){

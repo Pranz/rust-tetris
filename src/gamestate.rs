@@ -14,6 +14,7 @@ use super::data::shapes::tetrimino::{Shape,RotatedShape};
 pub type MapId    = u8;
 pub type PlayerId = u8;
 
+#[derive(Copy,Clone,Eq,PartialEq)]
 pub enum Event{
     //MapStart(MapId),
     //MapUpdate(MapId),
@@ -161,6 +162,10 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                 points         : 0,
                 settings       : settings
             });
+            let player = self.players.get_mut(&new_id).unwrap();
+
+            let mut controller = self.controllers.get_mut(&(new_id as usize));
+            if let Some(ref mut controller) = controller{controller.event(Event::PlayerNewShape{old: shape,new: shape.shape()},player,map);}
 
             Some(new_id as PlayerId)
         }else{

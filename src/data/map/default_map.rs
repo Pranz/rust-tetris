@@ -12,7 +12,8 @@ const WIDTH : grid::SizeAxis = 10;
 const HEIGHT: grid::SizeAxis = 20;
 
 ///Rectangular static sized game map
-pub struct Map<Cell>([[Cell; WIDTH as usize]; HEIGHT as usize]);
+#[derive(Copy,Clone,Eq,PartialEq)]
+pub struct Map<Cell: Copy>([[Cell; WIDTH as usize]; HEIGHT as usize]);
 
 impl<Cell: Copy> Grid for Map<Cell>{
     type Cell = Cell;
