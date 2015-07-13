@@ -8,20 +8,20 @@ enum_primitive = "0.0.2"
 num = "0.1"
 rand = "0.3"
 
-piston = "0.2.2"
-piston2d-graphics = "0.3"
-piston2d-opengl_graphics = "0.3"
+piston = "0.3"
+piston2d-graphics = "0.4"
+piston2d-opengl_graphics = "0.4"
 
 [dependencies.pistoncore-sdl2_window]
-version = "0.3"
+version = "0.4"
 optional = true
 
 [dependencies.pistoncore-glfw_window]
-version = "0.2"
+version = "0.3"
 optional = true
 
 [dependencies.pistoncore-glutin_window]
-version = "0.3"
+version = "0.4"
 optional = true
 
 [features]
