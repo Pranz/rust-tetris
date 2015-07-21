@@ -219,20 +219,19 @@ pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,delta: grid::Pos) ->
     }
 }
 
-///Try to rotate (forwards). If this results in a collision, try to resolve this collision by
+///Tries to rotate. If this results in a collision, try to resolve this collision by
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
-pub fn rotate_anticlockwise_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    let rotated_shape = player.shape.rotated_anticlockwise();
-
+pub fn transform_resolve_player<M: MapTrait>(player: &mut Player,shape: RotatedShape,map: &M) -> bool{
     'try_rotate: loop{
-        match map.shape_intersects(&rotated_shape,player.pos){
+        match map.shape_intersects(&shape,player.pos){
             map::CellIntersection::Imprint(pos) |
             map::CellIntersection::OutOfBounds(pos) => {
                 let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
                 let sign = if pos.x < center_x {1} else {-1};
-                for i in 1..player.shape.width(){
-                    if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
+                for i in 1..player.shape.width(){//TODO: Should this check the player's shape? (The old hsape)
+                    if let map::CellIntersection::None = map.shape_intersects(&shape,grid::Pos{x: player.pos.x + (i as grid::PosAxis * sign),y: player.pos.y}){
+                        player.pos.x += i as grid::PosAxis * sign;
                         break 'try_rotate;
                     }
                 }
@@ -244,42 +243,7 @@ pub fn rotate_anticlockwise_and_resolve_player<M: MapTrait>(player: &mut Player,
     }
 
     {//Successfully rotated
-        player.shape = rotated_shape;
-
-        //Recalcuate fastfall shadow position when moving horizontally
-        if player.settings.fastfall_shadow{
-            player.shadow_pos = Some(fast_fallen_shape(&player.shape,map,player.pos));
-        }
-        return true;
-    }
-}
-
-///Try to rotate (backwards). If this results in a collision, try to resolve this collision by
-///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
-///otherwise return true.
-pub fn rotate_clockwise_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    let rotated_shape = player.shape.rotated_clockwise();
-
-    'try_rotate: loop{
-        match map.shape_intersects(&rotated_shape,player.pos){
-            map::CellIntersection::Imprint(pos) |
-            map::CellIntersection::OutOfBounds(pos) => {
-                let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
-                let sign = if pos.x < center_x {1} else {-1};
-                for i in 1..player.shape.width(){
-                    if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
-                        break 'try_rotate;
-                    }
-                }
-            },
-            _ => break 'try_rotate
-        }
-
-        return false;
-    }
-
-    {//Successfully rotated
-        player.shape = rotated_shape;
+        player.shape = shape;
 
         //Recalcuate fastfall shadow position when moving horizontally
         if player.settings.fastfall_shadow{

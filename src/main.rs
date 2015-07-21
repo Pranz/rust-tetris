@@ -178,9 +178,14 @@ impl<Rng: rand::Rng> App<Rng>{
                 //Set timer and make the player move in the update step
                 player.move_time_count = player.settings.move_frequency;
             });},
-            Key::Up     => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::X      => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::Z      => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},
+            Key::X      => {self.tetris.with_player_map(0,|player,map|{
+                let shape = player.shape.rotated_anticlockwise();
+                gamestate::transform_resolve_player(player,shape,map);
+            });},
+            Key::Z      => {self.tetris.with_player_map(0,|player,map|{
+                let shape = player.shape.rotated_clockwise();
+                gamestate::transform_resolve_player(player,shape,map);
+            });},
 
             //Player 1
             Key::NumPad4 => {self.tetris.with_player_map(1,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});});},
@@ -193,23 +198,14 @@ impl<Rng: rand::Rng> App<Rng>{
                     //Set timer and make the player move in the update step
                     player.settings.move_frequency
             };});},
-            Key::NumPad1 => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::NumPad0 => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},
-
-            //Player 2
-            Key::A => {self.tetris.with_player_map(2,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});});},
-            Key::D => {self.tetris.with_player_map(2,|player,map|{gamestate::move_player(player,map,grid::Pos{x:  1,y: 0});});},
-            Key::S => {self.tetris.with_player_map(2,|player,map|{
-                player.move_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
-                    //Reset timer
-                    0.0
-                }else{
-                    //Set timer and make the player move in the update step
-                    player.settings.move_frequency
-            };});},
-            Key::LShift => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::Space  => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},
-
+            Key::NumPad1 => {self.tetris.with_player_map(1,|player,map|{
+                let shape = player.shape.rotated_anticlockwise();
+                gamestate::transform_resolve_player(player,shape,map);
+            });},
+            Key::NumPad0 => {self.tetris.with_player_map(1,|player,map|{
+                let shape = player.shape.rotated_clockwise();
+                gamestate::transform_resolve_player(player,shape,map);
+            });},
 
             //Other keys
             _ => ()
