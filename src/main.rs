@@ -119,8 +119,18 @@ impl<Rng: rand::Rng> App<Rng>{
                     //Draw current shape(s)
                     for (cell_pos,cell) in grid::cells_iter::Iter::new(&player.shape){
                         if cell{
-                            let transform = transform.trans((cell_pos.x as grid::PosAxis + player.pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + player.pos.y) as f64 * BLOCK_PIXEL_SIZE);
-                            graphics::rectangle(color,square,transform,gl);
+                            //Normal shape
+                            {
+                                let transform = transform.trans((cell_pos.x as grid::PosAxis + player.pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + player.pos.y) as f64 * BLOCK_PIXEL_SIZE);
+                                graphics::rectangle(color,square,transform,gl);
+                            }
+
+                            //Shadow shape
+                            if let Some(shadow_pos) = player.shadow_pos{
+                                let transform = transform.trans((cell_pos.x as grid::PosAxis + shadow_pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + shadow_pos.y) as f64 * BLOCK_PIXEL_SIZE);
+                                let color = [color[0],color[1],color[2],0.3];
+                                graphics::rectangle(color,square,transform,gl);
+                            }
                         }
                     }
                 },
@@ -168,10 +178,14 @@ impl<Rng: rand::Rng> App<Rng>{
                         });
                     },
                     Input::RotateAntiClockwise => {
-                        self.tetris.with_player_map(0,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});
+                        self.tetris.with_player_map(0,|player,map|{
+                            let shape = player.shape.rotated_anticlockwise();
+                            gamestate::transform_resolve_player(player, shape, map);});
                     },
                     Input::RotateClockwise => {
-                        self.tetris.with_player_map(0,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});
+                        self.tetris.with_player_map(0,|player,map|{
+                            let shape = player.shape.rotated_clockwise();
+                            gamestate::transform_resolve_player(player, shape, map);});
                     },
                     _ => (),
                 }
@@ -212,7 +226,7 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::Up     => {self.input_sender.send((Input::RotateAntiClockwise, 0)).unwrap();},
             Key::X      => {self.input_sender.send((Input::RotateAntiClockwise, 0)).unwrap();},
             Key::Z      => {self.input_sender.send((Input::RotateClockwise, 0)).unwrap();},
-
+           
             //Player 1
             Key::NumPad4 => {self.tetris.with_player_map(1,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});});},
             Key::NumPad6 => {self.tetris.with_player_map(1,|player,map|{gamestate::move_player(player,map,grid::Pos{x:  1,y: 0});});},
@@ -224,23 +238,14 @@ impl<Rng: rand::Rng> App<Rng>{
                     //Set timer and make the player move in the update step
                     player.settings.move_frequency
             };});},
-            Key::NumPad1 => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::NumPad0 => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},
-
-            //Player 2
-            Key::A => {self.tetris.with_player_map(2,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});});},
-            Key::D => {self.tetris.with_player_map(2,|player,map|{gamestate::move_player(player,map,grid::Pos{x:  1,y: 0});});},
-            Key::S => {self.tetris.with_player_map(2,|player,map|{
-                player.move_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
-                    //Reset timer
-                    0.0
-                }else{
-                    //Set timer and make the player move in the update step
-                    player.settings.move_frequency
-            };});},
-            Key::LShift => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::Space  => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},
-
+            Key::NumPad1 => {self.tetris.with_player_map(1,|player,map|{
+                let shape = player.shape.rotated_anticlockwise();
+                gamestate::transform_resolve_player(player,shape,map);
+            });},
+            Key::NumPad0 => {self.tetris.with_player_map(1,|player,map|{
+                let shape = player.shape.rotated_clockwise();
+                gamestate::transform_resolve_player(player,shape,map);
+            });},
 
             //Other keys
             _ => ()
@@ -284,17 +289,20 @@ fn main(){
     //Create player 0
     app.tetris.add_player(0,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: true,
     });
 
     //Create player 1
     /*let player1 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: true,
     }).unwrap();
     app.tetris.controllers.insert(player1 as usize,Box::new(ai::bounce::Controller::new()));
 */
     //Create player 2
     let player2 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: false,
     }).unwrap();
     app.tetris.controllers.insert(player2 as usize,Box::new(ai::bruteforce::Controller::default()));
 
