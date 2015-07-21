@@ -44,14 +44,14 @@ impl<M> ControllerTrait<M> for Controller
 		while self.move_time_count <= 0.0{
 			if player.pos.x > self.target.x{
 				gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});
-				self.move_time_count+=0.3;
+				self.move_time_count+=self.move_time;
 			}else if player.pos.x < self.target.x{
 				gamestate::move_player(player,map,grid::Pos{x: 1,y: 0});
-				self.move_time_count+=0.3;
+				self.move_time_count+=self.move_time;
 			}else if player.shape.rotation() == self.target_rotation{
 				player.move_time_count = player.settings.move_frequency;
 				gamestate::move_player(player,map,grid::Pos{x: 0,y: 1});
-				self.move_time_count+=0.1;
+				self.move_time_count+=self.fall_time;
 			}else{
 				break
 			}
@@ -60,7 +60,7 @@ impl<M> ControllerTrait<M> for Controller
 		while self.rotate_time_count <= 0.0{
 			if player.shape.rotation() != self.target_rotation{
 				player.shape = player.shape.rotated_anticlockwise();
-				self.rotate_time_count+=0.5;
+				self.rotate_time_count+=self.rotate_time;
 			}else{
 				break;
 			}
@@ -110,6 +110,7 @@ impl<M> ControllerTrait<M> for Controller
 	}
 }
 
+#[allow(unused)]
 fn map_optimality<M>(map: &M) -> f32
 	where M: grid::Grid,
 	      <M as grid::Grid>::Cell: Cell + Copy
@@ -137,6 +138,7 @@ fn map_optimality<M>(map: &M) -> f32
 }
 
 ///Greater is better
+#[allow(unused)]
 fn map_optimality2<M>(map: &M) -> f32
 	where M: grid::Grid,
 	      <M as grid::Grid>::Cell: Cell + Copy
