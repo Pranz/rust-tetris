@@ -222,11 +222,20 @@ pub fn rotate_anticlockwise_and_resolve_player<M: MapTrait>(player: &mut Player,
         map::CellIntersection::OutOfBounds(pos) => {
             let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
             let sign = if pos.x < center_x {1} else {-1};
+            print!("sign: {}\n", sign);
             for i in 1..player.shape.width(){
-                if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
-                    player.shape = rotated_anticlockwise;
-                    return true;
+                match map.shape_intersects(&rotated_anticlockwise, grid::Pos{x: player.pos.x + (i as grid::PosAxis * sign), y: player.pos.y}) {
+                    map::CellIntersection::None => {
+                        player.pos.x += i as grid::PosAxis * sign;
+                        player.shape = rotated_anticlockwise;
+                        return true;
+                    }
+                    _ => {}
                 }
+                //if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
+                //    player.shape = rotated_anticlockwise
+                //    return true;
+                //}
             }
 
             false
