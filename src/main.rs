@@ -35,17 +35,19 @@ use data::shapes::tetrimino::{Shape,RotatedShape};
 use data::input::Input;
 use gamestate::{GameState, PlayerId};
 
+use std::net::UdpSocket;
+
 struct App<Rng>{
     gl: GlGraphics,
     tetris: GameState<Map<cell::ShapeCell>,Rng>,
     input_receiver: Receiver<(Input, PlayerId)>,
     input_sender: Sender<(Input, PlayerId)>,
-    connection: Connection,
+    connection: (ConnectionType, UdpSocket),
 }
 
-pub enum Connection {
+pub enum ConnectionType {
     Server,
-    Client(String),
+    Client,
 }
 
 impl<Rng: rand::Rng> App<Rng>{
@@ -278,8 +280,8 @@ fn main(){
         input_receiver: input_receiver,
         input_sender: input_sender,
         connection: if args.len() > 1 {
-            Connection::Client(args[1].clone())
-        } else {Connection::Server},
+            (ConnectionType::Client, (UdpSocket::bind(&*args[1]).unwrap()))
+        } else {(ConnectionType::Server, (UdpSocket::bind("0.0.0.0:7047").unwrap()))},
     };
 
     //Create map
