@@ -21,6 +21,8 @@ use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
 use piston::input::{Button,Key};
 use graphics::Transformed;
 use opengl_graphics::{GlGraphics,OpenGL};
+use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc;
 #[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
 #[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
@@ -30,11 +32,22 @@ use data::{cell,colors,player};
 use data::grid::{self,Grid};
 use data::map::dynamic_map::Map;
 use data::shapes::tetrimino::{Shape,RotatedShape};
-use gamestate::GameState;
+use data::input::Input;
+use gamestate::{GameState, PlayerId};
+
+use std::net::UdpSocket;
 
 struct App<Rng>{
     gl: GlGraphics,
     tetris: GameState<Map<cell::ShapeCell>,Rng>,
+    input_receiver: Receiver<(Input, PlayerId)>,
+    input_sender: Sender<(Input, PlayerId)>,
+    connection: (ConnectionType, UdpSocket),
+}
+
+pub enum ConnectionType {
+    Server,
+    Client,
 }
 
 impl<Rng: rand::Rng> App<Rng>{
@@ -49,7 +62,7 @@ impl<Rng: rand::Rng> App<Rng>{
         let square = graphics::rectangle::square(0.0,0.0,BLOCK_PIXEL_SIZE);
 
         //Draw in the current viewport
-        let &mut App{ref mut gl,ref mut tetris} = self;
+        let &mut App{ref mut gl,ref mut tetris, ..} = self;
         gl.draw(args.viewport(),|context,gl|{
             //Clear screen
             graphics::clear(colors::BLACK,gl);
@@ -108,8 +121,18 @@ impl<Rng: rand::Rng> App<Rng>{
                     //Draw current shape(s)
                     for (cell_pos,cell) in grid::cells_iter::Iter::new(&player.shape){
                         if cell{
-                            let transform = transform.trans((cell_pos.x as grid::PosAxis + player.pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + player.pos.y) as f64 * BLOCK_PIXEL_SIZE);
-                            graphics::rectangle(color,square,transform,gl);
+                            //Normal shape
+                            {
+                                let transform = transform.trans((cell_pos.x as grid::PosAxis + player.pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + player.pos.y) as f64 * BLOCK_PIXEL_SIZE);
+                                graphics::rectangle(color,square,transform,gl);
+                            }
+
+                            //Shadow shape
+                            if let Some(shadow_pos) = player.shadow_pos{
+                                let transform = transform.trans((cell_pos.x as grid::PosAxis + shadow_pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + shadow_pos.y) as f64 * BLOCK_PIXEL_SIZE);
+                                let color = [color[0],color[1],color[2],0.3];
+                                graphics::rectangle(color,square,transform,gl);
+                            }
                         }
                     }
                 },
@@ -125,7 +148,53 @@ impl<Rng: rand::Rng> App<Rng>{
     }
 
     fn update(&mut self, args: &event::UpdateArgs){
+        self.handle_input();
         self.tetris.update(args);
+    }
+
+    fn handle_input(&mut self){
+        match self.input_receiver.try_recv() {
+            Ok((input, pid)) => {
+                match input {
+                    Input::MoveLeft => {
+                        self.tetris.with_player_map(pid,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1, y: 0});});
+                    },
+                    Input::MoveRight => {
+                        self.tetris.with_player_map(pid,|player,map|{gamestate::move_player(player,map,grid::Pos{x: 1, y: 0});});
+                    },
+                    Input::MoveDown => {
+                        self.tetris.with_player_map(pid,|player,map|{
+                            player.move_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
+                                //reset timer
+                                0.0
+                            } else {
+                                //Set timer and make the player move in the next update step
+                                player.settings.move_frequency
+                            };
+                        });
+                    },
+                    Input::FastFall => {
+                        self.tetris.with_player_map(pid,|player,map|{
+                            player.pos = gamestate::fast_fallen_shape(&player.shape, map, player.pos);
+                            player.move_time_count = player.settings.move_frequency;
+                        });
+                    },
+                    Input::RotateAntiClockwise => {
+                        self.tetris.with_player_map(0,|player,map|{
+                            let shape = player.shape.rotated_anticlockwise();
+                            gamestate::transform_resolve_player(player, shape, map);});
+                    },
+                    Input::RotateClockwise => {
+                        self.tetris.with_player_map(0,|player,map|{
+                            let shape = player.shape.rotated_clockwise();
+                            gamestate::transform_resolve_player(player, shape, map);});
+                    },
+                    _ => (),
+                }
+                self.handle_input()
+            }
+            Err(_) => ()
+        }
     }
 
     fn on_key_press(&mut self, key: Key){
@@ -152,26 +221,14 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::Home   => {self.tetris.with_player(0,|player|{player.pos.y = 0;});},
 
             //Player 0
-            Key::Left   => {self.tetris.with_player_map(0,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});});},
-            Key::Right  => {self.tetris.with_player_map(0,|player,map|{gamestate::move_player(player,map,grid::Pos{x:  1,y: 0});});},
-            Key::Down   => {self.tetris.with_player_map(0,|player,map|{
-                player.move_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
-                    //Reset timer
-                    0.0
-                }else{
-                    //Set timer and make the player move in the update step
-                    player.settings.move_frequency
-            };});},
-            Key::End    => {self.tetris.with_player_map(0,|player,map|{
-                player.pos = gamestate::fast_fallen_shape(&player.shape,map,player.pos);
-
-                //Set timer and make the player move in the update step
-                player.move_time_count = player.settings.move_frequency;
-            });},
-            Key::Up     => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::X      => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::Z      => {self.tetris.with_player_map(0,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},
-
+            Key::Left   => {self.input_sender.send((Input::MoveLeft,  0)).unwrap();},
+            Key::Right  => {self.input_sender.send((Input::MoveRight, 0)).unwrap();},
+            Key::Down   => {self.input_sender.send((Input::MoveDown,  0)).unwrap();},
+            Key::End    => {self.input_sender.send((Input::FastFall,  0)).unwrap();},
+            Key::Up     => {self.input_sender.send((Input::RotateAntiClockwise, 0)).unwrap();},
+            Key::X      => {self.input_sender.send((Input::RotateAntiClockwise, 0)).unwrap();},
+            Key::Z      => {self.input_sender.send((Input::RotateClockwise, 0)).unwrap();},
+           
             //Player 1
             Key::NumPad4 => {self.tetris.with_player_map(1,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});});},
             Key::NumPad6 => {self.tetris.with_player_map(1,|player,map|{gamestate::move_player(player,map,grid::Pos{x:  1,y: 0});});},
@@ -183,23 +240,14 @@ impl<Rng: rand::Rng> App<Rng>{
                     //Set timer and make the player move in the update step
                     player.settings.move_frequency
             };});},
-            Key::NumPad1 => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::NumPad0 => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},
-
-            //Player 2
-            Key::A => {self.tetris.with_player_map(2,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});});},
-            Key::D => {self.tetris.with_player_map(2,|player,map|{gamestate::move_player(player,map,grid::Pos{x:  1,y: 0});});},
-            Key::S => {self.tetris.with_player_map(2,|player,map|{
-                player.move_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
-                    //Reset timer
-                    0.0
-                }else{
-                    //Set timer and make the player move in the update step
-                    player.settings.move_frequency
-            };});},
-            Key::LShift => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_anticlockwise_and_resolve_player(player,map);});},
-            Key::Space  => {self.tetris.with_player_map(1,|player,map|{gamestate::rotate_clockwise_and_resolve_player(player,map);});},
-
+            Key::NumPad1 => {self.tetris.with_player_map(1,|player,map|{
+                let shape = player.shape.rotated_anticlockwise();
+                gamestate::transform_resolve_player(player,shape,map);
+            });},
+            Key::NumPad0 => {self.tetris.with_player_map(1,|player,map|{
+                let shape = player.shape.rotated_clockwise();
+                gamestate::transform_resolve_player(player,shape,map);
+            });},
 
             //Other keys
             _ => ()
@@ -208,6 +256,7 @@ impl<Rng: rand::Rng> App<Rng>{
 }
 
 fn main(){
+    use std::env;
     //Define the OpenGL version to be used
     let opengl = OpenGL::_3_2;
 
@@ -220,11 +269,19 @@ fn main(){
         .exit_on_esc(true)
         .opengl(opengl)
     );
+    
+    let (input_sender, input_receiver) = mpsc::channel();
+    let args: Vec<_> = env::args().collect();
 
     //Create a new application
     let mut app = App{
         gl: GlGraphics::new(opengl),
         tetris: GameState::new(rand::StdRng::new().unwrap()),
+        input_receiver: input_receiver,
+        input_sender: input_sender,
+        connection: if args.len() > 1 {
+            (ConnectionType::Client, (UdpSocket::bind(&*args[1]).unwrap()))
+        } else {(ConnectionType::Server, (UdpSocket::bind("0.0.0.0:7047").unwrap()))},
     };
 
     //Create map
@@ -234,17 +291,20 @@ fn main(){
     //Create player 0
     app.tetris.add_player(0,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: true,
     });
 
     //Create player 1
     /*let player1 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: true,
     }).unwrap();
     app.tetris.controllers.insert(player1 as usize,Box::new(ai::bounce::Controller::new()));
 */
     //Create player 2
     let player2 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: false,
     }).unwrap();
     app.tetris.controllers.insert(player2 as usize,Box::new(ai::bruteforce::Controller::default()));
 

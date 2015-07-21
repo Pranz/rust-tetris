@@ -11,9 +11,7 @@ Settings menu
 CLI arguments replacement for settings
 Different rotation systems
 Optional rotation resolving (wall kick and floor kick)
-Velocity of fast fall (slow drop)
-Direct fall (hard drop)
-Visible drop shadow
+Velocity of fall (slow drop)
 Customizable block move hold repeat time (delated auto shift/autorepeat)
 Selectable block randomizer (problem with repeated S and Z)
 Settings that allows following the guideline: http://tetris.wikia.com/wiki/Tetris_Guideline

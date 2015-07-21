@@ -6,3 +6,4 @@ pub mod grid;
 pub mod map;
 pub mod player;
 pub mod shapes;
+pub mod input;
