@@ -143,9 +143,9 @@ fn map_optimality2<M>(map: &M) -> f32
 {
 	let map_height = map.height();
 	let rows_completed = grid::rows_iter::Iter::new(map).filter_map(|row| if grid::row::Iter::new(row).all(|(_,cell)| cell.is_occupied()){Some(())}else{None}).count();
-	let mut columns_height_sum       = 0;
-	let mut cells_vertically_blocked = 0;
-	let mut height_bumpiness         = 0;
+	let mut columns_height_sum = 0;
+	let mut cells_vertically_blocked_penalty = 0.0;
+	let mut height_bumpiness = 0;
 
 	let mut previous_height = None::<grid::SizeAxis>;
 
@@ -155,14 +155,16 @@ fn map_optimality2<M>(map: &M) -> f32
 
 		//Find height (First occurence of a occupied cell)
 		let height = if let Some((y,_)) = column.find(|&(_,cell)| cell.is_occupied()){
+			let height = map_height - y;
+
 			//Count cells vertically blocked
 			for (_,cell) in &mut column{
 				if cell.is_empty(){
-					cells_vertically_blocked+= 1;
+					cells_vertically_blocked_penalty+= height as f32;
 				}
 			}
 
-			map_height - y
+			height
 		}else{
 			0
 		};
@@ -175,5 +177,5 @@ fn map_optimality2<M>(map: &M) -> f32
 		previous_height = Some(height);
 	}
 
-	(-0.5*columns_height_sum as f32) + (1.0*rows_completed as f32) + (-0.1*cells_vertically_blocked as f32) + (-0.2*height_bumpiness.checked_sub(4).unwrap_or(0) as f32)
+	(-0.4*columns_height_sum as f32) + (0.25*(rows_completed as f32).powi(2)) + (-0.25*cells_vertically_blocked_penalty as f32) + (-0.3*height_bumpiness.checked_sub(4*2).unwrap_or(0) as f32)
 }
