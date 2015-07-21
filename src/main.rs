@@ -40,6 +40,12 @@ struct App<Rng>{
     tetris: GameState<Map<cell::ShapeCell>,Rng>,
     input_receiver: Receiver<(Input, PlayerId)>,
     input_sender: Sender<(Input, PlayerId)>,
+    connection: Connection,
+}
+
+pub enum Connection {
+    Server,
+    Client(String),
 }
 
 impl<Rng: rand::Rng> App<Rng>{
@@ -243,6 +249,7 @@ impl<Rng: rand::Rng> App<Rng>{
 }
 
 fn main(){
+    use std::env;
     //Define the OpenGL version to be used
     let opengl = OpenGL::_3_2;
 
@@ -257,6 +264,7 @@ fn main(){
     );
     
     let (input_sender, input_receiver) = mpsc::channel();
+    let args: Vec<_> = env::args().collect();
 
     //Create a new application
     let mut app = App{
@@ -264,6 +272,9 @@ fn main(){
         tetris: GameState::new(rand::StdRng::new().unwrap()),
         input_receiver: input_receiver,
         input_sender: input_sender,
+        connection: if args.len() > 1 {
+            Connection::Client(args[1].clone())
+        } else {Connection::Server},
     };
 
     //Create map
