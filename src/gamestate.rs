@@ -156,6 +156,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
 
             self.players.insert(new_id,Player{
                 pos            : respawn_position(shape,map),
+                shadow_pos     : None,
                 shape          : shape,
                 map            : map_id,
                 move_time_count: 0.0,
@@ -204,8 +205,15 @@ pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,delta: grid::Pos) ->
 
         //No collision, able to move and does so
         map::CellIntersection::None => {
+            //Change position
             player.pos.x += delta.x;
             player.pos.y += delta.y;
+
+            //Recalcuate fastfall shadow position when moving horizontally
+            if player.settings.fastfall_shadow && delta.x!=0{
+                player.shadow_pos = Some(fast_fallen_shape(&player.shape,map,player.pos));
+            }
+
             true
         }
     }
@@ -215,26 +223,34 @@ pub fn move_player<M: MapTrait>(player: &mut Player,map: &M,delta: grid::Pos) ->
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
 pub fn rotate_anticlockwise_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    let rotated_anticlockwise = player.shape.rotated_anticlockwise();
+    let rotated_shape = player.shape.rotated_anticlockwise();
 
-    match map.shape_intersects(&rotated_anticlockwise,player.pos){
-        map::CellIntersection::Imprint(pos) |
-        map::CellIntersection::OutOfBounds(pos) => {
-            let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
-            let sign = if pos.x < center_x {1} else {-1};
-            for i in 1..player.shape.width(){
-                if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
-                    player.shape = rotated_anticlockwise;
-                    return true;
+    'try_rotate: loop{
+        match map.shape_intersects(&rotated_shape,player.pos){
+            map::CellIntersection::Imprint(pos) |
+            map::CellIntersection::OutOfBounds(pos) => {
+                let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
+                let sign = if pos.x < center_x {1} else {-1};
+                for i in 1..player.shape.width(){
+                    if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
+                        break 'try_rotate;
+                    }
                 }
-            }
-
-            false
-        },
-        _ => {
-            player.shape = rotated_anticlockwise;
-            true
+            },
+            _ => break 'try_rotate
         }
+
+        return false;
+    }
+
+    {//Successfully rotated
+        player.shape = rotated_shape;
+
+        //Recalcuate fastfall shadow position when moving horizontally
+        if player.settings.fastfall_shadow{
+            player.shadow_pos = Some(fast_fallen_shape(&player.shape,map,player.pos));
+        }
+        return true;
     }
 }
 
@@ -242,26 +258,34 @@ pub fn rotate_anticlockwise_and_resolve_player<M: MapTrait>(player: &mut Player,
 ///moving in the x axis. If the collision cannot resolve, amend the rotation and return false,
 ///otherwise return true.
 pub fn rotate_clockwise_and_resolve_player<M: MapTrait>(player: &mut Player,map: &M) -> bool{
-    let prev_rotation = player.shape.rotated_clockwise();
+    let rotated_shape = player.shape.rotated_clockwise();
 
-    match map.shape_intersects(&prev_rotation,player.pos){
-        map::CellIntersection::Imprint(pos) |
-        map::CellIntersection::OutOfBounds(pos) => {
-            let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
-            let sign = if pos.x < center_x {1} else {-1};
-            for i in 1..player.shape.width() {
-                if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
-                    player.shape = prev_rotation;
-                    return true;
+    'try_rotate: loop{
+        match map.shape_intersects(&rotated_shape,player.pos){
+            map::CellIntersection::Imprint(pos) |
+            map::CellIntersection::OutOfBounds(pos) => {
+                let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
+                let sign = if pos.x < center_x {1} else {-1};
+                for i in 1..player.shape.width(){
+                    if move_player(player,map,grid::Pos{x: i as grid::PosAxis * sign,y: 0}){
+                        break 'try_rotate;
+                    }
                 }
-            }
-
-            false
-        },
-        _ => {
-            player.shape = prev_rotation;
-            true
+            },
+            _ => break 'try_rotate
         }
+
+        return false;
+    }
+
+    {//Successfully rotated
+        player.shape = rotated_shape;
+
+        //Recalcuate fastfall shadow position when moving horizontally
+        if player.settings.fastfall_shadow{
+            player.shadow_pos = Some(fast_fallen_shape(&player.shape,map,player.pos));
+        }
+        return true;
     }
 }
 
@@ -279,6 +303,9 @@ pub fn respawn_player<M: MapTrait>(player: &mut Player,map: &M,new_shape: Shape)
     //Select a new shape at random, setting its position to the starting position
     player.shape = RotatedShape::new(new_shape);
     player.pos = respawn_position(player.shape,map);
+    if player.settings.fastfall_shadow{
+        player.shadow_pos = Some(fast_fallen_shape(&player.shape,map,player.pos));
+    }
 
     //If the new shape at the starting position also collides with another shape
     match map.shape_intersects(&player.shape,player.pos){

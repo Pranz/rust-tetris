@@ -6,6 +6,7 @@ use super::shapes::tetrimino::RotatedShape;
 #[derive(Copy,Clone,PartialEq)]
 pub struct Player{
     pub pos            : grid::Pos,
+    pub shadow_pos     : Option<grid::Pos>,
     pub shape          : RotatedShape,
     pub map            : gamestate::MapId,
 	pub move_time_count: f64, //Unit: seconds
@@ -17,4 +18,5 @@ pub struct Player{
 #[derive(Copy,Clone,PartialEq)]
 pub struct Settings{
 	pub move_frequency : f64, //Unit: seconds/block
+	pub fastfall_shadow: bool,
 }

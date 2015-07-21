@@ -108,8 +108,18 @@ impl<Rng: rand::Rng> App<Rng>{
                     //Draw current shape(s)
                     for (cell_pos,cell) in grid::cells_iter::Iter::new(&player.shape){
                         if cell{
-                            let transform = transform.trans((cell_pos.x as grid::PosAxis + player.pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + player.pos.y) as f64 * BLOCK_PIXEL_SIZE);
-                            graphics::rectangle(color,square,transform,gl);
+                            //Normal shape
+                            {
+                                let transform = transform.trans((cell_pos.x as grid::PosAxis + player.pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + player.pos.y) as f64 * BLOCK_PIXEL_SIZE);
+                                graphics::rectangle(color,square,transform,gl);
+                            }
+
+                            //Shadow shape
+                            if let Some(shadow_pos) = player.shadow_pos{
+                                let transform = transform.trans((cell_pos.x as grid::PosAxis + shadow_pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + shadow_pos.y) as f64 * BLOCK_PIXEL_SIZE);
+                                let color = [color[0],color[1],color[2],0.3];
+                                graphics::rectangle(color,square,transform,gl);
+                            }
                         }
                     }
                 },
@@ -234,17 +244,20 @@ fn main(){
     //Create player 0
     app.tetris.add_player(0,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: true,
     });
 
     //Create player 1
     /*let player1 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: true,
     }).unwrap();
     app.tetris.controllers.insert(player1 as usize,Box::new(ai::bounce::Controller::new()));
 */
     //Create player 2
     let player2 = app.tetris.add_player(1,player::Settings{
         move_frequency : 1.0,
+        fastfall_shadow: false,
     }).unwrap();
     app.tetris.controllers.insert(player2 as usize,Box::new(ai::bruteforce::Controller::default()));
 
