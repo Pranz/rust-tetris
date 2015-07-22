@@ -70,13 +70,15 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                 //AI, if any
                 let mut controller = self.controllers.get_mut(&(player_id as usize));
 
-                //Add the time since the last update to the time count
-                player.move_time_count += args.dt;
+                //Add the time since the last update to the time counts
+                player.gravityfall_time_count += args.dt;
+                player.slowfall_time_count    += args.dt;
+                player.move_time_count        += args.dt;
 
                 //If the time count is bigger than the shape move frequency, then repeat until it is smaller
-                while player.move_time_count >= player.settings.move_frequency{
+                while player.gravityfall_time_count >= player.settings.gravityfall_frequency{
                     //Subtract one step of frequency
-                    player.move_time_count -= player.settings.move_frequency;
+                    player.gravityfall_time_count -= player.settings.gravityfall_frequency;
 
                     //If there are a collision below
                     if move_player(player,map,grid::Pos{x: 0,y: 1}){
@@ -155,13 +157,15 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
             let shape = RotatedShape::new(<Shape as rand::Rand>::rand(&mut self.rng));
 
             self.players.insert(new_id,Player{
-                pos            : respawn_position(shape,map),
-                shadow_pos     : None,
-                shape          : shape,
-                map            : map_id,
-                move_time_count: 0.0,
-                points         : 0,
-                settings       : settings
+                pos                   : respawn_position(shape,map),
+                shadow_pos            : None,
+                shape                 : shape,
+                map                   : map_id,
+                points                : 0,
+                gravityfall_time_count: 0.0,
+                slowfall_time_count   : 0.0,
+                move_time_count       : 0.0,
+                settings              : settings
             });
             let player = self.players.get_mut(&new_id).unwrap();
 
@@ -188,7 +192,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
             self2.with_map_players(map_id,|player|{//`self2.with_map_players` accesses `self.players`
                 //Reset all players in the map
                 respawn_player(player,map,<Shape as Rand>::rand(&mut self3.rng));//`self3.rng` accesses `self.rng`
-                player.move_time_count = 0.0;
+                player.gravityfall_time_count = 0.0;
             });
         });
     }

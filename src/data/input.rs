@@ -1,9 +1,7 @@
-
-
-pub enum Input {
+pub enum Input{
     MoveLeft,
     MoveRight,
-    MoveDown,
+    SlowFall,
     FastFall,
     RotateClockwise,
     RotateAntiClockwise,

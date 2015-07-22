@@ -151,42 +151,36 @@ impl<Rng: rand::Rng> App<Rng>{
     }
 
     fn handle_input(&mut self){
-        match self.input_receiver.try_recv() {
-            Ok((input, pid)) => {
-                match input {
-                    Input::MoveLeft => {
-                        self.tetris.with_player_map(pid,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1, y: 0});});
-                    },
-                    Input::MoveRight => {
-                        self.tetris.with_player_map(pid,|player,map|{gamestate::move_player(player,map,grid::Pos{x: 1, y: 0});});
-                    },
-                    Input::MoveDown => {
-                        self.tetris.with_player_map(pid,|player,map|{
-                            player.move_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
-                                //reset timer
-                                0.0
-                            } else {
-                                //Set timer and make the player move in the next update step
-                                player.settings.move_frequency
-                            };
-                        });
-                    },
-                    Input::FastFall => {
-                        self.tetris.with_player_map(pid,|player,map|{
-                            player.pos = gamestate::fast_fallen_shape(&player.shape, map, player.pos);
-                            player.move_time_count = player.settings.move_frequency;
-                        });
-                    },
-                    Input::RotateAntiClockwise => {
-                        self.tetris.with_player_map(0,|player,map|{
-                            let shape = player.shape.rotated_anticlockwise();
-                            gamestate::transform_resolve_player(player, shape, map);});
-                    },
-                    Input::RotateClockwise => {
-                        self.tetris.with_player_map(0,|player,map|{
-                            let shape = player.shape.rotated_clockwise();
-                            gamestate::transform_resolve_player(player, shape, map);});
-                    },
+        match self.input_receiver.try_recv(){
+            Ok((input,pid)) => {
+                match input{
+                    Input::MoveLeft => {self.tetris.with_player_map(pid,|player,map|{
+                        gamestate::move_player(player,map,grid::Pos{x: -1, y: 0});
+                    });},
+                    Input::MoveRight => {self.tetris.with_player_map(pid,|player,map|{
+                        gamestate::move_player(player,map,grid::Pos{x: 1, y: 0});
+                    });},
+                    Input::SlowFall => {self.tetris.with_player_map(pid,|player,map|{
+                        player.gravityfall_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
+                            //reset timer
+                            0.0
+                        } else {
+                            //Set timer and make the player move in the next update step
+                            player.settings.gravityfall_frequency
+                        };
+                    });},
+                    Input::FastFall => {self.tetris.with_player_map(pid,|player,map|{
+                        player.pos = gamestate::fast_fallen_shape(&player.shape, map, player.pos);
+                        player.gravityfall_time_count = player.settings.gravityfall_frequency;
+                    });},
+                    Input::RotateAntiClockwise => {self.tetris.with_player_map(pid,|player,map|{
+                        let shape = player.shape.rotated_anticlockwise();
+                        gamestate::transform_resolve_player(player, shape, map);
+                    });},
+                    Input::RotateClockwise => {self.tetris.with_player_map(pid,|player,map|{
+                        let shape = player.shape.rotated_clockwise();
+                        gamestate::transform_resolve_player(player, shape, map);
+                    });},
                     _ => (),
                 }
                 self.handle_input()
@@ -219,33 +213,20 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::Home   => {self.tetris.with_player(0,|player|{player.pos.y = 0;});},
 
             //Player 0
-            Key::Left   => {self.input_sender.send((Input::MoveLeft,  0)).unwrap();},
-            Key::Right  => {self.input_sender.send((Input::MoveRight, 0)).unwrap();},
-            Key::Down   => {self.input_sender.send((Input::MoveDown,  0)).unwrap();},
-            Key::End    => {self.input_sender.send((Input::FastFall,  0)).unwrap();},
-            Key::Up     => {self.input_sender.send((Input::RotateAntiClockwise, 0)).unwrap();},
-            Key::X      => {self.input_sender.send((Input::RotateAntiClockwise, 0)).unwrap();},
-            Key::Z      => {self.input_sender.send((Input::RotateClockwise, 0)).unwrap();},
+            Key::Left   => {self.input_sender.send((Input::MoveLeft,           0)).unwrap();},
+            Key::Right  => {self.input_sender.send((Input::MoveRight,          0)).unwrap();},
+            Key::Down   => {self.input_sender.send((Input::SlowFall,           0)).unwrap();},
+            Key::End    => {self.input_sender.send((Input::FastFall,           0)).unwrap();},
+            Key::X      => {self.input_sender.send((Input::RotateAntiClockwise,0)).unwrap();},
+            Key::Z      => {self.input_sender.send((Input::RotateClockwise,    0)).unwrap();},
            
             //Player 1
-            Key::NumPad4 => {self.tetris.with_player_map(1,|player,map|{gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});});},
-            Key::NumPad6 => {self.tetris.with_player_map(1,|player,map|{gamestate::move_player(player,map,grid::Pos{x:  1,y: 0});});},
-            Key::NumPad5 => {self.tetris.with_player_map(1,|player,map|{
-                player.move_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
-                    //Reset timer
-                    0.0
-                }else{
-                    //Set timer and make the player move in the update step
-                    player.settings.move_frequency
-            };});},
-            Key::NumPad1 => {self.tetris.with_player_map(1,|player,map|{
-                let shape = player.shape.rotated_anticlockwise();
-                gamestate::transform_resolve_player(player,shape,map);
-            });},
-            Key::NumPad0 => {self.tetris.with_player_map(1,|player,map|{
-                let shape = player.shape.rotated_clockwise();
-                gamestate::transform_resolve_player(player,shape,map);
-            });},
+            Key::NumPad4 => {self.input_sender.send((Input::MoveLeft,           1)).unwrap();},
+            Key::NumPad6 => {self.input_sender.send((Input::MoveRight,          1)).unwrap();},
+            Key::NumPad5 => {self.input_sender.send((Input::SlowFall,           1)).unwrap();},
+            Key::NumPad2 => {self.input_sender.send((Input::FastFall,           1)).unwrap();},
+            Key::NumPad1 => {self.input_sender.send((Input::RotateAntiClockwise,1)).unwrap();},
+            Key::NumPad0 => {self.input_sender.send((Input::RotateClockwise,    1)).unwrap();},
 
             //Other keys
             _ => ()
@@ -288,20 +269,31 @@ fn main(){
 
     //Create player 0
     app.tetris.add_player(0,player::Settings{
-        move_frequency : 1.0,
-        fastfall_shadow: true,
+        gravityfall_frequency: 1.0,
+        slowfall_delay       : 1.0,
+        slowfall_frequency   : 1.0,
+        move_delay           : 1.0,
+        move_frequency       : 1.0,
+        fastfall_shadow      : true,
     });
 
     //Create player 1
-    /*let player1 = app.tetris.add_player(1,player::Settings{
-        move_frequency : 1.0,
-        fastfall_shadow: true,
-    }).unwrap();
-    app.tetris.controllers.insert(player1 as usize,Box::new(ai::bounce::Controller::new()));
-*/
+    /*app.tetris.add_player(1,player::Settings{
+        gravityfall_frequency: 0.5,
+        slowfall_delay       : 1.0,
+        slowfall_frequency   : 1.0,
+        move_delay           : 1.0,
+        move_frequency       : 1.0,
+        fastfall_shadow      : true,
+    });*/
+
     //Create player 2
     let player2 = app.tetris.add_player(1,player::Settings{
-        move_frequency : 1.0,
+        gravityfall_frequency: 1.0,
+        slowfall_delay       : 1.0,
+        slowfall_frequency   : 1.0,
+        move_delay           : 1.0,
+        move_frequency       : 1.0,
         fastfall_shadow: false,
     }).unwrap();
     app.tetris.controllers.insert(player2 as usize,Box::new(ai::bruteforce::Controller::default()));
