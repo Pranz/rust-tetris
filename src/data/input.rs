@@ -1,5 +1,5 @@
-
-
+enum_from_primitive!{
+#[derive(Debug)]
 pub enum Input {
     MoveLeft,
     MoveRight,
@@ -8,4 +8,4 @@ pub enum Input {
     RotateClockwise,
     RotateAntiClockwise,
     Pause,
-}
+}}
