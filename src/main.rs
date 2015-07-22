@@ -16,13 +16,14 @@ pub mod controller;
 pub mod data;
 pub mod gamestate;
 
+use num::traits::FromPrimitive;
 use piston::window::WindowSettings;
 use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
 use piston::input::{Button,Key};
 use graphics::Transformed;
 use opengl_graphics::{GlGraphics,OpenGL};
-use std::sync::mpsc::{Sender, Receiver};
-use std::sync::mpsc;
+use std::{net,sync,thread};
+use std::net::ToSocketAddrs;
 #[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
 #[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
@@ -38,14 +39,15 @@ use gamestate::{GameState, PlayerId};
 struct App<Rng>{
     gl: GlGraphics,
     tetris: GameState<Map<cell::ShapeCell>,Rng>,
-    input_receiver: Receiver<(Input, PlayerId)>,
-    input_sender: Sender<(Input, PlayerId)>,
-    connection: Connection,
+    input_receiver: sync::mpsc::Receiver<(Input, PlayerId)>,
+    input_sender: sync::mpsc::Sender<(Input, PlayerId)>,
+    connection: ConnectionType,
 }
 
-pub enum Connection {
+pub enum ConnectionType {
     Server,
-    Client(String),
+    Client(net::UdpSocket,net::SocketAddr),
+    None
 }
 
 impl<Rng: rand::Rng> App<Rng>{
@@ -183,6 +185,11 @@ impl<Rng: rand::Rng> App<Rng>{
                     });},
                     _ => (),
                 }
+
+                if let ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
+                    socket.send_to(&[input as u8],address).unwrap();
+                }}
+
                 self.handle_input()
             }
             Err(_) => ()
@@ -219,7 +226,7 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::End    => {self.input_sender.send((Input::FastFall,           0)).unwrap();},
             Key::X      => {self.input_sender.send((Input::RotateAntiClockwise,0)).unwrap();},
             Key::Z      => {self.input_sender.send((Input::RotateClockwise,    0)).unwrap();},
-           
+
             //Player 1
             Key::NumPad4 => {self.input_sender.send((Input::MoveLeft,           1)).unwrap();},
             Key::NumPad6 => {self.input_sender.send((Input::MoveRight,          1)).unwrap();},
@@ -248,8 +255,8 @@ fn main(){
         .exit_on_esc(true)
         .opengl(opengl)
     );
-    
-    let (input_sender, input_receiver) = mpsc::channel();
+
+    let (input_sender, input_receiver) = sync::mpsc::channel();
     let args: Vec<_> = env::args().collect();
 
     //Create a new application
@@ -257,10 +264,40 @@ fn main(){
         gl: GlGraphics::new(opengl),
         tetris: GameState::new(rand::StdRng::new().unwrap()),
         input_receiver: input_receiver,
-        input_sender: input_sender,
-        connection: if args.len() > 1 {
-            Connection::Client(args[1].clone())
-        } else {Connection::Server},
+        input_sender: input_sender.clone(),
+        connection: if args.len() > 1{
+            match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7375)){
+                Ok(socket) => {
+                    ConnectionType::Client(socket,(&*args[1]).to_socket_addrs().unwrap().next().unwrap())
+                },
+                Err(e) => {
+                    println!("Client socket error: {:?}",e);
+                    ConnectionType::None
+                }
+            }
+        }else{
+            match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7374)){
+                Ok(socket) => {
+                    thread::spawn(move ||{
+                        let mut buffer = [0];
+                        loop{
+                            socket.recv_from(&mut buffer).unwrap();
+                            match Input::from_u8(buffer[0]){
+                                Some(input) => {
+                                    input_sender.send((input,1));
+                                },
+                                None => ()
+                            }
+                        }
+                    });
+                    ConnectionType::Server
+                },
+                Err(e) => {
+                    println!("Server socket error: {:?}",e);
+                    ConnectionType::None
+                }
+            }
+        },
     };
 
     //Create map
@@ -278,17 +315,17 @@ fn main(){
     });
 
     //Create player 1
-    /*app.tetris.add_player(1,player::Settings{
-        gravityfall_frequency: 0.5,
+    app.tetris.add_player(1,player::Settings{
+        gravityfall_frequency: 1.0,
         slowfall_delay       : 1.0,
         slowfall_frequency   : 1.0,
         move_delay           : 1.0,
         move_frequency       : 1.0,
         fastfall_shadow      : true,
-    });*/
+    });
 
     //Create player 2
-    let player2 = app.tetris.add_player(1,player::Settings{
+    /*let player2 = app.tetris.add_player(1,player::Settings{
         gravityfall_frequency: 1.0,
         slowfall_delay       : 1.0,
         slowfall_frequency   : 1.0,
@@ -296,7 +333,7 @@ fn main(){
         move_frequency       : 1.0,
         fastfall_shadow: false,
     }).unwrap();
-    app.tetris.controllers.insert(player2 as usize,Box::new(ai::bruteforce::Controller::default()));
+    app.tetris.controllers.insert(player2 as usize,Box::new(ai::bruteforce::Controller::default()));*/
 
     //Run the created application: Listen for events
     for e in window.events(){
