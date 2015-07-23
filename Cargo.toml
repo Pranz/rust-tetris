@@ -4,9 +4,12 @@ version = "0.1.0"
 authors = ["Pranz <jesper.fridefors@gmail.com", "Lolirofle <lolipopple@hotmail.com>"]
 
 [dependencies]
+docopt = "0.6"
+docopt_macros = "0.6"
 enum_primitive = "0.0.2"
 num = "0.1"
 rand = "0.3"
+rustc-serialize = "0.3"
 
 piston = "0.3"
 piston2d-graphics = "0.4"

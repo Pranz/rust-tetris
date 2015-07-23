@@ -1,17 +1,21 @@
-#![feature(associated_consts,collections,core,slice_patterns,vecmap)]
+#![feature(associated_consts,collections,core,ip_addr,lookup_host,plugin,slice_patterns,vecmap)]
 
+#![plugin(docopt_macros)]
 extern crate collections;
 extern crate core;
+extern crate docopt;
 #[macro_use] extern crate enum_primitive;
 extern crate graphics;
 extern crate num;
 extern crate opengl_graphics;
 extern crate piston;
 extern crate rand;
+extern crate rustc_serialize;
 #[cfg(feature = "include_sdl2")]  extern crate sdl2_window;
 #[cfg(feature = "include_glfw")]  extern crate glfw_window;
 #[cfg(feature = "include_glutin")]extern crate glutin_window;
 
+mod command_arg;
 pub mod controller;
 pub mod data;
 pub mod gamestate;
@@ -25,7 +29,6 @@ use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
 use piston::input::{Button,Key};
 use opengl_graphics::{GlGraphics,OpenGL};
 use std::{net,sync,thread};
-use std::net::ToSocketAddrs;
 #[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
 #[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
@@ -48,7 +51,7 @@ struct App<Rng>{
 
 impl<Rng: rand::Rng> App<Rng>{
     fn update(&mut self, args: &event::UpdateArgs){
-        //Input        
+        //Input
         while let Ok((input,pid)) = self.input_receiver.try_recv(){
             self.tetris.with_player_map(pid,|player,map|{
                 input::perform(input,player,map);
@@ -108,8 +111,36 @@ impl<Rng: rand::Rng> App<Rng>{
     }
 }
 
+docopt!(Args derive Debug,"
+Usage: tetr [options]
+       tetr --help
+
+Options:
+  -h, --help           Show this message
+  --online=CONNECTION  Available modes: none, server, client [default: none]
+  --host=ADDR          Network address used for the online connection [default: 0.0.0.0]
+  --port=N             Network port used for the online connection [default: 7374]
+  --window-size=SIZE   Window size [default: 800x600]
+  --window-mode=MODE   Available modes: window, fullscreen [default: window]
+",
+    flag_online: command_arg::OnlineConnection,
+    flag_host: command_arg::Host,
+    flag_port: u16,
+    flag_window_size: command_arg::WindowSize,
+    flag_window_mode: command_arg::WindowMode
+);
+
 fn main(){
-    use std::env;
+    let args: Args = match Args::docopt().decode(){
+        Ok(args) => args,
+        Err(docopt::Error::WithProgramUsage(_,usage)) |
+        Err(docopt::Error::Usage(usage))              => {
+            println!("{}",usage);
+            return;
+        },
+        e => e.unwrap()
+    };
+
     //Define the OpenGL version to be used
     let opengl = OpenGL::_3_2;
 
@@ -117,14 +148,13 @@ fn main(){
     let window = Window::new(
         WindowSettings::new(
             "Polyminos Falling",
-            [800, 600]
+            [args.flag_window_size.0,args.flag_window_size.1]
         )
         .exit_on_esc(true)
         .opengl(opengl)
     );
 
     let (input_sender, input_receiver) = sync::mpsc::channel();
-    let args: Vec<_> = env::args().collect();
 
     //Create a new application
     let mut app = App{
@@ -132,19 +162,21 @@ fn main(){
         tetris: GameState::new(rand::StdRng::new().unwrap()),
         input_receiver: input_receiver,
         input_sender: input_sender.clone(),
-        connection: if args.len() > 1{
-            match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7375)){
+        connection: match args.flag_online{
+            command_arg::OnlineConnection::none => online::ConnectionType::None,
+            command_arg::OnlineConnection::client => match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7375)){
                 Ok(socket) => {
-                    online::ConnectionType::Client(socket,(&*args[1]).to_socket_addrs().unwrap().next().unwrap())
+                    println!("Client: Connecting to {}:{}...",args.flag_host.0,args.flag_port);
+                    online::ConnectionType::Client(socket,net::SocketAddr::new(args.flag_host.0,args.flag_port))
                 },
                 Err(e) => {
                     println!("Client socket error: {:?}",e);
                     online::ConnectionType::None
                 }
-            }
-        }else{
-            match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7374)){
+            },
+            command_arg::OnlineConnection::server => match net::UdpSocket::bind((args.flag_host.0,args.flag_port)){
                 Ok(socket) => {
+                    println!("Server: Listening on {}:{}...",args.flag_host.0,args.flag_port);
                     thread::spawn(move ||{
                         let mut buffer = [0];
                         loop{
