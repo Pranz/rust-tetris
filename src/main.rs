@@ -15,12 +15,14 @@ extern crate rand;
 pub mod controller;
 pub mod data;
 pub mod gamestate;
+pub mod input;
+pub mod online;
+pub mod render;
 
 use num::traits::FromPrimitive;
 use piston::window::WindowSettings;
 use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
 use piston::input::{Button,Key};
-use graphics::Transformed;
 use opengl_graphics::{GlGraphics,OpenGL};
 use std::{net,sync,thread};
 use std::net::ToSocketAddrs;
@@ -29,8 +31,8 @@ use std::net::ToSocketAddrs;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
 use controller::ai;
-use data::{cell,colors,player};
-use data::grid::{self,Grid};
+use data::{cell,player};
+use data::grid::Grid;
 use data::map::dynamic_map::Map;
 use data::shapes::tetrimino::{Shape,RotatedShape};
 use data::input::Input;
@@ -41,159 +43,24 @@ struct App<Rng>{
     tetris: GameState<Map<cell::ShapeCell>,Rng>,
     input_receiver: sync::mpsc::Receiver<(Input, PlayerId)>,
     input_sender: sync::mpsc::Sender<(Input, PlayerId)>,
-    connection: ConnectionType,
-}
-
-pub enum ConnectionType {
-    Server,
-    Client(net::UdpSocket,net::SocketAddr),
-    None
+    connection: online::ConnectionType,
 }
 
 impl<Rng: rand::Rng> App<Rng>{
-    fn render(&mut self, args: &event::RenderArgs){
-        const BLOCK_PIXEL_SIZE: f64 = 24.0;
-
-        fn map_render_pos(map_no: usize) -> (f64,f64){
-            (map_no as f64 * 12.0 * BLOCK_PIXEL_SIZE,0.0)
-        }
-
-        //Unit square
-        let square = graphics::rectangle::square(0.0,0.0,BLOCK_PIXEL_SIZE);
-
-        //Draw in the current viewport
-        let &mut App{ref mut gl,ref mut tetris, ..} = self;
-        gl.draw(args.viewport(),|context,gl|{
-            //Clear screen
-            graphics::clear(colors::BLACK,gl);
-
-            //Draw maps
-            for (map_id,map) in tetris.maps.iter(){
-                let transform = {
-                    let (x,y) = map_render_pos(map_id);
-                    context.transform.trans(x,y)
-                };
-
-                //Background
-                graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map.width() as f64 * BLOCK_PIXEL_SIZE,map.height() as f64 * BLOCK_PIXEL_SIZE],transform,gl);
-
-                //Imprinted cells
-                for (cell_pos,cell::ShapeCell(cell)) in grid::cells_iter::Iter::new(map){
-                    if let Some(cell) = cell{
-                        let transform = transform.trans(cell_pos.x as f64 * BLOCK_PIXEL_SIZE,cell_pos.y as f64 * BLOCK_PIXEL_SIZE);
-                        graphics::rectangle(
-                            match cell{
-                                Shape::I => colors::shapes::RED,
-                                Shape::L => colors::shapes::MAGENTA,
-                                Shape::O => colors::shapes::BLUE,
-                                Shape::J => colors::shapes::ORANGE,
-                                Shape::T => colors::shapes::OLIVE,
-                                Shape::S => colors::shapes::LIME,
-                                Shape::Z => colors::shapes::CYAN,
-                            },
-                            square,
-                            transform,
-                            gl
-                        );
-                    }
-                }
-            }
-
-            //Draw players
-            for (_,player) in tetris.players.iter(){match tetris.maps.get(&(player.map as usize)){
-                Some(_) => {
-                    let transform = {
-                        let (x,y) = map_render_pos(player.map as usize);
-                        context.transform.trans(x,y)
-                    };
-
-                    //Select color
-                    let color = match player.shape.shape(){
-                        Shape::I => colors::shapes::LIGHT_RED,
-                        Shape::L => colors::shapes::LIGHT_MAGENTA,
-                        Shape::O => colors::shapes::LIGHT_BLUE,
-                        Shape::J => colors::shapes::LIGHT_ORANGE,
-                        Shape::T => colors::shapes::LIGHT_OLIVE,
-                        Shape::S => colors::shapes::LIGHT_LIME,
-                        Shape::Z => colors::shapes::LIGHT_CYAN,
-                    };
-
-                    //Draw current shape(s)
-                    for (cell_pos,cell) in grid::cells_iter::Iter::new(&player.shape){
-                        if cell{
-                            //Normal shape
-                            {
-                                let transform = transform.trans((cell_pos.x as grid::PosAxis + player.pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + player.pos.y) as f64 * BLOCK_PIXEL_SIZE);
-                                graphics::rectangle(color,square,transform,gl);
-                            }
-
-                            //Shadow shape
-                            if let Some(shadow_pos) = player.shadow_pos{
-                                let transform = transform.trans((cell_pos.x as grid::PosAxis + shadow_pos.x) as f64 * BLOCK_PIXEL_SIZE, (cell_pos.y as grid::PosAxis + shadow_pos.y) as f64 * BLOCK_PIXEL_SIZE);
-                                let color = [color[0],color[1],color[2],0.3];
-                                graphics::rectangle(color,square,transform,gl);
-                            }
-                        }
-                    }
-                },
-                None => ()
-            }}
-
-            //Pause overlay
-            if tetris.paused{
-                let [w,h] = context.get_view_size();
-                graphics::rectangle([0.0,0.0,0.0,0.5],[0.0,0.0,w,h],context.transform,gl);
-            }
-        });
-    }
-
     fn update(&mut self, args: &event::UpdateArgs){
-        self.handle_input();
-        self.tetris.update(args);
-    }
+        //Input        
+        while let Ok((input,pid)) = self.input_receiver.try_recv(){
+            self.tetris.with_player_map(pid,|player,map|{
+                input::perform(input,player,map);
+            });
 
-    fn handle_input(&mut self){
-        match self.input_receiver.try_recv(){
-            Ok((input,pid)) => {
-                match input{
-                    Input::MoveLeft => {self.tetris.with_player_map(pid,|player,map|{
-                        gamestate::move_player(player,map,grid::Pos{x: -1, y: 0});
-                    });},
-                    Input::MoveRight => {self.tetris.with_player_map(pid,|player,map|{
-                        gamestate::move_player(player,map,grid::Pos{x: 1, y: 0});
-                    });},
-                    Input::SlowFall => {self.tetris.with_player_map(pid,|player,map|{
-                        player.gravityfall_time_count = if gamestate::move_player(player,map,grid::Pos{x: 0,y: 1}){
-                            //reset timer
-                            0.0
-                        } else {
-                            //Set timer and make the player move in the next update step
-                            player.settings.gravityfall_frequency
-                        };
-                    });},
-                    Input::FastFall => {self.tetris.with_player_map(pid,|player,map|{
-                        player.pos = gamestate::fast_fallen_shape(&player.shape, map, player.pos);
-                        player.gravityfall_time_count = player.settings.gravityfall_frequency;
-                    });},
-                    Input::RotateAntiClockwise => {self.tetris.with_player_map(pid,|player,map|{
-                        let shape = player.shape.rotated_anticlockwise();
-                        gamestate::transform_resolve_player(player, shape, map);
-                    });},
-                    Input::RotateClockwise => {self.tetris.with_player_map(pid,|player,map|{
-                        let shape = player.shape.rotated_clockwise();
-                        gamestate::transform_resolve_player(player, shape, map);
-                    });},
-                    _ => (),
-                }
-
-                if let ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
-                    socket.send_to(&[input as u8],address).unwrap();
-                }}
-
-                self.handle_input()
-            }
-            Err(_) => ()
+            if let online::ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
+                socket.send_to(&[input as u8],address).unwrap();
+            }}
         }
+
+        //Update
+        self.tetris.update(args);
     }
 
     fn on_key_press(&mut self, key: Key){
@@ -268,11 +135,11 @@ fn main(){
         connection: if args.len() > 1{
             match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7375)){
                 Ok(socket) => {
-                    ConnectionType::Client(socket,(&*args[1]).to_socket_addrs().unwrap().next().unwrap())
+                    online::ConnectionType::Client(socket,(&*args[1]).to_socket_addrs().unwrap().next().unwrap())
                 },
                 Err(e) => {
                     println!("Client socket error: {:?}",e);
-                    ConnectionType::None
+                    online::ConnectionType::None
                 }
             }
         }else{
@@ -290,11 +157,11 @@ fn main(){
                             }
                         }
                     });
-                    ConnectionType::Server
+                    online::ConnectionType::Server
                 },
                 Err(e) => {
                     println!("Server socket error: {:?}",e);
-                    ConnectionType::None
+                    online::ConnectionType::None
                 }
             }
         },
@@ -349,7 +216,7 @@ fn main(){
 
         //Render
         if let Some(r) = e.render_args(){
-            app.render(&r);
+            render::default::gamestate(&mut app.tetris,&mut app.gl,&r);
         }
     }
 }

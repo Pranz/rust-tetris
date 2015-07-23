@@ -1,6 +1,6 @@
 enum_from_primitive!{
-#[derive(Debug)]
-pub enum Input {
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+pub enum Input{
     MoveLeft,
     MoveRight,
     SlowFall,
