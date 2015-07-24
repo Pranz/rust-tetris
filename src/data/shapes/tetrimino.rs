@@ -7,7 +7,7 @@ use super::super::grid::{self,Grid};
 
 ///All possible tetrimino shapes
 enum_from_primitive!{
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(Copy,Clone,Eq,PartialEq)]
 pub enum Shape{
     I,
     L,

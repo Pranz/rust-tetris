@@ -1,9 +1,10 @@
-#![feature(associated_consts,collections,core,ip_addr,lookup_host,plugin,slice_patterns,vecmap)]
+#![feature(associated_consts,collections,core,ip_addr,lookup_host,plugin,raw,slice_patterns,vecmap)]
 
 #![plugin(docopt_macros)]
 extern crate collections;
 extern crate core;
 extern crate docopt;
+extern crate endian_types;
 #[macro_use] extern crate enum_primitive;
 extern crate graphics;
 extern crate num;
@@ -23,7 +24,8 @@ pub mod input;
 pub mod online;
 pub mod render;
 
-use num::traits::FromPrimitive;
+use endian_types::types::*;
+use num::FromPrimitive;
 use piston::window::WindowSettings;
 use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
 use piston::input::{Button,Key};
@@ -58,7 +60,7 @@ impl<Rng: rand::Rng> App<Rng>{
             });
 
             if let online::ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
-                socket.send_to(&[input as u8],address).unwrap();
+                socket.send_to(&[online::client::packet::Type::PlayerInput as u8,0,0,0,0,input as u8],address).unwrap();
             }}
         }
 
@@ -154,7 +156,7 @@ fn main(){
         .opengl(opengl)
     );
 
-    let (input_sender, input_receiver) = sync::mpsc::channel();
+    let (input_sender,input_receiver) = sync::mpsc::channel();
 
     //Create a new application
     let mut app = App{
@@ -163,10 +165,25 @@ fn main(){
         input_receiver: input_receiver,
         input_sender: input_sender.clone(),
         connection: match args.flag_online{
+            //No connection
             command_arg::OnlineConnection::none => online::ConnectionType::None,
+
+            //Start to act as a server, listening for clients
             command_arg::OnlineConnection::client => match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7375)){
                 Ok(socket) => {
                     println!("Client: Connecting to {}:{}...",args.flag_host.0,args.flag_port);
+
+                    //Send connect packet
+                    socket.send_to(
+                        online::Packet(
+                            online::client::packet::Type::Connect,
+                            online::client::packet::Connect{
+                                protocol_version: le16::new(1)
+                            }
+                        ).to_packet_bytes(),
+                        (args.flag_host.0,args.flag_port)
+                    ).unwrap();
+
                     online::ConnectionType::Client(socket,net::SocketAddr::new(args.flag_host.0,args.flag_port))
                 },
                 Err(e) => {
@@ -174,18 +191,27 @@ fn main(){
                     online::ConnectionType::None
                 }
             },
+
+            //Start to act as a client, connecting to a server
             command_arg::OnlineConnection::server => match net::UdpSocket::bind((args.flag_host.0,args.flag_port)){
                 Ok(socket) => {
                     println!("Server: Listening on {}:{}...",args.flag_host.0,args.flag_port);
                     thread::spawn(move ||{
-                        let mut buffer = [0];
-                        loop{
-                            socket.recv_from(&mut buffer).unwrap();
-                            match Input::from_u8(buffer[0]){
-                                Some(input) => {
-                                    input_sender.send((input,1));
+                        let mut buffer: online::client::packet::PacketBytes = [0; online::client::packet::SIZE];
+                        while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
+                            //TODO: Check for received buffer size and validate the received buffer data
+                            match online::client::packet::Type::from_u8(buffer[0]){//TODO: Implement and use a `Packet::from_packet_bytes` on the buffer and the received buffer size. First byte is the type
+                                //Recevied player input
+                                Some(online::client::packet::Type::PlayerInput) => match Input::from_u8(buffer[5]){//TODO: Use `from_packet_bytes`
+                                    Some(input) => input_sender.send((input,1)).unwrap(),
+                                    None => ()
                                 },
-                                None => ()
+
+                                //Received unimplemented TODO stuff
+                                Some(ty) => println!("{:?}: {:?}",ty,buffer),
+
+                                //Received other stuff
+                                _ => ()
                             }
                         }
                     });
