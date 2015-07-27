@@ -4,7 +4,7 @@ version = "0.1.0"
 dependencies = [
  "docopt 0.6.67 (registry+https://github.com/rust-lang/crates.io-index)",
  "docopt_macros 0.6.67 (registry+https://github.com/rust-lang/crates.io-index)",
- "endian-types 0.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "endian-type 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -138,9 +138,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "endian-types"
-version = "0.0.0"
+name = "endian-type"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "enum_primitive"

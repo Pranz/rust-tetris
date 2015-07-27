@@ -7,6 +7,8 @@ use std::net;
 #[derive(Debug)]
 pub struct Host(pub net::IpAddr);
 
+pub type Port = u16;
+
 #[derive(Debug,RustcDecodable)]
 pub enum OnlineConnection{none,server,client}
 
