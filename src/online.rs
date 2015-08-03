@@ -46,8 +46,6 @@ pub mod client{
 		use endian_type::types::*;
 		use num::FromPrimitive;
 
-		use data::input::Input;
-
 		///Size in bytes of the biggest packet sent by the client
 		pub const SIZE: usize = (1) + (4+4+1);//Type + PlayerInput
 
@@ -138,8 +136,6 @@ pub mod server{
 	pub mod packet{
 		use endian_type::types::*;
 		use num::FromPrimitive;
-
-		use data::input::Input;
 
 		///Size in bytes of the biggest packet sent by the server
 		pub const SIZE: usize = (1) + (4+1);//Type + PlayerInput

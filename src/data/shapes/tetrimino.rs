@@ -7,7 +7,7 @@ use super::super::grid::{self,Grid};
 
 ///All possible tetrimino shapes
 enum_from_primitive!{
-#[derive(Copy,Clone,Eq,PartialEq)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum Shape{
     I,
     L,
@@ -76,7 +76,7 @@ impl Rand for Shape{
 }
 
 ///A shape with its rotation
-#[derive(PartialEq, Eq, Copy, Clone)]
+#[derive(PartialEq,Eq,Copy,Clone,Debug)]
 pub struct RotatedShape{
     shape: Shape,
     rotation: u8
@@ -155,6 +155,7 @@ impl Grid for RotatedShape{
 }
 
 ///Iterator for every rotation the shape has that isn't equivalent to another in the 360° range with a 90° step
+#[derive(Debug)]
 pub struct ShapeRotations(RotatedShape);
 impl Iterator for ShapeRotations{
     type Item = RotatedShape;

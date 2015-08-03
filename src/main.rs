@@ -1,4 +1,4 @@
-#![feature(associated_consts,collections,core,ip_addr,lookup_host,plugin,raw,slice_patterns,vecmap)]
+#![feature(associated_consts,collections,core,ip_addr,lookup_host,optin_builtin_traits,plugin,raw,slice_patterns,str_split_at,vecmap)]
 
 #![plugin(docopt_macros)]
 extern crate collections;
@@ -20,10 +20,13 @@ mod command_arg;
 pub mod controller;
 pub mod data;
 pub mod gamestate;
+pub mod game;
 pub mod input;
 pub mod online;
 pub mod render;
+pub mod tmp_ptr;
 
+use controller::Controller;
 use endian_type::types::*;
 use num::FromPrimitive;
 use piston::window::WindowSettings;
@@ -39,25 +42,38 @@ use controller::ai;
 use data::{cell,player};
 use data::grid::Grid;
 use data::map::dynamic_map::Map;
+use data::player::Player;
 use data::shapes::tetrimino::{Shape,RotatedShape};
 use data::input::Input;
-use gamestate::{GameState, PlayerId};
+use gamestate::{GameState,MapId,PlayerId};
+use game::event::Event;
+use tmp_ptr::TmpPtr;
 
-struct App<Rng>{
+struct App{
     gl: GlGraphics,
-    tetris: GameState<Map<cell::ShapeCell>,Rng>,
+    tetris: GameState<Map<cell::ShapeCell>,rand::StdRng>,
+    controllers: Vec<Box<Controller<Map<cell::ShapeCell>,Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map<cell::ShapeCell>>)>>>>,
     input_receiver: sync::mpsc::Receiver<(Input, PlayerId)>,
-    input_sender: sync::mpsc::Sender<(Input, PlayerId)>,
     connection: online::ConnectionType,
+    paused: bool,
 }
 
-impl<Rng: rand::Rng> App<Rng>{
+impl App{
     fn update(&mut self, args: &event::UpdateArgs){
+        //Controllers
+        if !self.paused{
+            for mut controller in self.controllers.iter_mut(){
+                controller.update(args,&self.tetris.players,&self.tetris.maps);
+            }
+        }
+
         //Input
         while let Ok((input,pid)) = self.input_receiver.try_recv(){
-            self.tetris.with_player_map(pid,|player,map|{
-                input::perform(input,player,map);
-            });
+            if let Some(player) = self.tetris.players.get_mut(&(pid as usize)){
+                if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){
+                    input::perform(input,player,map);
+                }
+            }
 
             if let online::ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
                 socket.send_to(online::client::packet::PlayerInput{
@@ -69,15 +85,18 @@ impl<Rng: rand::Rng> App<Rng>{
         }
 
         //Update
-        self.tetris.update(args);
+        if !self.paused{
+            let &mut App{tetris: ref mut game,controllers: ref mut cs,..} = self;
+            game.update(args,&mut |e| for c in cs.iter_mut(){c.event(e);});
+        }
     }
 
-    fn on_key_press(&mut self, key: Key){
-        if self.tetris.paused{match key{
-            Key::Return => {self.tetris.paused = false},
+    fn on_key_press(&mut self,key: Key,input_sender: &sync::mpsc::Sender<(Input,PlayerId)>){
+        if self.paused{match key{
+            Key::Return => {self.paused = false},
             _ => {},
         }}else{match key{
-            Key::Return => {self.tetris.paused = true},
+            Key::Return => {self.paused = true},
 
             //Player 0 Tests
             Key::D1     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::I);});},
@@ -89,27 +108,30 @@ impl<Rng: rand::Rng> App<Rng>{
             Key::D7     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::Z);});},
             Key::R      => {
                 match self.tetris.players.get(&(0 as usize)).map(|player| player.map){
-                    Some(map_id) => {self.tetris.reset_map(map_id);},
+                    Some(map_id) => {
+                        let &mut App{tetris: ref mut game,controllers: ref mut cs,..} = self;
+                        game.reset_map(map_id,&mut |e| for c in cs.iter_mut(){c.event(e);});
+                    },
                     None => ()
                 };
             },
             Key::Home   => {self.tetris.with_player(0,|player|{player.pos.y = 0;});},
 
             //Player 0
-            Key::Left   => {self.input_sender.send((Input::MoveLeft,           0)).unwrap();},
-            Key::Right  => {self.input_sender.send((Input::MoveRight,          0)).unwrap();},
-            Key::Down   => {self.input_sender.send((Input::SlowFall,           0)).unwrap();},
-            Key::End    => {self.input_sender.send((Input::FastFall,           0)).unwrap();},
-            Key::X      => {self.input_sender.send((Input::RotateAntiClockwise,0)).unwrap();},
-            Key::Z      => {self.input_sender.send((Input::RotateClockwise,    0)).unwrap();},
+            Key::Left   => {input_sender.send((Input::MoveLeft,           0)).unwrap();},
+            Key::Right  => {input_sender.send((Input::MoveRight,          0)).unwrap();},
+            Key::Down   => {input_sender.send((Input::SlowFall,           0)).unwrap();},
+            Key::End    => {input_sender.send((Input::FastFall,           0)).unwrap();},
+            Key::X      => {input_sender.send((Input::RotateAntiClockwise,0)).unwrap();},
+            Key::Z      => {input_sender.send((Input::RotateClockwise,    0)).unwrap();},
 
             //Player 1
-            Key::NumPad4 => {self.input_sender.send((Input::MoveLeft,           1)).unwrap();},
-            Key::NumPad6 => {self.input_sender.send((Input::MoveRight,          1)).unwrap();},
-            Key::NumPad5 => {self.input_sender.send((Input::SlowFall,           1)).unwrap();},
-            Key::NumPad2 => {self.input_sender.send((Input::FastFall,           1)).unwrap();},
-            Key::NumPad1 => {self.input_sender.send((Input::RotateAntiClockwise,1)).unwrap();},
-            Key::NumPad0 => {self.input_sender.send((Input::RotateClockwise,    1)).unwrap();},
+            Key::NumPad4 => {input_sender.send((Input::MoveLeft,           1)).unwrap();},
+            Key::NumPad6 => {input_sender.send((Input::MoveRight,          1)).unwrap();},
+            Key::NumPad5 => {input_sender.send((Input::SlowFall,           1)).unwrap();},
+            Key::NumPad2 => {input_sender.send((Input::FastFall,           1)).unwrap();},
+            Key::NumPad1 => {input_sender.send((Input::RotateAntiClockwise,1)).unwrap();},
+            Key::NumPad0 => {input_sender.send((Input::RotateClockwise,    1)).unwrap();},
 
             //Other keys
             _ => ()
@@ -123,6 +145,7 @@ Usage: tetr [options]
 
 Options:
   -h, --help           Show this message
+  -v, --version        Show version
   --online=CONNECTION  Available modes: none, server, client [default: none]
   --host=ADDR          Network address used for the online connection [default: 0.0.0.0]
   --port=N             Network port used for the online connection [default: 7374]
@@ -147,6 +170,11 @@ fn main(){
         e => e.unwrap()
     };
 
+    if args.flag_version{
+        println!(concat!("tetr v",env!("CARGO_PKG_VERSION")));
+        return;
+    }
+
     //Define the OpenGL version to be used
     let opengl = OpenGL::_3_2;
 
@@ -162,17 +190,25 @@ fn main(){
 
     let (input_sender,input_receiver) = sync::mpsc::channel();
 
+    fn imprint_cell(variant: &RotatedShape) -> cell::ShapeCell{
+        cell::ShapeCell(Some(variant.shape()))
+    }
+
     //Create a new application
     let mut app = App{
         gl: GlGraphics::new(opengl),
-        tetris: GameState::new(rand::StdRng::new().unwrap()),
+        tetris: GameState::new(
+            rand::StdRng::new().unwrap(),
+            imprint_cell as fn(&RotatedShape) -> cell::ShapeCell,
+        ),
+        paused: false,
+        controllers: Vec::new(),
         input_receiver: input_receiver,
-        input_sender: input_sender.clone(),
         connection: match args.flag_online{
             //No connection
             command_arg::OnlineConnection::none => online::ConnectionType::None,
 
-            //Start to act as a server, listening for clients
+            //Start to act as a client, connecting to a server
             command_arg::OnlineConnection::client => match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7375)){
                 Ok(socket) => {
                     println!("Client: Connecting to {}:{}...",args.flag_host.0,args.flag_port);
@@ -193,12 +229,13 @@ fn main(){
                 }
             },
 
-            //Start to act as a client, connecting to a server
+            //Start to act as a server, listening for clients
             command_arg::OnlineConnection::server => match net::UdpSocket::bind((args.flag_host.0,args.flag_port)){
                 Ok(socket) => {
                     use core::mem;
 
                     println!("Server: Listening on {}:{}...",args.flag_host.0,args.flag_port);
+                    let input_sender = input_sender.clone();
                     thread::spawn(move ||{
                         use online::client::packet::*;
 
@@ -206,9 +243,31 @@ fn main(){
                         while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
                             //First byte is the packet type
                             match Type::from_packet_bytes(&buffer[..]){
+                                //Recevied connection request
+                                Some(Type::Connect) if buffer_size==mem::size_of::<online::Packet<Type,Connect>>() => {
+                                    let packet = Connect::from_packet_bytes(&buffer[..buffer_size]);
+                                    print!("Server: Connection request from {}... ",address);
+                                    match packet.protocol_version.into(){
+                                        1 => {
+                                            println!("OK");
+                                            socket.send_to(
+                                                online::server::packet::ConnectionEstablished{
+                                                    connection_id: u32_le::from(7357)
+                                                }.into_packet().as_bytes(),
+                                                address
+                                            ).unwrap();
+                                        },
+
+                                        version => {
+                                            println!("Invalid version: {}",version);
+                                            socket.send_to(online::server::packet::ConnectionInvalid.into_packet().as_bytes(),address).unwrap();
+                                        }
+                                    }
+                                },
+
                                 //Recevied player input
                                 Some(Type::PlayerInput) if buffer_size==mem::size_of::<online::Packet<Type,PlayerInput>>() => {
-                                    let packet = PlayerInput::from_packet_bytes(&buffer[..]);
+                                    let packet = PlayerInput::from_packet_bytes(&buffer[..buffer_size]);
                                     match Input::from_u8(packet.input){
                                         Some(input) => input_sender.send((input,1)).unwrap(),
                                         None => ()
@@ -237,42 +296,48 @@ fn main(){
     app.tetris.maps.insert(0,Map::new(10,20));
     app.tetris.maps.insert(1,Map::new(10,20));
 
-    //Create player 0
-    app.tetris.add_player(0,player::Settings{
-        gravityfall_frequency: 1.0,
-        slowfall_delay       : 1.0,
-        slowfall_frequency   : 1.0,
-        move_delay           : 1.0,
-        move_frequency       : 1.0,
-        fastfall_shadow      : true,
-    });
+    {let App{tetris: ref mut game,controllers: ref mut cs,..} = app;
+        //Create player 0
+        game.add_player(0,player::Settings{
+            gravityfall_frequency: 1.0,
+            slowfall_delay       : 1.0,
+            slowfall_frequency   : 1.0,
+            move_delay           : 1.0,
+            move_frequency       : 1.0,
+            fastfall_shadow      : true,
+        },&mut |e| for c in cs.iter_mut(){c.event(e);});
 
-    //Create player 1
-    app.tetris.add_player(1,player::Settings{
-        gravityfall_frequency: 1.0,
-        slowfall_delay       : 1.0,
-        slowfall_frequency   : 1.0,
-        move_delay           : 1.0,
-        move_frequency       : 1.0,
-        fastfall_shadow      : true,
-    });
+        //Create player 1
+        game.add_player(1,player::Settings{
+            gravityfall_frequency: 1.0,
+            slowfall_delay       : 1.0,
+            slowfall_frequency   : 1.0,
+            move_delay           : 1.0,
+            move_frequency       : 1.0,
+            fastfall_shadow      : true,
+        },&mut |e| for c in cs.iter_mut(){c.event(e);});
 
-    //Create player 2
-    /*let player2 = app.tetris.add_player(1,player::Settings{
-        gravityfall_frequency: 1.0,
-        slowfall_delay       : 1.0,
-        slowfall_frequency   : 1.0,
-        move_delay           : 1.0,
-        move_frequency       : 1.0,
-        fastfall_shadow: false,
-    }).unwrap();
-    app.tetris.controllers.insert(player2 as usize,Box::new(ai::bruteforce::Controller::default()));*/
+        //Create player 2
+        /*cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
+            input_sender.clone(),
+            2,
+            ai::bruteforce::Settings::default()
+        )));
+        game.add_player(1,player::Settings{
+            gravityfall_frequency: 1.0,
+            slowfall_delay       : 1.0,
+            slowfall_frequency   : 1.0,
+            move_delay           : 1.0,
+            move_frequency       : 1.0,
+            fastfall_shadow: false,
+        },&mut |e| for c in cs.iter_mut(){c.event(e);});*/
+    }
 
     //Run the created application: Listen for events
     for e in window.events(){
         //Player inflicted input: Keyboard events
         if let Some(Button::Keyboard(k)) = e.press_args(){
-            app.on_key_press(k);
+            app.on_key_press(k,&input_sender);
         }
 
         //Update
@@ -282,7 +347,11 @@ fn main(){
 
         //Render
         if let Some(r) = e.render_args(){
-            render::default::gamestate(&mut app.tetris,&mut app.gl,&r);
+            if app.paused{
+                render::default::pause(&mut app.tetris,&mut app.gl,&r);
+            }else{
+                render::default::gamestate(&mut app.tetris,&mut app.gl,&r);
+            }
         }
     }
 }

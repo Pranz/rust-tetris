@@ -17,11 +17,11 @@ pub type PosAxis  = i16;
 pub type SizeAxis = u8;
 
 ///Describes a two dimensional position
-#[derive(Copy,Clone,Eq,PartialEq)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub struct Pos {pub x: PosAxis,pub y: PosAxis}
 
 ///Describes a two dimensional size
-#[derive(Copy,Clone,Eq,PartialEq)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub struct Size{pub x: SizeAxis,pub y: SizeAxis}
 
 ///Common trait for a two-dimensional (2D) grid

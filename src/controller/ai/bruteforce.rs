@@ -1,111 +1,143 @@
+use collections::vec_map::VecMap;
 use core::default::Default;
 use core::f32;
 use core::iter::Iterator;
 use piston::event;
+use std::sync;
 
 use super::super::Controller as ControllerTrait;
 use data::grid::{self,Grid};
+use data::input::Input;
 use data::map::Map;
 use data::cell::Cell;
 use data::player::Player;
+use data::shapes::tetrimino::Shape;
 use gamestate;
+use game::event::Event;
+use tmp_ptr::TmpPtr;
 
-#[derive(Copy,Clone,PartialEq)]
+#[derive(Clone)]
 pub struct Controller{
-	pub move_time: f64,
-	pub fall_time: f64,
-	pub rotate_time: f64,
+	pub input_sender: sync::mpsc::Sender<(Input,gamestate::PlayerId)>,
+	pub player_id: gamestate::PlayerId,
+	pub settings: Settings,
 	move_time_count: f64,
 	rotate_time_count: f64,
 	target: grid::Pos,
 	target_rotation: u8,
 }
 
-impl Default for Controller{
-	fn default() -> Self{Controller{
+#[derive(Copy,Clone,PartialEq)]
+pub struct Settings{
+	pub move_time: f64,
+	pub fall_time: f64,
+	pub rotate_time: f64,
+}
+
+impl Default for Settings{
+	fn default() -> Self{Settings{
 		move_time: 0.3,
 		fall_time: 0.1,
 		rotate_time: 0.5,
-		move_time_count: 0.0,
-		rotate_time_count: 0.0,
-		target: grid::Pos{x: 0,y: 0},
-		target_rotation: 0,
 	}}
 }
 
-impl<M> ControllerTrait<M> for Controller
+impl Controller{
+	pub fn new(input_sender: sync::mpsc::Sender<(Input,gamestate::PlayerId)>,player_id: gamestate::PlayerId,settings: Settings) -> Self{Controller{
+		input_sender: input_sender,
+		player_id: player_id,
+		settings: settings,
+		move_time_count: 0.0,
+		rotate_time_count: 0.0,
+		target: grid::Pos{x: 0,y: 0},
+		target_rotation: 1,
+	}}
+
+	pub fn recalculate_optimal_target<M>(&mut self,map: &M,shape: Shape,pos: grid::Pos)
+		where M: Map,
+		      <M as grid::Grid>::Cell: Cell + Copy
+	{
+		let mut greatest_o   = f32::NEG_INFINITY;
+
+		for rotated_shape in shape.rotations(){
+			for x in -(rotated_shape.width() as grid::PosAxis)+1 .. map.width() as grid::PosAxis{
+				if !grid::is_grid_out_of_bounds(map,&rotated_shape,grid::Pos{x: x,y: 0}){
+					let pos = gamestate::fast_fallen_shape(
+						&rotated_shape,
+						map,
+						grid::Pos{
+							x: x,
+							y: pos.y
+						}
+					);
+
+					let optimality_test_map = grid::imprint_bool::Grid{a: map,b: &rotated_shape,b_pos: pos};
+
+					let current_o = map_optimality2(&optimality_test_map);
+					if current_o > greatest_o{
+						greatest_o = current_o;
+						self.target = pos;
+						self.target_rotation = rotated_shape.rotation();
+					}
+				}
+			}
+		}
+	}
+}
+
+impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>> for Controller
 	where M: Map,
 	      <M as grid::Grid>::Cell: Cell + Copy
 {
-	fn update(&mut self,args: &event::UpdateArgs,player: &mut Player,map: &mut M){
-		self.move_time_count-= args.dt;
-		self.rotate_time_count-= args.dt;
+	fn update(&mut self,args: &event::UpdateArgs,players: &VecMap<Player>,_: &VecMap<M>){
+		if let Some(player) = players.get(&(self.player_id as usize)){
+			self.move_time_count-= args.dt;
+			self.rotate_time_count-= args.dt;
 
-		while self.move_time_count <= 0.0{
-			if player.pos.x > self.target.x{
-				gamestate::move_player(player,map,grid::Pos{x: -1,y: 0});
-				self.move_time_count+=self.move_time;
-			}else if player.pos.x < self.target.x{
-				gamestate::move_player(player,map,grid::Pos{x: 1,y: 0});
-				self.move_time_count+=self.move_time;
-			}else if player.shape.rotation() == self.target_rotation{
-				player.move_time_count = player.settings.move_frequency;
-				gamestate::move_player(player,map,grid::Pos{x: 0,y: 1});
-				self.move_time_count+=self.fall_time;
-			}else{
-				break
+			while self.move_time_count <= 0.0{
+				if player.pos.x > self.target.x{
+					let _ = self.input_sender.send((Input::MoveLeft,self.player_id));
+					self.move_time_count+=self.settings.move_time;
+				}else if player.pos.x < self.target.x{
+					let _ = self.input_sender.send((Input::MoveRight,self.player_id));
+					self.move_time_count+=self.settings.move_time;
+				}else if player.shape.rotation() == self.target_rotation{
+					let _ = self.input_sender.send((Input::SlowFall,self.player_id));
+					self.move_time_count+=self.settings.fall_time;
+				}else{
+					break
+				}
 			}
-		}
 
-		while self.rotate_time_count <= 0.0{
-			if player.shape.rotation() != self.target_rotation{
-				player.shape = player.shape.rotated_anticlockwise();
-				self.rotate_time_count+=self.rotate_time;
-			}else{
-				break;
+			while self.rotate_time_count <= 0.0{
+				if player.shape.rotation() != self.target_rotation{
+					let _ = self.input_sender.send((Input::RotateAntiClockwise,self.player_id));
+					self.rotate_time_count+=self.settings.rotate_time;
+				}else{
+					break;
+				}
 			}
 		}
 	}
 
-	fn event(&mut self,event: gamestate::Event,player: &mut Player,map: &mut M){
-		use gamestate::Event::*;
+	fn event(&mut self,event: Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>){
+		use game::event::Event::*;
 
 		match event{
-			PlayerMoveGravity => (),
-			PlayerImprint => (),
-			PlayerRowsClear{..} => (),
-			PlayerNewShape{new: new_shape,..} => {
+			PlayerAdd{player: (player_id,player),map: (_,map)} if player_id == self.player_id => {
+				self.recalculate_optimal_target(&*map,player.shape.shape(),player.pos);
+			},
+			/*TODO: When other players imprints on the map (Problem: Cannot access self's player)
+			MapImprintShape{cause: Some((player_id,_)),map: (_,map),..} if player_id != self.player_id => {
+				self.recalculate_optimal_target(&*map,player.shape.shape(),player.pos);
+			},*/
+			PlayerChangeShape{player: (player_id,_),map: (_,map),shape,pos,..} if player_id == self.player_id => {
 				self.move_time_count = 0.0;
 				self.rotate_time_count = 0.0;
 
-				let mut o = f32::NEG_INFINITY;
-
-				for shape in new_shape.rotations(){
-					for x in -(shape.width() as grid::PosAxis)+1 .. map.width() as grid::PosAxis{
-						if !grid::is_grid_out_of_bounds(map,&shape,grid::Pos{x: x,y: 0}){
-							let optimality_test_map = grid::imprint_bool::Grid{
-								a: map,
-								b: &shape,
-								b_pos: gamestate::fast_fallen_shape(
-									&shape,
-									map,
-									grid::Pos{
-										x: x,
-										y: player.pos.y
-									}
-								)
-							};
-
-							let o2 = map_optimality2(&optimality_test_map);
-							if o2 > o{
-								o = o2;
-								self.target.x = x;
-								self.target_rotation = shape.rotation();
-							}
-						}
-					}
-				}
+				self.recalculate_optimal_target(&*map,shape,pos);
 			},
+			_ => ()
 		}
 	}
 }

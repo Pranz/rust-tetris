@@ -1,18 +1,22 @@
+use core::ops::Deref;
+
 use super::super::cell::Cell;
 use super::Grid as GridTrait;
 use super::{PosAxis,SizeAxis,Pos};
 
 ///Imprints `b` on `a`
 #[derive(Copy,Clone,Eq,PartialEq)]
-pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{
-	pub a: &'ga GA,
-	pub b: &'gb GB,
+pub struct Grid<GA,GB>{
+	pub a: GA,
+	pub b: GB,
 	pub b_pos: Pos,
 }
 
-impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>
-    where GA: GridTrait + 'ga,
-          GB: GridTrait + 'gb,
+impl<DA,DB,GA,GB> GridTrait for Grid<DA,DB>
+    where DA: Deref<Target = GA>,
+          DB: Deref<Target = GB>,
+          GA: GridTrait,
+          GB: GridTrait,
           <GA as GridTrait>::Cell: Cell + Copy,
           <GB as GridTrait>::Cell: Cell + Copy,
 {

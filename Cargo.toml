@@ -1,5 +1,5 @@
 [package]
-name = "rust-tetris"
+name = "tetr"
 version = "0.1.0"
 authors = ["Pranz <jesper.fridefors@gmail.com", "Lolirofle <lolipopple@hotmail.com>"]
 
