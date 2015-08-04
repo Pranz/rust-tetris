@@ -24,16 +24,16 @@ pub fn perform<M>(input: Input,player: &mut Player,map: &M)
             };
         },
         Input::FastFall => {
-            player.pos = gamestate::fast_fallen_shape(&player.shape, map, player.pos);
+            player.pos = gamestate::fastfallen_shape_pos(&player.shape, map, player.pos);
             player.gravityfall_time_count = player.settings.gravityfall_frequency;
         },
         Input::RotateAntiClockwise => {
             let shape = player.shape.rotated_anticlockwise();
-            gamestate::transform_resolve_player(player, shape, map);
+            gamestate::resolve_transformed_player(player, shape, map);
         },
         Input::RotateClockwise => {
             let shape = player.shape.rotated_clockwise();
-            gamestate::transform_resolve_player(player, shape, map);
+            gamestate::resolve_transformed_player(player, shape, map);
         },
         _ => (),
     }

@@ -27,7 +27,7 @@ pub struct Controller{
 	target_rotation: u8,
 }
 
-#[derive(Copy,Clone,PartialEq)]
+#[derive(Copy,Clone,Debug,PartialEq)]
 pub struct Settings{
 	pub move_time: f64,
 	pub fall_time: f64,
@@ -62,7 +62,7 @@ impl Controller{
 		for rotated_shape in shape.rotations(){
 			for x in -(rotated_shape.width() as grid::PosAxis)+1 .. map.width() as grid::PosAxis{
 				if !grid::is_grid_out_of_bounds(map,&rotated_shape,grid::Pos{x: x,y: 0}){
-					let pos = gamestate::fast_fallen_shape(
+					let pos = gamestate::fastfallen_shape_pos(
 						&rotated_shape,
 						map,
 						grid::Pos{

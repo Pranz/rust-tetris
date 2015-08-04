@@ -40,7 +40,7 @@ use std::{net,sync,thread};
 
 use controller::ai;
 use data::{cell,player};
-use data::grid::Grid;
+use data::grid::{self,Grid};
 use data::map::dynamic_map::Map;
 use data::player::Player;
 use data::shapes::tetrimino::{Shape,RotatedShape};
@@ -51,7 +51,7 @@ use tmp_ptr::TmpPtr;
 
 struct App{
     gl: GlGraphics,
-    tetris: GameState<Map<cell::ShapeCell>,rand::StdRng>,
+    game_state: GameState<Map<cell::ShapeCell>,rand::StdRng>,
     controllers: Vec<Box<Controller<Map<cell::ShapeCell>,Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map<cell::ShapeCell>>)>>>>,
     input_receiver: sync::mpsc::Receiver<(Input, PlayerId)>,
     connection: online::ConnectionType,
@@ -63,14 +63,14 @@ impl App{
         //Controllers
         if !self.paused{
             for mut controller in self.controllers.iter_mut(){
-                controller.update(args,&self.tetris.players,&self.tetris.maps);
+                controller.update(args,&self.game_state.players,&self.game_state.maps);
             }
         }
 
         //Input
         while let Ok((input,pid)) = self.input_receiver.try_recv(){
-            if let Some(player) = self.tetris.players.get_mut(&(pid as usize)){
-                if let Some(map) = self.tetris.maps.get_mut(&(player.map as usize)){
+            if let Some(player) = self.game_state.players.get_mut(&(pid as usize)){
+                if let Some(map) = self.game_state.maps.get_mut(&(player.map as usize)){
                     input::perform(input,player,map);
                 }
             }
@@ -86,7 +86,7 @@ impl App{
 
         //Update
         if !self.paused{
-            let &mut App{tetris: ref mut game,controllers: ref mut cs,..} = self;
+            let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
             game.update(args,&mut |e| for c in cs.iter_mut(){c.event(e);});
         }
     }
@@ -99,23 +99,23 @@ impl App{
             Key::Return => {self.paused = true},
 
             //Player 0 Tests
-            Key::D1     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::I);});},
-            Key::D2     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::L);});},
-            Key::D3     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::O);});},
-            Key::D4     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::J);});},
-            Key::D5     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::T);});},
-            Key::D6     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::S);});},
-            Key::D7     => {self.tetris.with_player(0,|player|{player.shape = RotatedShape::new(Shape::Z);});},
+            Key::D1     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::I);});},
+            Key::D2     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::L);});},
+            Key::D3     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::O);});},
+            Key::D4     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::J);});},
+            Key::D5     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::T);});},
+            Key::D6     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::S);});},
+            Key::D7     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::Z);});},
             Key::R      => {
-                match self.tetris.players.get(&(0 as usize)).map(|player| player.map){
+                match self.game_state.players.get(&(0 as usize)).map(|player| player.map){
                     Some(map_id) => {
-                        let &mut App{tetris: ref mut game,controllers: ref mut cs,..} = self;
+                        let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
                         game.reset_map(map_id,&mut |e| for c in cs.iter_mut(){c.event(e);});
                     },
                     None => ()
                 };
             },
-            Key::Home   => {self.tetris.with_player(0,|player|{player.pos.y = 0;});},
+            Key::Home   => {self.game_state.with_player(0,|player|{player.pos.y = 0;});},
 
             //Player 0
             Key::Left   => {input_sender.send((Input::MoveLeft,           0)).unwrap();},
@@ -139,19 +139,26 @@ impl App{
     }
 }
 
-docopt!(Args derive Debug,"
-Usage: tetr [options]
-       tetr --help
+macro_rules! PROGRAM_NAME{() => ("tetr")}
+macro_rules! PROGRAM_NAME_VERSION{() => (concat!(PROGRAM_NAME!()," v",env!("CARGO_PKG_VERSION")))}
+
+docopt!(Args derive Debug,concat!("
+Usage: ",PROGRAM_NAME!()," [options]
+       ",PROGRAM_NAME!()," --help
+
+A game with tetrominos falling.
 
 Options:
   -h, --help           Show this message
   -v, --version        Show version
+  --credits            Show credits/staff
+  --manual             Show instruction manual/guide for the game
   --online=CONNECTION  Available modes: none, server, client [default: none]
   --host=ADDR          Network address used for the online connection [default: 0.0.0.0]
   --port=N             Network port used for the online connection [default: 7374]
   --window-size=SIZE   Window size [default: 800x600]
   --window-mode=MODE   Available modes: window, fullscreen [default: window]
-",
+"),
     flag_online     : command_arg::OnlineConnection,
     flag_host       : command_arg::Host,
     flag_port       : command_arg::Port,
@@ -171,7 +178,17 @@ fn main(){
     };
 
     if args.flag_version{
-        println!(concat!("tetr v",env!("CARGO_PKG_VERSION")));
+        println!(PROGRAM_NAME_VERSION!());
+        return;
+    }
+
+    if args.flag_credits{
+        println!(concat!(PROGRAM_NAME_VERSION!(),": Credits\n\n",include_str!("../CREDITS")));
+        return;
+    }
+
+    if args.flag_manual{
+        println!(concat!(PROGRAM_NAME_VERSION!(),": Instruction manual\n\n",include_str!("../MANUAL")));
         return;
     }
 
@@ -181,7 +198,7 @@ fn main(){
     //Create a window.
     let window = Window::new(
         WindowSettings::new(
-            "Polyminos Falling",
+            concat!(PROGRAM_NAME!()," v",env!("CARGO_PKG_VERSION")),
             [args.flag_window_size.0,args.flag_window_size.1]
         )
         .exit_on_esc(true)
@@ -190,16 +207,18 @@ fn main(){
 
     let (input_sender,input_receiver) = sync::mpsc::channel();
 
-    fn imprint_cell(variant: &RotatedShape) -> cell::ShapeCell{
-        cell::ShapeCell(Some(variant.shape()))
-    }
-
     //Create a new application
     let mut app = App{
         gl: GlGraphics::new(opengl),
-        tetris: GameState::new(
+        game_state: GameState::new(
             rand::StdRng::new().unwrap(),
-            imprint_cell as fn(&RotatedShape) -> cell::ShapeCell,
+            {fn f(variant: &RotatedShape) -> cell::ShapeCell{
+                cell::ShapeCell(Some(variant.shape()))
+            }f}as fn(&_) -> _,
+            {fn f<M: Grid>(shape: &RotatedShape,map: &M) -> grid::Pos{grid::Pos{
+                x: map.width() as grid::PosAxis/2 - shape.center_x() as grid::PosAxis,
+                y: 0//TODO: Optionally spawn above: -(shape.height() as grid::PosAxis);
+            }}f::<Map<cell::ShapeCell>>}as fn(&_,&_) -> _,
         ),
         paused: false,
         controllers: Vec::new(),
@@ -293,10 +312,10 @@ fn main(){
     };
 
     //Create map
-    app.tetris.maps.insert(0,Map::new(10,20));
-    app.tetris.maps.insert(1,Map::new(10,20));
+    app.game_state.maps.insert(0,Map::new(10,20));
+    app.game_state.maps.insert(1,Map::new(10,20));
 
-    {let App{tetris: ref mut game,controllers: ref mut cs,..} = app;
+    {let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
         //Create player 0
         game.add_player(0,player::Settings{
             gravityfall_frequency: 1.0,
@@ -348,9 +367,9 @@ fn main(){
         //Render
         if let Some(r) = e.render_args(){
             if app.paused{
-                render::default::pause(&mut app.tetris,&mut app.gl,&r);
+                render::default::pause(&mut app.game_state,&mut app.gl,&r);
             }else{
-                render::default::gamestate(&mut app.tetris,&mut app.gl,&r);
+                render::default::gamestate(&mut app.game_state,&mut app.gl,&r);
             }
         }
     }
