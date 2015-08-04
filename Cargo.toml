@@ -2,6 +2,7 @@
 name = "tetr"
 version = "0.1.0"
 authors = ["Pranz <jesper.fridefors@gmail.com", "Lolirofle <lolipopple@hotmail.com>"]
+license = "LGPL-3.0"
 
 [dependencies]
 docopt = "0.6"
