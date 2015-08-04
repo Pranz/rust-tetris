@@ -3,7 +3,7 @@ name = "tetr"
 version = "0.1.0"
 dependencies = [
  "docopt 0.6.69 (registry+https://github.com/rust-lang/crates.io-index)",
- "docopt_macros 0.6.69 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt_macros 0.6.69 (git+https://github.com/docopt/docopt.rs.git)",
  "endian-type 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -107,6 +107,16 @@ dependencies = [
 [[package]]
 name = "docopt"
 version = "0.6.69"
+source = "git+https://github.com/docopt/docopt.rs.git#ba5cf65299c5bf4a67ae7c8efae2791a19f612c4"
+dependencies = [
+ "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "strsim 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "docopt"
+version = "0.6.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "regex 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -117,9 +127,9 @@ dependencies = [
 [[package]]
 name = "docopt_macros"
 version = "0.6.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/docopt/docopt.rs.git#ba5cf65299c5bf4a67ae7c8efae2791a19f612c4"
 dependencies = [
- "docopt 0.6.69 (registry+https://github.com/rust-lang/crates.io-index)",
+ "docopt 0.6.69 (git+https://github.com/docopt/docopt.rs.git)",
 ]
 
 [[package]]

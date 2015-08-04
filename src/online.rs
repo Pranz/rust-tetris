@@ -154,8 +154,8 @@ pub mod server{
 			//
 			//Fields:
 			//  connection_id: [4] u32
-			ConnectionEstablished,
 
+			ConnectionEstablished,
 			//Sent when connecting and the connection is not OK
 			ConnectionInvalid,
 

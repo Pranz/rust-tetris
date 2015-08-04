@@ -230,6 +230,8 @@ fn main(){
             //Start to act as a client, connecting to a server
             command_arg::OnlineConnection::client => match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7375)){
                 Ok(socket) => {
+                    use core::mem;
+
                     println!("Client: Connecting to {}:{}...",args.flag_host.0,args.flag_port);
 
                     //Send connect packet
@@ -239,6 +241,39 @@ fn main(){
                         }.into_packet().as_bytes(),
                         (args.flag_host.0,args.flag_port)
                     ).unwrap();
+
+                    //Listen for server packets
+                    let input_sender = input_sender.clone();
+                    {let socket = socket.try_clone().unwrap();thread::spawn(move ||{
+                        use online::server::packet::*;
+
+                        let mut buffer: PacketBytes = [0; SIZE];
+                        while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
+                            //First byte is the packet type
+                            match Type::from_packet_bytes(&buffer[..]){
+                                //Recevied connection request established
+                                Some(Type::ConnectionEstablished) if buffer_size==mem::size_of::<online::Packet<Type,ConnectionEstablished>>() => {
+                                    let packet = ConnectionEstablished::from_packet_bytes(&buffer[..buffer_size]);
+                                    println!("Client: Connection established to {} with connection id {}",address,Into::<u32>::into(packet.connection_id));
+                                },
+
+                                //Recevied player input
+                                Some(Type::PlayerInput) if buffer_size==mem::size_of::<online::Packet<Type,PlayerInput>>() => {
+                                    let packet = PlayerInput::from_packet_bytes(&buffer[..buffer_size]);
+                                    match Input::from_u8(packet.input){
+                                        Some(input) => input_sender.send((input,1)).unwrap(),
+                                        None => ()
+                                    }
+                                },
+
+                                //Received unimplemented TODO stuff
+                                Some(ty) => println!("Client: {:?}: {:?} (Size: {})",ty,buffer,buffer_size),
+
+                                //Received other stuff
+                                None => ()
+                            }
+                        }
+                    });}
 
                     online::ConnectionType::Client(socket,net::SocketAddr::new(args.flag_host.0,args.flag_port))
                 },
@@ -258,7 +293,7 @@ fn main(){
                     thread::spawn(move ||{
                         use online::client::packet::*;
 
-                        let mut buffer: PacketBytes = [0; online::client::packet::SIZE];
+                        let mut buffer: PacketBytes = [0; SIZE];
                         while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
                             //First byte is the packet type
                             match Type::from_packet_bytes(&buffer[..]){
@@ -278,7 +313,7 @@ fn main(){
                                         },
 
                                         version => {
-                                            println!("Invalid version: {}",version);
+                                            println!("Server: Invalid version: {}",version);
                                             socket.send_to(online::server::packet::ConnectionInvalid.into_packet().as_bytes(),address).unwrap();
                                         }
                                     }
@@ -294,7 +329,7 @@ fn main(){
                                 },
 
                                 //Received unimplemented TODO stuff
-                                Some(ty) => println!("{:?}: {:?} (Size: {})",ty,buffer,buffer_size),
+                                Some(ty) => println!("Server: {:?}: {:?} (Size: {})",ty,buffer,buffer_size),
 
                                 //Received other stuff
                                 None => ()

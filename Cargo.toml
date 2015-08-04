@@ -5,7 +5,7 @@ authors = ["Pranz <jesper.fridefors@gmail.com", "Lolirofle <lolipopple@hotmail.c
 
 [dependencies]
 docopt = "0.6"
-docopt_macros = "0.6"
+docopt_macros = {git = "https://github.com/docopt/docopt.rs.git"}#"0.6"
 endian-type = "0.1"
 enum_primitive = "0.0.2"
 num = "0.1"
