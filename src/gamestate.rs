@@ -2,6 +2,7 @@ use collections::vec_map::VecMap;
 use core::cmp;
 use piston::event;
 use rand::{self,Rand};
+use std::collections::hash_map::HashMap;
 
 use super::data::cell::Cell;
 use super::data::grid::{self,Grid};
@@ -17,6 +18,12 @@ pub type MapId    = u8;
 ///Type of the player id
 pub type PlayerId = u8;
 
+#[derive(Copy,Clone,Debug,Eq,PartialEq,Hash)]
+pub enum RngMapping{
+    Map(MapId),
+    Player(PlayerId)
+}
+
 ///The ingame game state
 pub struct GameState<Map,Rng>
     where Map: MapTrait
@@ -27,8 +34,7 @@ pub struct GameState<Map,Rng>
     ///Map pairs of players and player ids
     pub players       : VecMap<Player>,
 
-    ///Random number generator for various use cases in the game
-    pub rng           : Rng,//TODO: See http://doc.rust-lang.org/rand/src/rand/lib.rs.html#724-726 for getting a seed
+    pub rngs          : (Rng,HashMap<RngMapping,Rng>),
 
     ///Function that maps a shape's cell to the map's cell
     pub imprint_cell  : fn(&RotatedShape) -> <Map as Grid>::Cell,
@@ -48,7 +54,7 @@ impl<Map,Rng> GameState<Map,Rng>
     ) -> Self{GameState{
         maps   : VecMap::new(),
         players: VecMap::new(),
-        rng    : rng,
+        rngs   : (rng,HashMap::new()),
         imprint_cell: imprint_cell,
         respawn_pos: respawn_pos,
     }}
@@ -109,7 +115,7 @@ impl<Map,Rng> GameState<Map,Rng>
                         });
 
                         //Respawn player and check for collision at spawn position
-                        let shape = <Shape as Rand>::rand(&mut self.rng);
+                        let shape = <Shape as Rand>::rand(rng(&mut self.rngs,RngMapping::Player(player_id)));
                         if !respawn_player((player_id,player),(map_id,map),shape,self.respawn_pos,event_listener){
                             action = Action::ResetMap(map_id);
                             break 'player_loop;
@@ -125,22 +131,6 @@ impl<Map,Rng> GameState<Map,Rng>
         };
     }
 
-    pub fn with_player<F: FnOnce(&mut Player) -> R,R>(&mut self,player_id: PlayerId,f: F) -> Option<R>{
-        if let Some(player) = self.players.get_mut(&(player_id as usize)){
-            return Some(f(player))
-        }
-        None
-    }
-
-    pub fn with_player_map<F: FnOnce(&mut Player,&mut Map)-> R,R>(&mut self,player_id: PlayerId,f: F) -> Option<R>{
-        if let Some(player) = self.players.get_mut(&(player_id as usize)){
-            if let Some(map) = self.maps.get_mut(&(player.map as usize)){
-                return Some(f(player,map))
-            }
-        }
-        None
-    }
-
     ///Adds a player to the specified map and with the specified player settings
     ///Returns the new player id
     pub fn add_player<EL>(&mut self,map_id: MapId,settings: player::Settings,event_listener: &mut EL) -> Option<PlayerId>
@@ -150,7 +140,7 @@ impl<Map,Rng> GameState<Map,Rng>
     {
         if let Some(map) = self.maps.get_mut(&(map_id as usize)){
             let new_id = self.players.len();
-            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(&mut self.rng));
+            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(rng(&mut self.rngs,RngMapping::Player(new_id as PlayerId))));
 
             self.players.insert(new_id,Player{
                 pos                   : (self.respawn_pos)(&shape,map),
@@ -189,12 +179,19 @@ impl<Map,Rng> GameState<Map,Rng>
 
             for (player_id,player) in self.players.iter_mut().filter(|&(_,ref player)| player.map == map_id){
                 //Reset all players in the map
-                respawn_player((player_id as PlayerId,player),(map_id,map),<Shape as Rand>::rand(&mut self.rng),self.respawn_pos,event_listener);
+                respawn_player((player_id as PlayerId,player),(map_id,map),<Shape as Rand>::rand(rng(&mut self.rngs,RngMapping::Player(player_id as PlayerId))),self.respawn_pos,event_listener);
                 player.gravityfall_time_count = 0.0;
                 player.slowfall_time_count    = 0.0;
                 player.move_time_count        = 0.0;
             }
         };
+    }
+}
+
+pub fn rng<Rng>(rngs: &mut (Rng,HashMap<RngMapping,Rng>),mapping: RngMapping) -> &mut Rng{
+    match rngs.1.get_mut(&mapping){
+        Some(rng) => rng,
+        None => &mut rngs.0
     }
 }
 

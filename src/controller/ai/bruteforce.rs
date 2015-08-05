@@ -36,9 +36,9 @@ pub struct Settings{
 
 impl Default for Settings{
 	fn default() -> Self{Settings{
-		move_time: 0.3,
-		fall_time: 0.1,
-		rotate_time: 0.5,
+		move_time: 0.2,
+		fall_time: 0.05,
+		rotate_time: 0.4,
 	}}
 }
 
@@ -211,5 +211,5 @@ fn map_optimality2<M>(map: &M) -> f32
 		previous_height = Some(height);
 	}
 
-	(-0.4*columns_height_sum as f32) + (0.25*(rows_completed as f32).powi(2)) + (-0.25*cells_vertically_blocked_penalty as f32) + (-0.3*height_bumpiness.checked_sub(4*2).unwrap_or(0) as f32)
+	(-0.4*columns_height_sum as f32) + (0.25*(rows_completed as f32).powi(2)) + (-0.3*cells_vertically_blocked_penalty as f32) + (-0.3*height_bumpiness.checked_sub(4*2).unwrap_or(0) as f32)
 }

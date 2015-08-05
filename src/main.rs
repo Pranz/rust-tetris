@@ -28,12 +28,11 @@ pub mod tmp_ptr;
 
 use controller::Controller;
 use endian_type::types::*;
-use num::FromPrimitive;
 use piston::window::WindowSettings;
 use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
 use piston::input::{Button,Key};
 use opengl_graphics::{GlGraphics,OpenGL};
-use std::{net,sync,thread};
+use std::{net,sync};
 #[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
 #[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
@@ -99,15 +98,15 @@ impl App{
             Key::Return => {self.paused = true},
 
             //Player 0 Tests
-            Key::D1     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::I);});},
-            Key::D2     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::L);});},
-            Key::D3     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::O);});},
-            Key::D4     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::J);});},
-            Key::D5     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::T);});},
-            Key::D6     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::S);});},
-            Key::D7     => {self.game_state.with_player(0,|player|{player.shape = RotatedShape::new(Shape::Z);});},
+            Key::D1     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::I);};},
+            Key::D2     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::L);};},
+            Key::D3     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::O);};},
+            Key::D4     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::J);};},
+            Key::D5     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::T);};},
+            Key::D6     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::S);};},
+            Key::D7     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::Z);};},
             Key::R      => {
-                match self.game_state.players.get(&(0 as usize)).map(|player| player.map){
+                match self.game_state.players.get(&(0 as usize)).map(|player| player.map){//TODO: New seed for rng
                     Some(map_id) => {
                         let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
                         game.reset_map(map_id,&mut |e| for c in cs.iter_mut(){c.event(e);});
@@ -115,7 +114,7 @@ impl App{
                     None => ()
                 };
             },
-            Key::Home   => {self.game_state.with_player(0,|player|{player.pos.y = 0;});},
+            Key::Home   => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.pos.y = 0;};},
 
             //Player 0
             Key::Left   => {input_sender.send((Input::MoveLeft,           0)).unwrap();},
@@ -228,119 +227,22 @@ fn main(){
             command_arg::OnlineConnection::none => online::ConnectionType::None,
 
             //Start to act as a client, connecting to a server
-            command_arg::OnlineConnection::client => match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),7375)){
-                Ok(socket) => {
-                    use core::mem;
+            command_arg::OnlineConnection::client => {
+                let server_addr = net::SocketAddr::new(args.flag_host.0,args.flag_port);
 
-                    println!("Client: Connecting to {}:{}...",args.flag_host.0,args.flag_port);
-
-                    //Send connect packet
-                    socket.send_to(
-                        online::client::packet::Connect{
-                            protocol_version: u16_le::from(1)
-                        }.into_packet().as_bytes(),
-                        (args.flag_host.0,args.flag_port)
-                    ).unwrap();
-
-                    //Listen for server packets
-                    let input_sender = input_sender.clone();
-                    {let socket = socket.try_clone().unwrap();thread::spawn(move ||{
-                        use online::server::packet::*;
-
-                        let mut buffer: PacketBytes = [0; SIZE];
-                        while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
-                            //First byte is the packet type
-                            match Type::from_packet_bytes(&buffer[..]){
-                                //Recevied connection request established
-                                Some(Type::ConnectionEstablished) if buffer_size==mem::size_of::<online::Packet<Type,ConnectionEstablished>>() => {
-                                    let packet = ConnectionEstablished::from_packet_bytes(&buffer[..buffer_size]);
-                                    println!("Client: Connection established to {} with connection id {}",address,Into::<u32>::into(packet.connection_id));
-                                },
-
-                                //Recevied player input
-                                Some(Type::PlayerInput) if buffer_size==mem::size_of::<online::Packet<Type,PlayerInput>>() => {
-                                    let packet = PlayerInput::from_packet_bytes(&buffer[..buffer_size]);
-                                    match Input::from_u8(packet.input){
-                                        Some(input) => input_sender.send((input,1)).unwrap(),
-                                        None => ()
-                                    }
-                                },
-
-                                //Received unimplemented TODO stuff
-                                Some(ty) => println!("Client: {:?}: {:?} (Size: {})",ty,buffer,buffer_size),
-
-                                //Received other stuff
-                                None => ()
-                            }
-                        }
-                    });}
-
-                    online::ConnectionType::Client(socket,net::SocketAddr::new(args.flag_host.0,args.flag_port))
-                },
-                Err(e) => {
-                    println!("Client socket error: {:?}",e);
-                    online::ConnectionType::None
+                match online::client::start(server_addr,input_sender.clone()){
+                    Ok(socket) => online::ConnectionType::Client(socket,server_addr),
+                    Err(_)     => online::ConnectionType::None
                 }
             },
 
             //Start to act as a server, listening for clients
-            command_arg::OnlineConnection::server => match net::UdpSocket::bind((args.flag_host.0,args.flag_port)){
-                Ok(socket) => {
-                    use core::mem;
+            command_arg::OnlineConnection::server => {
+                let server_addr = net::SocketAddr::new(args.flag_host.0,args.flag_port);
 
-                    println!("Server: Listening on {}:{}...",args.flag_host.0,args.flag_port);
-                    let input_sender = input_sender.clone();
-                    thread::spawn(move ||{
-                        use online::client::packet::*;
-
-                        let mut buffer: PacketBytes = [0; SIZE];
-                        while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
-                            //First byte is the packet type
-                            match Type::from_packet_bytes(&buffer[..]){
-                                //Recevied connection request
-                                Some(Type::Connect) if buffer_size==mem::size_of::<online::Packet<Type,Connect>>() => {
-                                    let packet = Connect::from_packet_bytes(&buffer[..buffer_size]);
-                                    print!("Server: Connection request from {}... ",address);
-                                    match packet.protocol_version.into(){
-                                        1 => {
-                                            println!("OK");
-                                            socket.send_to(
-                                                online::server::packet::ConnectionEstablished{
-                                                    connection_id: u32_le::from(7357)
-                                                }.into_packet().as_bytes(),
-                                                address
-                                            ).unwrap();
-                                        },
-
-                                        version => {
-                                            println!("Server: Invalid version: {}",version);
-                                            socket.send_to(online::server::packet::ConnectionInvalid.into_packet().as_bytes(),address).unwrap();
-                                        }
-                                    }
-                                },
-
-                                //Recevied player input
-                                Some(Type::PlayerInput) if buffer_size==mem::size_of::<online::Packet<Type,PlayerInput>>() => {
-                                    let packet = PlayerInput::from_packet_bytes(&buffer[..buffer_size]);
-                                    match Input::from_u8(packet.input){
-                                        Some(input) => input_sender.send((input,1)).unwrap(),
-                                        None => ()
-                                    }
-                                },
-
-                                //Received unimplemented TODO stuff
-                                Some(ty) => println!("Server: {:?}: {:?} (Size: {})",ty,buffer,buffer_size),
-
-                                //Received other stuff
-                                None => ()
-                            }
-                        }
-                    });
-                    online::ConnectionType::Server
-                },
-                Err(e) => {
-                    println!("Server socket error: {:?}",e);
-                    online::ConnectionType::None
+                match online::server::start(server_addr,input_sender.clone()){
+                    Ok(_)  => online::ConnectionType::Server,
+                    Err(_) => online::ConnectionType::None
                 }
             }
         },
@@ -352,6 +254,7 @@ fn main(){
 
     {let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
         //Create player 0
+        game.rngs.1.insert(gamestate::RngMapping::Player(0),game.rngs.0);
         game.add_player(0,player::Settings{
             gravityfall_frequency: 1.0,
             slowfall_delay       : 1.0,
@@ -362,6 +265,12 @@ fn main(){
         },&mut |e| for c in cs.iter_mut(){c.event(e);});
 
         //Create player 1
+        game.rngs.1.insert(gamestate::RngMapping::Player(1),game.rngs.0);
+        if let online::ConnectionType::None = app.connection{cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
+            input_sender.clone(),
+            1,
+            ai::bruteforce::Settings::default()
+        )));}
         game.add_player(1,player::Settings{
             gravityfall_frequency: 1.0,
             slowfall_delay       : 1.0,
@@ -370,21 +279,6 @@ fn main(){
             move_frequency       : 1.0,
             fastfall_shadow      : true,
         },&mut |e| for c in cs.iter_mut(){c.event(e);});
-
-        //Create player 2
-        /*cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
-            input_sender.clone(),
-            2,
-            ai::bruteforce::Settings::default()
-        )));
-        game.add_player(1,player::Settings{
-            gravityfall_frequency: 1.0,
-            slowfall_delay       : 1.0,
-            slowfall_frequency   : 1.0,
-            move_delay           : 1.0,
-            move_frequency       : 1.0,
-            fastfall_shadow: false,
-        },&mut |e| for c in cs.iter_mut(){c.event(e);});*/
     }
 
     //Run the created application: Listen for events
