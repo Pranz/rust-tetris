@@ -4,6 +4,7 @@ use data::map::Map;
 use data::player::Player;
 use gamestate;
 
+///Performs an action based on the given input on a player in a map
 pub fn perform<M>(input: Input,player: &mut Player,map: &M)
     where M: Map
 {

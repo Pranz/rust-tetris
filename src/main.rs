@@ -216,7 +216,7 @@ fn main(){
             }f}as fn(&_) -> _,
             {fn f<M: Grid>(shape: &RotatedShape,map: &M) -> grid::Pos{grid::Pos{
                 x: map.width() as grid::PosAxis/2 - shape.center_x() as grid::PosAxis,
-                y: 0//TODO: Optionally spawn above: -(shape.height() as grid::PosAxis);
+                y: 0//TODO: Optionally spawn above: `-(shape.height() as grid::PosAxis);`. Problem is the collision checking. And this is not how it usually is done
             }}f::<Map<cell::ShapeCell>>}as fn(&_,&_) -> _,
         ),
         paused: false,
@@ -254,7 +254,7 @@ fn main(){
 
     {let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
         //Create player 0
-        game.rngs.1.insert(gamestate::RngMapping::Player(0),game.rngs.0);
+        game.rngs.1.insert(gamestate::RngMappingKey::Player(0),game.rngs.0);
         game.add_player(0,player::Settings{
             gravityfall_frequency: 1.0,
             slowfall_delay       : 1.0,
@@ -265,7 +265,7 @@ fn main(){
         },&mut |e| for c in cs.iter_mut(){c.event(e);});
 
         //Create player 1
-        game.rngs.1.insert(gamestate::RngMapping::Player(1),game.rngs.0);
+        game.rngs.1.insert(gamestate::RngMappingKey::Player(1),game.rngs.0);
         if let online::ConnectionType::None = app.connection{cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
             input_sender.clone(),
             1,

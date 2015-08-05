@@ -18,11 +18,16 @@ pub type MapId    = u8;
 ///Type of the player id
 pub type PlayerId = u8;
 
+///Kind of RNG mappings
 #[derive(Copy,Clone,Debug,Eq,PartialEq,Hash)]
-pub enum RngMapping{
+pub enum RngMappingKey{
     Map(MapId),
     Player(PlayerId)
 }
+
+///The type of the `rngs` field in GameState.
+///Contains RNG mappings with a global fallback RNG
+pub type RngMappings<Rng> = (Rng,HashMap<RngMappingKey,Rng>);
 
 ///The ingame game state
 pub struct GameState<Map,Rng>
@@ -34,7 +39,12 @@ pub struct GameState<Map,Rng>
     ///Map pairs of players and player ids
     pub players       : VecMap<Player>,
 
-    pub rngs          : (Rng,HashMap<RngMapping,Rng>),
+    ///Random number generator mappings.
+    ///The first field of the tuple contains the global RNG.
+    ///The second field contains a map of RNGs
+    ///When looking up a RNG mapping and it does not exist, it should fallback to the more global one in the following order:
+    ///  Player -> Map -> Global
+    pub rngs          : RngMappings<Rng>,
 
     ///Function that maps a shape's cell to the map's cell
     pub imprint_cell  : fn(&RotatedShape) -> <Map as Grid>::Cell,
@@ -115,7 +125,7 @@ impl<Map,Rng> GameState<Map,Rng>
                         });
 
                         //Respawn player and check for collision at spawn position
-                        let shape = <Shape as Rand>::rand(rng(&mut self.rngs,RngMapping::Player(player_id)));
+                        let shape = <Shape as Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(player_id)));
                         if !respawn_player((player_id,player),(map_id,map),shape,self.respawn_pos,event_listener){
                             action = Action::ResetMap(map_id);
                             break 'player_loop;
@@ -140,7 +150,7 @@ impl<Map,Rng> GameState<Map,Rng>
     {
         if let Some(map) = self.maps.get_mut(&(map_id as usize)){
             let new_id = self.players.len();
-            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(rng(&mut self.rngs,RngMapping::Player(new_id as PlayerId))));
+            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(new_id as PlayerId))));
 
             self.players.insert(new_id,Player{
                 pos                   : (self.respawn_pos)(&shape,map),
@@ -179,7 +189,7 @@ impl<Map,Rng> GameState<Map,Rng>
 
             for (player_id,player) in self.players.iter_mut().filter(|&(_,ref player)| player.map == map_id){
                 //Reset all players in the map
-                respawn_player((player_id as PlayerId,player),(map_id,map),<Shape as Rand>::rand(rng(&mut self.rngs,RngMapping::Player(player_id as PlayerId))),self.respawn_pos,event_listener);
+                respawn_player((player_id as PlayerId,player),(map_id,map),<Shape as Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(player_id as PlayerId))),self.respawn_pos,event_listener);
                 player.gravityfall_time_count = 0.0;
                 player.slowfall_time_count    = 0.0;
                 player.move_time_count        = 0.0;
@@ -188,7 +198,9 @@ impl<Map,Rng> GameState<Map,Rng>
     }
 }
 
-pub fn rng<Rng>(rngs: &mut (Rng,HashMap<RngMapping,Rng>),mapping: RngMapping) -> &mut Rng{
+///Lookup a RNG from mappings with fallbacks.
+///See the documentation of the `GameState::rngs` field
+pub fn rng<Rng>(rngs: &mut RngMappings<Rng>,mapping: RngMappingKey) -> &mut Rng{
     match rngs.1.get_mut(&mapping){
         Some(rng) => rng,
         None => &mut rngs.0

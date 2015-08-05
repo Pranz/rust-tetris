@@ -1,5 +1,6 @@
 use super::shapes::tetrimino::Shape;
 
+///Represents a cell in a grid
 pub trait Cell: Sized{
     ///Constructs an empty cell
     fn empty() -> Self;

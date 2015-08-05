@@ -8,6 +8,7 @@ pub mod default{
     use data::shapes::tetrimino::Shape;
     use gamestate::GameState;
 
+    ///Renders the pause state
     pub fn pause<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &event::RenderArgs)
         where M: Map<Cell = cell::ShapeCell>
     {
@@ -20,6 +21,7 @@ pub mod default{
         });
     }
 
+    ///Renders the game state
     pub fn gamestate<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &event::RenderArgs)
         where M: Map<Cell = cell::ShapeCell>
     {

@@ -1,3 +1,6 @@
+//! Command argument types
+//! The deserialized structures of input.
+
 #![allow(non_camel_case_types)]
 
 use core::str::FromStr;
@@ -6,30 +9,6 @@ use std::net;
 
 #[derive(Debug)]
 pub struct Host(pub net::IpAddr);
-
-pub type Port = u16;
-
-#[derive(Debug,RustcDecodable)]
-pub enum OnlineConnection{none,server,client}
-
-#[derive(Debug)]
-pub struct WindowSize(pub u32,pub u32);
-
-#[derive(Debug,RustcDecodable)]
-pub enum WindowMode{window,fullscreen}
-
-impl Decodable for WindowSize{
-	fn decode<D: Decoder>(d: &mut D) -> Result<Self,D::Error>{
-		let str = try!(d.read_str());
-		let str = &*str;
-		let (w,h) = str.split_at(try!(str.find('x').ok_or_else(|| d.error("Invalid format: Missing 'x' in \"<WIDTH>x<HEIGHT>\""))));
-		Ok(WindowSize(
-			try!(FromStr::from_str(w).map_err(|_| d.error("Invalid format: <WIDTH> in (<SIZE> = <WIDTH>x<HEIGHT>) is not a valid positive integer"))),
-			try!(FromStr::from_str(&h[1..]).map_err(|_| d.error("Invalid format: <HEIGHT> in (<SIZE> = <WIDTH>x<HEIGHT>) is not a valid positive integer")))
-		))
-	}
-}
-
 impl Decodable for Host{
 	fn decode<D: Decoder>(d: &mut D) -> Result<Self,D::Error>{
 		let str = try!(d.read_str());
@@ -45,3 +24,25 @@ impl Decodable for Host{
 		}))
 	}
 }
+
+pub type Port = u16;
+
+#[derive(Debug,RustcDecodable)]
+pub enum OnlineConnection{none,server,client}
+
+#[derive(Debug)]
+pub struct WindowSize(pub u32,pub u32);
+impl Decodable for WindowSize{
+	fn decode<D: Decoder>(d: &mut D) -> Result<Self,D::Error>{
+		let str = try!(d.read_str());
+		let str = &*str;
+		let (w,h) = str.split_at(try!(str.find('x').ok_or_else(|| d.error("Invalid format: Missing 'x' in \"<WIDTH>x<HEIGHT>\""))));
+		Ok(WindowSize(
+			try!(FromStr::from_str(w).map_err(|_| d.error("Invalid format: <WIDTH> in (<SIZE> = <WIDTH>x<HEIGHT>) is not a valid positive integer"))),
+			try!(FromStr::from_str(&h[1..]).map_err(|_| d.error("Invalid format: <HEIGHT> in (<SIZE> = <WIDTH>x<HEIGHT>) is not a valid positive integer")))
+		))
+	}
+}
+
+#[derive(Debug,RustcDecodable)]
+pub enum WindowMode{window,fullscreen}

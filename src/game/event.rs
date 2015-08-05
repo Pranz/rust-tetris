@@ -1,6 +1,8 @@
 use super::super::data::grid;
 use super::super::data::shapes::tetrimino::{Shape,RotatedShape};
 
+///Events which can occur ingame.
+///These should get signaled by the game state and listened to by a event listener.
 #[derive(Copy,Clone,Debug)]
 pub enum Event<Player,Map>{
     //MapStart(Map),
