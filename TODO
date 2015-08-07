@@ -6,7 +6,7 @@ Look and feel
 
 Gameplay
 	Points/Score (and customizable) (http://tetris.wikia.com/wiki/Scoring)
-	Shape lookahead (and customizable number of)
+	Render the shape lookahead queue (improve and organize the code in `render.rs`?)
 
 Settings
 	Settings menu
@@ -19,6 +19,7 @@ Settings
 	Selectable block randomizer (problem with repeated S and Z)
 	Settings that allows following the guideline: http://tetris.wikia.com/wiki/Tetris_Guideline
 	Multiple shadows and customizable ones
+	Number of shape lookaheads
 
 CPU AI
 	Optimize

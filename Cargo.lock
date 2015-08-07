@@ -6,6 +6,7 @@ dependencies = [
  "docopt_macros 0.6.69 (git+https://github.com/docopt/docopt.rs.git)",
  "endian-type 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "enum_primitive 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fixed_circular_buffer 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston2d-graphics 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -177,6 +178,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "num 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "fixed_circular_buffer"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "freetype-rs"

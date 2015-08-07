@@ -6,6 +6,7 @@ extern crate core;
 extern crate docopt;
 extern crate endian_type;
 #[macro_use] extern crate enum_primitive;
+extern crate fixed_circular_buffer;
 extern crate graphics;
 extern crate num;
 extern crate opengl_graphics;

@@ -125,7 +125,7 @@ impl<Map,Rng> GameState<Map,Rng>
                         });
 
                         //Respawn player and check for collision at spawn position
-                        let shape = <Shape as Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(player_id)));
+                        let shape = player_next_shape(player,<Shape as Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(player_id))));
                         if !respawn_player((player_id,player),(map_id,map),shape,self.respawn_pos,event_listener){
                             action = Action::ResetMap(map_id);
                             break 'player_loop;
@@ -155,6 +155,7 @@ impl<Map,Rng> GameState<Map,Rng>
             self.players.insert(new_id,Player{
                 pos                   : (self.respawn_pos)(&shape,map),
                 shadow_pos            : None,
+                shapes_lookahead      : None,
                 shape                 : shape,
                 map                   : map_id,
                 points                : 0,
@@ -189,7 +190,8 @@ impl<Map,Rng> GameState<Map,Rng>
 
             for (player_id,player) in self.players.iter_mut().filter(|&(_,ref player)| player.map == map_id){
                 //Reset all players in the map
-                respawn_player((player_id as PlayerId,player),(map_id,map),<Shape as Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(player_id as PlayerId))),self.respawn_pos,event_listener);
+                let shape = player_next_shape(player,<Shape as Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(player_id as PlayerId))));
+                respawn_player((player_id as PlayerId,player),(map_id,map),shape,self.respawn_pos,event_listener);
                 player.gravityfall_time_count = 0.0;
                 player.slowfall_time_count    = 0.0;
                 player.move_time_count        = 0.0;
@@ -313,4 +315,12 @@ pub fn fastfallen_shape_pos<Map>(shape: &RotatedShape,map: &Map,shape_pos: grid:
     }
 
     unreachable!()
+}
+
+pub fn player_next_shape(player: &mut Player,generated_shape: Shape) -> Shape{
+    if let &mut Some(ref mut shapes_lookahead) = &mut player.shapes_lookahead{
+        shapes_lookahead.queue(generated_shape)
+    }else{
+        generated_shape
+    }
 }
