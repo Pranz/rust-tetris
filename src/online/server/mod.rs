@@ -33,19 +33,19 @@ pub fn start(host_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Input,
                                     socket.send_to(
                                         packet::ConnectionEstablished{
                                             connection_id: u32_le::from(connection_id_gen.gen::<u32>())
-                                        }.into_packet().as_bytes(),
+                                        }.into_packet(u16_le::from(0)).as_bytes(),
                                         address
                                     ).unwrap();
                                 },
 
                                 version => {
                                     println!("Server: Invalid version: {}",version);
-                                    socket.send_to(packet::ConnectionInvalid.into_packet().as_bytes(),address).unwrap();
+                                    socket.send_to(packet::ConnectionInvalid.into_packet(u16_le::from(0)).as_bytes(),address).unwrap();
                                 }
                             }
                         },
 
-                        //Recevied player input
+                        //Received player input
                         Some(Type::PlayerInput) if buffer_size==mem::size_of::<super::Packet<Type,PlayerInput>>() => {
                             let packet = PlayerInput::from_packet_bytes(&buffer[..buffer_size]);
                             match Input::from_u8(packet.input){

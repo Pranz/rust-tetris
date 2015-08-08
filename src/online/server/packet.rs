@@ -1,8 +1,10 @@
 use endian_type::types::*;
 use num::FromPrimitive;
 
+use super::super::packet::HEADER_SIZE;
+
 ///Size in bytes of the biggest packet sent by the server
-pub const SIZE: usize = (1) + (4+1);//Type + PlayerInput
+pub const SIZE: usize = HEADER_SIZE + (4+1);//PacketHeader + PlayerInput
 
 pub type PacketBytes = [u8; SIZE];
 
@@ -23,10 +25,19 @@ pub enum Type{
 	//Sent when connecting and the connection is not OK
 	ConnectionInvalid,
 
+	//Sent when a new player request has been confirmed
+	//
+	//Fields:
+	//  player_network_id: [4] u32
+	//  rng_seed         : [4] u32
+	PlayerCreatedResponse,
+
 	//Sent when a new player has been added
 	//
 	//Fields:
 	//  player_network_id: [4] u32
+	//  TODO: rng_seed         : [4] u32
+	//  TODO: settings         : [_] player::Settings
 	PlayerCreate,
 
 	//Sent when a player has been removed
@@ -64,10 +75,11 @@ impl Type{
 	}
 }
 
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct ConnectionEstablished{pub connection_id: u32_le}                  impl_FromPacketBytes!(ConnectionEstablished: Type);
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct ConnectionInvalid;                                                impl_FromPacketBytes!(ConnectionInvalid    : Type);
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct PlayerCreate         {pub player_network_id: u32_le}              impl_FromPacketBytes!(PlayerCreate         : Type);
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct PlayerRemove         {pub player_network_id: u32_le}              impl_FromPacketBytes!(PlayerRemove         : Type);
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct PlayerInput          {pub player_network_id: u32_le,pub input: u8}impl_FromPacketBytes!(PlayerInput          : Type);
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct Ping                 {pub data: u32_le}                           impl_FromPacketBytes!(Ping                 : Type);
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct Pong                 {pub data: u32_le}                           impl_FromPacketBytes!(Pong                 : Type);
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct ConnectionEstablished{pub connection_id: u32_le}                         impl_FromPacketBytes!(ConnectionEstablished: Type);
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct ConnectionInvalid;                                                       impl_FromPacketBytes!(ConnectionInvalid    : Type);
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct PlayerCreatedResponse{pub player_network_id: u32_le,pub rng_seed: u32_le}impl_FromPacketBytes!(PlayerCreatedResponse: Type);
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct PlayerCreate         {pub player_network_id: u32_le}                     impl_FromPacketBytes!(PlayerCreate         : Type);
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct PlayerRemove         {pub player_network_id: u32_le}                     impl_FromPacketBytes!(PlayerRemove         : Type);
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct PlayerInput          {pub player_network_id: u32_le,pub input: u8}       impl_FromPacketBytes!(PlayerInput          : Type);
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct Ping                 {pub data: u32_le}                                  impl_FromPacketBytes!(Ping                 : Type);
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]#[repr(packed)]pub struct Pong                 {pub data: u32_le}                                  impl_FromPacketBytes!(Pong                 : Type);

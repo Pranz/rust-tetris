@@ -6,7 +6,7 @@ use piston::event;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use data::grid::{self,Grid};
+use data::grid::{self,translate,Grid};
 use data::input::Input;
 use data::map::Map;
 use data::cell::Cell;
@@ -71,7 +71,7 @@ impl Controller{
 						}
 					);
 
-					let optimality_test_map = grid::imprint_bool::Grid{a: map,b: &rotated_shape,b_pos: pos};
+					let optimality_test_map = grid::imprint_bool::Grid{a: map,b: &translate::Grid{grid: &rotated_shape,pos: grid::Pos{x: -pos.x,y: -pos.y}}};
 
 					let current_o = map_optimality2(&optimality_test_map);
 					if current_o > greatest_o{

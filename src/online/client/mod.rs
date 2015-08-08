@@ -21,7 +21,7 @@ pub fn start(server_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Inpu
             {let mut retry = 0;loop{match socket.send_to(
                 packet::Connect{
                     protocol_version: u16_le::from(1)
-                }.into_packet().as_bytes(),
+                }.into_packet(u16_le::from(0)).as_bytes(),//TODO: Packet id and all other `into_packet`s
                 server_addr
             ){
                 Ok(_) => break,
@@ -50,13 +50,13 @@ pub fn start(server_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Inpu
                 while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
                     //First byte is the packet type
                     match Type::from_packet_bytes(&buffer[..]){
-                        //Recevied connection request established
+                        //Received connection request established
                         Some(Type::ConnectionEstablished) if buffer_size==mem::size_of::<super::Packet<Type,ConnectionEstablished>>() => {
                             let packet = ConnectionEstablished::from_packet_bytes(&buffer[..buffer_size]);
                             println!("Client: Connection established to {} (Id: {})",address,Into::<u32>::into(packet.connection_id));
                         },
 
-                        //Recevied player input
+                        //Received player input
                         Some(Type::PlayerInput) if buffer_size==mem::size_of::<super::Packet<Type,PlayerInput>>() => {
                             let packet = PlayerInput::from_packet_bytes(&buffer[..buffer_size]);
                             match Input::from_u8(packet.input){

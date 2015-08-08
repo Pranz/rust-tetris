@@ -2,7 +2,6 @@ use collections::vec_map::VecMap;
 use core::cmp;
 use piston::event;
 use rand::{self,Rand};
-use std::collections::hash_map::HashMap;
 
 use super::data::cell::Cell;
 use super::data::grid::{self,Grid};
@@ -17,17 +16,6 @@ use super::tmp_ptr::TmpPtr;
 pub type MapId    = u8;
 ///Type of the player id
 pub type PlayerId = u8;
-
-///Kind of RNG mappings
-#[derive(Copy,Clone,Debug,Eq,PartialEq,Hash)]
-pub enum RngMappingKey{
-    Map(MapId),
-    Player(PlayerId)
-}
-
-///The type of the `rngs` field in GameState.
-///Contains RNG mappings with a global fallback RNG
-pub type RngMappings<Rng> = (Rng,HashMap<RngMappingKey,Rng>);
 
 ///The ingame game state
 pub struct GameState<Map,Rng>
@@ -44,7 +32,7 @@ pub struct GameState<Map,Rng>
     ///The second field contains a map of RNGs
     ///When looking up a RNG mapping and it does not exist, it should fallback to the more global one in the following order:
     ///  Player -> Map -> Global
-    pub rngs          : RngMappings<Rng>,
+    pub rngs          : rng::Mappings<Rng>,
 
     ///Function that maps a shape's cell to the map's cell
     pub imprint_cell  : fn(&RotatedShape) -> <Map as Grid>::Cell,
@@ -64,7 +52,7 @@ impl<Map,Rng> GameState<Map,Rng>
     ) -> Self{GameState{
         maps   : VecMap::new(),
         players: VecMap::new(),
-        rngs   : (rng,HashMap::new()),
+        rngs   : rng::Mappings::new(rng),
         imprint_cell: imprint_cell,
         respawn_pos: respawn_pos,
     }}
@@ -125,7 +113,7 @@ impl<Map,Rng> GameState<Map,Rng>
                         });
 
                         //Respawn player and check for collision at spawn position
-                        let shape = player_next_shape(player,<Shape as Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(player_id))));
+                        let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.get(rng::MappingKey::Player(player_id))));
                         if !respawn_player((player_id,player),(map_id,map),shape,self.respawn_pos,event_listener){
                             action = Action::ResetMap(map_id);
                             break 'player_loop;
@@ -150,7 +138,7 @@ impl<Map,Rng> GameState<Map,Rng>
     {
         if let Some(map) = self.maps.get_mut(&(map_id as usize)){
             let new_id = self.players.len();
-            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(new_id as PlayerId))));
+            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.get(rng::MappingKey::Player(new_id as PlayerId))));
 
             self.players.insert(new_id,Player{
                 pos                   : (self.respawn_pos)(&shape,map),
@@ -190,7 +178,7 @@ impl<Map,Rng> GameState<Map,Rng>
 
             for (player_id,player) in self.players.iter_mut().filter(|&(_,ref player)| player.map == map_id){
                 //Reset all players in the map
-                let shape = player_next_shape(player,<Shape as Rand>::rand(rng(&mut self.rngs,RngMappingKey::Player(player_id as PlayerId))));
+                let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.get(rng::MappingKey::Player(player_id as PlayerId))));
                 respawn_player((player_id as PlayerId,player),(map_id,map),shape,self.respawn_pos,event_listener);
                 player.gravityfall_time_count = 0.0;
                 player.slowfall_time_count    = 0.0;
@@ -200,12 +188,32 @@ impl<Map,Rng> GameState<Map,Rng>
     }
 }
 
-///Lookup a RNG from mappings with fallbacks.
-///See the documentation of the `GameState::rngs` field
-pub fn rng<Rng>(rngs: &mut RngMappings<Rng>,mapping: RngMappingKey) -> &mut Rng{
-    match rngs.1.get_mut(&mapping){
-        Some(rng) => rng,
-        None => &mut rngs.0
+pub mod rng{
+    use std::collections::hash_map::HashMap;
+
+    ///Kind of RNG mappings
+    #[derive(Copy,Clone,Debug,Eq,PartialEq,Hash)]
+    pub enum MappingKey{
+        Map(super::MapId),
+        Player(super::PlayerId)
+    }
+
+    ///The type of the `rngs` field in GameState.
+    ///Contains RNG mappings with a global fallback RNG
+    pub struct Mappings<Rng>(pub Rng,pub HashMap<MappingKey,Rng>);
+
+    impl<Rng> Mappings<Rng>{
+        ///Constructs a RNG mappings container with a default global fallback
+        pub fn new(global: Rng) -> Self{Mappings(global,HashMap::new())}
+
+        ///Lookup a RNG from mappings with fallbacks.
+        ///See the documentation of the `GameState::rngs` field
+        pub fn get(&mut self,mapping: MappingKey) -> &mut Rng{
+            match self.1.get_mut(&mapping){
+                Some(rng) => rng,
+                None => &mut self.0
+            }
+        }
     }
 }
 

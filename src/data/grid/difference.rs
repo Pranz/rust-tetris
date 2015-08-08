@@ -2,7 +2,7 @@ use core::cmp;
 
 use super::super::cell::Cell;
 use super::Grid as GridTrait;
-use super::{SizeAxis,Pos};
+use super::{SizeAxis,Pos,PosAxis};
 
 ///This grid only contains the cells where the cell occupation from both differs
 pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{
@@ -23,18 +23,30 @@ impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>
         self.b.is_position_out_of_bounds(pos)
     }
 
-    fn width(&self)  -> SizeAxis{cmp::min(self.a.width() ,self.b.width())}
-    fn height(&self) -> SizeAxis{cmp::min(self.a.height(),self.b.height())}
+    fn offset(&self) -> Pos{
+        let a_offset = self.a.offset();
+        let b_offset = self.b.offset();
+        Pos{
+            x: cmp::min(a_offset.x,b_offset.x),
+            y: cmp::min(a_offset.y,b_offset.y),
+        }
+    }
+    fn width(&self)  -> SizeAxis{
+        (cmp::max(self.a.offset().x + self.a.width()  as PosAxis,self.b.offset().x + self.b.width()  as PosAxis) - self.offset().x) as SizeAxis
+    }
+    fn height(&self) -> SizeAxis{
+        (cmp::max(self.a.offset().y + self.a.height() as PosAxis,self.b.offset().y + self.b.height() as PosAxis) - self.offset().y) as SizeAxis
+    }
 
-    unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell{
-        self.a.pos(x,y).is_occupied() && !self.b.pos(x,y).is_occupied()
+    unsafe fn pos(&self,pos: Pos) -> Self::Cell{
+        self.a.pos(pos).is_occupied() && !self.b.pos(pos).is_occupied()
     }
 
     fn position(&self,pos: Pos) -> Option<Self::Cell>{
         if self.is_position_out_of_bounds(pos){
             None
         }else{
-            Some(unsafe{self.pos(pos.x as usize,pos.y as usize)})
+            Some(unsafe{self.pos(pos)})
         }
     }
 }

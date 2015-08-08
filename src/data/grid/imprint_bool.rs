@@ -2,14 +2,13 @@ use core::ops::Deref;
 
 use super::super::cell::Cell;
 use super::Grid as GridTrait;
-use super::{PosAxis,SizeAxis,Pos};
+use super::{SizeAxis,Pos};
 
 ///Imprints `b` on `a`
 #[derive(Copy,Clone,Eq,PartialEq)]
 pub struct Grid<GA,GB>{
 	pub a: GA,
 	pub b: GB,
-	pub b_pos: Pos,
 }
 
 impl<DA,DB,GA,GB> GridTrait for Grid<DA,DB>
@@ -22,24 +21,22 @@ impl<DA,DB,GA,GB> GridTrait for Grid<DA,DB>
 {
 	type Cell = bool;
 
-    fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
+    #[inline]fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
         self.a.is_position_out_of_bounds(pos)
     }
 
-    fn width(&self) -> SizeAxis{self.a.width()}
-    fn height(&self) -> SizeAxis{self.a.height()}
+    #[inline]fn offset(&self) -> Pos{self.a.offset()}
+    #[inline]fn width(&self) -> SizeAxis{self.a.width()}
+    #[inline]fn height(&self) -> SizeAxis{self.a.height()}
 
-    unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell{
-    	if self.a.pos(x,y).is_occupied(){
+    unsafe fn pos(&self,pos: Pos) -> Self::Cell{
+        if self.a.pos(pos).is_occupied(){
             true
         }else{
-            let x = x as PosAxis - self.b_pos.x;
-            let y = y as PosAxis - self.b_pos.y;
-
-            if self.b.is_position_out_of_bounds(Pos{x: x,y: y}){
+            if self.b.is_position_out_of_bounds(pos){
                 false
             }else{
-                self.b.pos(x as usize,y as usize).is_occupied()
+                self.b.pos(pos).is_occupied()
             }
         }
     }

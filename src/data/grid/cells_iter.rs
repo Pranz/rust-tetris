@@ -1,4 +1,4 @@
-use super::super::grid::Size;
+use super::super::grid::{Pos,PosAxis,Size};
 use super::Grid;
 
 ///Iterates through a grid's cells
@@ -19,18 +19,26 @@ impl<'g,G: Grid> Iterator for Iter<'g,G>
     type Item = (Size,G::Cell);
 
     fn next(&mut self) -> Option<<Self as Iterator>::Item>{
-        if self.pos.x == self.grid.width(){
-            self.pos.x = 0;
-            self.pos.y+= 1;
+        loop{
+            if self.pos.x == self.grid.width(){
+                self.pos.x = 0;
+                self.pos.y+= 1;
+            }
+
+            if self.pos.y == self.grid.height(){
+                return None
+            }
+
+            let x = self.pos.x;
+            self.pos.x+=1;
+
+            match self.grid.position(Pos{
+                x: x as PosAxis + self.grid.offset().x,
+                y: self.pos.y as PosAxis + self.grid.offset().y
+            }){
+                Some(cell) => return Some((Size{x: x,y: self.pos.y},cell)),
+                None => continue
+            }
         }
-
-        if self.pos.y == self.grid.height(){
-            return None
-        }
-
-        let x = self.pos.x;
-        self.pos.x+=1;
-
-        return Some((Size{x: x,y: self.pos.y},unsafe{self.grid.pos(x as usize,self.pos.y as usize)}));
     }
 }

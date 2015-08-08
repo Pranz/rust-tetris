@@ -31,8 +31,8 @@ impl<Cell: Copy> Grid for Map<Cell>{
     fn height(&self) -> grid::SizeAxis{(self.slice.len()/(self.width as usize)) as grid::SizeAxis}
 
     #[inline(always)]
-    unsafe fn pos(&self,x: usize,y: usize) -> <Self as Grid>::Cell{
-        self.slice[x + y*(self.width as usize)]
+    unsafe fn pos(&self,pos: grid::Pos) -> <Self as Grid>::Cell{
+        self.slice[pos.x as usize + pos.y as usize*(self.width as usize)]
     }
 }
 
@@ -59,7 +59,7 @@ impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
         //For each row that should be checked
         while let Some(y) = y_check.next(){
             //Check if the row fully consist of occupied cells
-            if (0..self.width()).all(|x| unsafe{self.pos(x as usize,y as usize)}.is_occupied()){
+            if (0..self.width()).all(|x| unsafe{self.pos(grid::Pos{x: x as grid::PosAxis,y: y as grid::PosAxis})}.is_occupied()){
                 //Goes into the this "full_row_count > 0" scope
                 full_row_count = 1;
 
@@ -70,7 +70,7 @@ impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
                     self.copy_row(y,y + full_row_count);
 
                     //Continue to check if the row fully consist of occupied cells
-                    if (0..self.width()).all(|x| unsafe{self.pos(x as usize,y as usize)}.is_occupied()){
+                    if (0..self.width()).all(|x| unsafe{self.pos(grid::Pos{x: x as grid::PosAxis,y: y as grid::PosAxis})}.is_occupied()){
                         full_row_count += 1;
                     }
                 }

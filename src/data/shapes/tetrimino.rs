@@ -144,9 +144,9 @@ impl RotatedShape{
 impl Grid for RotatedShape{
     type Cell = bool;
 
-    unsafe fn pos(&self, x: usize, y: usize) -> bool{
+    unsafe fn pos(&self, pos: grid::Pos) -> bool{
         let (width,data) = self.shape.data(self.rotation);
-        data[x + (y * width as usize)]
+        data[pos.x as usize + (pos.y as usize * width as usize)]
     }
 
     #[inline(always)]fn width(&self) -> grid::SizeAxis{self.shape.size().x}

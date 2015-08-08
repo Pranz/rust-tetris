@@ -6,6 +6,7 @@ pub mod imprint;
 pub mod imprint_bool;
 pub mod row;
 pub mod rows_iter;
+pub mod translate;
 
 use super::cell::Cell as CellTrait;
 
@@ -30,7 +31,8 @@ pub trait Grid{
 
     ///Returns whether the given position is out of bounds
     fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-        pos.x<0 || pos.y<0 || pos.x>=self.width() as PosAxis || pos.y>=self.height() as PosAxis
+        let offset = self.offset();
+        pos.x<offset.x || pos.y<offset.y || pos.x>=self.width() as PosAxis+offset.x || pos.y>=self.height() as PosAxis+offset.y
     }
 
     ///Returns the cell at the given position.
@@ -39,9 +41,12 @@ pub trait Grid{
         if self.is_position_out_of_bounds(pos){
             None
         }else{
-            Some(unsafe{self.pos(pos.x as usize,pos.y as usize)})
+            Some(unsafe{self.pos(pos)})
         }
     }
+
+    ///Returns the rectangular axis aligned offset of the map
+    fn offset(&self) -> Pos{Pos{x: 0,y: 0}}
 
     ///Returns the rectangular axis aligned width of the map
     fn width(&self) -> SizeAxis;
@@ -56,10 +61,10 @@ pub trait Grid{
 
     ///Returns the cell at the given position without checks
     ///Requirements:
-    ///    x < height()
-    ///    y < height()
-    ///    is_position_out_of_bounds(Pos{x,y}) == false
-    unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell;
+    ///    pos.x < height()
+    ///    pos.y < height()
+    ///    is_position_out_of_bounds(pos) == false
+    unsafe fn pos(&self,pos: Pos) -> Self::Cell;
 }
 
 ///Checks whether the `inside`'s occupied cells are inside `outside`

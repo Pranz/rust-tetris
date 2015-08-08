@@ -80,7 +80,7 @@ impl App{
                     connection_id: u32_le::from(0),
                     player_network_id: u32_le::from(0),
                     input: input as u8
-                }.into_packet().as_bytes(),address).unwrap();
+                }.into_packet(u16_le::from(0)).as_bytes(),address).unwrap();
             }}
         }
 
@@ -254,32 +254,34 @@ fn main(){
     app.game_state.maps.insert(1,Map::new(10,20));
 
     {let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
-        //Create player 0
-        game.rngs.1.insert(gamestate::RngMappingKey::Player(0),game.rngs.0);
-        game.add_player(0,player::Settings{
-            gravityfall_frequency: 1.0,
-            slowfall_delay       : 1.0,
-            slowfall_frequency   : 1.0,
-            move_delay           : 1.0,
-            move_frequency       : 1.0,
-            fastfall_shadow      : true,
-        },&mut |e| for c in cs.iter_mut(){c.event(e);});
+        if let online::ConnectionType::None = app.connection{
+            //Create player 0
+            game.rngs.1.insert(gamestate::rng::MappingKey::Player(0),game.rngs.0);
+            game.add_player(0,player::Settings{
+                gravityfall_frequency: 1.0,
+                slowfall_delay       : 1.0,
+                slowfall_frequency   : 1.0,
+                move_delay           : 1.0,
+                move_frequency       : 1.0,
+                fastfall_shadow      : true,
+            },&mut |e| for c in cs.iter_mut(){c.event(e);});
 
-        //Create player 1
-        game.rngs.1.insert(gamestate::RngMappingKey::Player(1),game.rngs.0);
-        if let online::ConnectionType::None = app.connection{cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
-            input_sender.clone(),
-            1,
-            ai::bruteforce::Settings::default()
-        )));}
-        game.add_player(1,player::Settings{
-            gravityfall_frequency: 1.0,
-            slowfall_delay       : 1.0,
-            slowfall_frequency   : 1.0,
-            move_delay           : 1.0,
-            move_frequency       : 1.0,
-            fastfall_shadow      : true,
-        },&mut |e| for c in cs.iter_mut(){c.event(e);});
+            //Create player 1
+            game.rngs.1.insert(gamestate::rng::MappingKey::Player(1),game.rngs.0);
+            cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
+                input_sender.clone(),
+                1,
+                ai::bruteforce::Settings::default()
+            )));
+            game.add_player(1,player::Settings{
+                gravityfall_frequency: 1.0,
+                slowfall_delay       : 1.0,
+                slowfall_frequency   : 1.0,
+                move_delay           : 1.0,
+                move_frequency       : 1.0,
+                fastfall_shadow      : true,
+            },&mut |e| for c in cs.iter_mut(){c.event(e);});
+        }
     }
 
     //Run the created application: Listen for events
