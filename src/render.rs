@@ -8,8 +8,22 @@ pub mod default{
     use data::shapes::tetrimino::Shape;
     use gamestate::GameState;
 
-    pub fn gamestate<M,Rng>(gamestate: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &event::RenderArgs)
-        where M: Map<Cell = cell::ShapeCell>,
+    ///Renders the pause state
+    pub fn pause<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &event::RenderArgs)
+        where M: Map<Cell = cell::ShapeCell>
+    {
+        gamestate(state,gl,args);
+
+        //Pause overlay
+        gl.draw(args.viewport(),|context,gl|{
+            let [w,h] = context.get_view_size();
+            graphics::rectangle([0.0,0.0,0.0,0.5],[0.0,0.0,w,h],context.transform,gl);
+        });
+    }
+
+    ///Renders the game state
+    pub fn gamestate<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &event::RenderArgs)
+        where M: Map<Cell = cell::ShapeCell>
     {
         const BLOCK_PIXEL_SIZE: f64 = 24.0;
 
@@ -26,7 +40,7 @@ pub mod default{
             graphics::clear(colors::BLACK,gl);
 
             //Draw maps
-            for (map_id,map) in gamestate.maps.iter(){
+            for (map_id,map) in state.maps.iter(){
                 let transform = {
                     let (x,y) = map_render_pos(map_id);
                     context.transform.trans(x,y)
@@ -58,7 +72,7 @@ pub mod default{
             }
 
             //Draw players
-            for (_,player) in gamestate.players.iter(){match gamestate.maps.get(&(player.map as usize)){
+            for (_,player) in state.players.iter(){match state.maps.get(&(player.map as usize)){
                 Some(_) => {
                     let transform = {
                         let (x,y) = map_render_pos(player.map as usize);
@@ -96,12 +110,6 @@ pub mod default{
                 },
                 None => ()
             }}
-
-            //Pause overlay
-            if gamestate.paused{
-                let [w,h] = context.get_view_size();
-                graphics::rectangle([0.0,0.0,0.0,0.5],[0.0,0.0,w,h],context.transform,gl);
-            }
         });
     }
 }

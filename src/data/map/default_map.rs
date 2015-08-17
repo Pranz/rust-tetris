@@ -25,8 +25,8 @@ impl<Cell: Copy> Grid for Map<Cell>{
     fn height(&self) -> grid::SizeAxis{HEIGHT}
 
     #[inline(always)]
-    unsafe fn pos(&self,x: usize,y: usize) -> Cell{
-        self.0[y][x]
+    unsafe fn pos(&self,pos: grid::Pos) -> Cell{
+        self.0[pos.y as usize][pos.x as usize]
     }
 }
 
@@ -44,7 +44,7 @@ impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
 
         for y_lowest in y_check.rev(){
             let y_lowest = y_lowest + terminated_rows;
-            if (0..WIDTH).all(|x| unsafe{self.pos(x as usize,y_lowest as usize)}.is_occupied()){
+            if (0..WIDTH).all(|x| unsafe{self.pos(grid::Pos{x: x as grid::PosAxis,y: y_lowest as grid::PosAxis})}.is_occupied()){
                 terminated_rows += 1;
                 for y in (0..y_lowest).rev(){
                     self.copy_row(y,y+1);

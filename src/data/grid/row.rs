@@ -18,18 +18,19 @@ impl<'g,G> GridTrait for Grid<'g,G>
     type Cell = <G as GridTrait>::Cell;
 
     fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-        if pos.y == self.y as PosAxis{
+        if pos.y == self.y as PosAxis + self.offset().y{
             self.grid.is_position_out_of_bounds(pos)
         }else{
             false
         }
     }
 
-    fn width(&self) -> SizeAxis{self.grid.width()}
-    fn height(&self) -> SizeAxis{1}
+    #[inline]fn offset(&self) -> Pos{self.grid.offset()}
+    #[inline]fn width(&self) -> SizeAxis{self.grid.width()}
+    #[inline]fn height(&self) -> SizeAxis{1}
 
-    unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell{
-        self.grid.pos(x,y)
+    unsafe fn pos(&self,pos: Pos) -> Self::Cell{
+        self.grid.pos(pos)
     }
 }
 
@@ -53,7 +54,7 @@ impl<'g,G> iter::Iterator for Iter<'g,G>
     type Item = (SizeAxis,<G as GridTrait>::Cell);
 
     fn next(&mut self) -> Option<Self::Item>{
-        if let Some(cell) = self.grid.position(Pos{x: self.column as PosAxis,y: self.grid.y as PosAxis}){
+        if let Some(cell) = self.grid.position(Pos{x: self.column as PosAxis + self.grid.offset().x,y: self.grid.y as PosAxis + self.grid.offset().y}){
             let column = self.column;
             self.column+= 1;
             Some((column,cell))

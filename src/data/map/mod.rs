@@ -28,7 +28,7 @@ pub trait Map: Grid{
     ///Requirements:
     ///    x < height()
     ///    y < height()
-    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Self::Cell);
+    unsafe fn set_pos(&mut self,x: usize,y: usize,state: Self::Cell);//TODO: `pos_ref` and `pos_ref_mut` instead
 
     //Clears the map
     fn clear(&mut self) where <Self as Grid>::Cell: CellTrait{

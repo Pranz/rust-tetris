@@ -1,40 +1,33 @@
-use super::super::cell::Cell;
 use super::Grid as GridTrait;
-use super::{PosAxis,SizeAxis,Pos};
+use super::{SizeAxis,Pos};
 
 ///Imprints `b` on `a`
-#[derive(Copy,Clone,Eq,PartialEq)]
-pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{
+#[derive(Copy,Clone)]
+pub struct Grid<'ga,'gb,GA: GridTrait + 'ga,GB: GridTrait + 'gb,Cell>{
 	pub a: &'ga GA,
 	pub b: &'gb GB,
-	pub b_pos: Pos,
+	pub map_fn: fn(<GA as GridTrait>::Cell,Option<<GB as GridTrait>::Cell>) -> Cell,
 }
 
-impl<'ga,'gb,GA,GB> GridTrait for Grid<'ga,'gb,GA,GB>
+impl<'ga,'gb,GA,GB,Cell> GridTrait for Grid<'ga,'gb,GA,GB,Cell>
     where GA: GridTrait + 'ga,
-          GB: GridTrait<Cell = <GA as GridTrait>::Cell> + 'gb,
-          <GA as GridTrait>::Cell: Cell + Copy
+          GB: GridTrait + 'gb,
+          <GA as GridTrait>::Cell: Copy,
+          <GB as GridTrait>::Cell: Copy,
+          Cell: Copy
 {
-	type Cell = <GA as GridTrait>::Cell;
+	type Cell = Cell;
 
-    fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
+    #[inline]fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
         self.a.is_position_out_of_bounds(pos)
     }
 
-    fn width(&self) -> SizeAxis{self.a.width()}
-    fn height(&self) -> SizeAxis{self.a.height()}
+    #[inline]fn offset(&self) -> Pos{self.a.offset()}
+    #[inline]fn width(&self) -> SizeAxis{self.a.width()}
+    #[inline]fn height(&self) -> SizeAxis{self.a.height()}
 
-    unsafe fn pos(&self,x: usize,y: usize) -> Self::Cell{
-    	let out = self.a.pos(x,y);
-    	if out.is_empty(){
-            let x = self.b_pos.x as usize + x;
-            let y = self.b_pos.y as usize + y;
-
-            if !self.b.is_position_out_of_bounds(Pos{x: x as PosAxis,y: y as PosAxis}){
-                return self.b.pos(x,y)
-            }
-    	}
-
-        out
+    unsafe fn pos(&self,pos: Pos) -> Self::Cell{
+        let a_pos = self.a.pos(pos);
+        (self.map_fn)(a_pos,if self.b.is_position_out_of_bounds(pos){Some(self.b.pos(pos))}else{None})
     }
 }

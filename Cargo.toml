@@ -1,12 +1,19 @@
 [package]
-name = "rust-tetris"
+name = "tetr"
 version = "0.1.0"
 authors = ["Pranz <jesper.fridefors@gmail.com", "Lolirofle <lolipopple@hotmail.com>"]
+license = "LGPL-3.0"
 
 [dependencies]
+docopt = "0.6"
+docopt_macros = {git = "https://github.com/docopt/docopt.rs.git"}#"0.6"
+endian-type = "0.1"
+fixed_circular_buffer = "0.2"
 enum_primitive = "0.0.2"
 num = "0.1"
 rand = "0.3"
+rustc-serialize = "0.3"
+vec_map = "0.3"
 
 piston = "0.3"
 piston2d-graphics = "0.4"

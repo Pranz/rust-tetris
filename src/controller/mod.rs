@@ -2,13 +2,16 @@ pub mod ai;
 
 
 
+use vec_map::VecMap;
 use piston::event;
 
 use data::player::Player;
-use gamestate;
 
-///Controlls a player and its map
-pub trait Controller<Map>{
-	fn update(&mut self,args: &event::UpdateArgs,player: &mut Player,map: &mut Map);
-	fn event(&mut self,event: gamestate::Event,player: &mut Player,map: &mut Map);
+///Controlls a player and its map with inputs
+pub trait Controller<Map,Event>{
+	///Called for each update step
+	fn update(&mut self,args: &event::UpdateArgs,players: &VecMap<Player>,maps: &VecMap<Map>);
+
+	///Event listener. Called for each defined ingame event occcurring
+	fn event(&mut self,event: Event);
 }
