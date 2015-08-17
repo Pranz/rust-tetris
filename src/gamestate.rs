@@ -1,5 +1,5 @@
 use collections::vec_map::VecMap;
-use core::{cmp,mem};
+use core::{cmp,f64,mem};
 use piston::event;
 use rand::{self,Rand};
 
@@ -75,7 +75,7 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                 player.slowfall_time_count    += args.dt;
                 player.move_time_count        += args.dt;
 
-                //If the time count is bigger than the shape move frequency, then repeat until it is smaller
+                //Gravity: If the time count is greater than the shape move frequency, then repeat until it is smaller
                 while player.gravityfall_time_count >= player.settings.gravityfall_frequency{
                     //Subtract one step of frequency
                     player.gravityfall_time_count -= player.settings.gravityfall_frequency;
@@ -163,8 +163,8 @@ impl<Map,Rng: rand::Rng> GameState<Map,Rng>{
                 map                   : map_id,
                 points                : 0,
                 gravityfall_time_count: 0.0,
-                slowfall_time_count   : 0.0,
-                move_time_count       : 0.0,
+                slowfall_time_count   : f64::NAN,
+                move_time_count       : f64::NAN,
                 settings              : settings
             });
             let player = self.players.get_mut(&new_id).unwrap();
