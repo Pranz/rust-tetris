@@ -1,5 +1,5 @@
 use vec_map::VecMap;
-use piston::event;
+use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
@@ -28,7 +28,7 @@ impl Controller{
 }
 
 impl<M: Map> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>> for Controller{
-	fn update(&mut self,args: &event::UpdateArgs,_: &VecMap<Player>,_: &VecMap<M>){
+	fn update(&mut self,args: &UpdateArgs,_: &VecMap<Player>,_: &VecMap<M>){
 		self.move_time+= args.dt;
 
 		if self.move_time > 0.3{

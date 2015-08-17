@@ -9,26 +9,27 @@ docopt = "0.6"
 docopt_macros = {git = "https://github.com/docopt/docopt.rs.git"}#"0.6"
 endian-type = "0.1"
 fixed_circular_buffer = "0.2"
-enum_primitive = "0.0.2"
+enum_primitive = "0.1"
 num = "0.1"
 rand = "0.3"
 rustc-serialize = "0.3"
 vec_map = "0.3"
 
-piston = "0.3"
+piston = "0.10"
 piston2d-graphics = "0.4"
-piston2d-opengl_graphics = "0.4"
+piston2d-opengl_graphics = "0.6"
+pistoncore-event = "0.4.0"
 
 [dependencies.pistoncore-sdl2_window]
-version = "0.4"
+version = "0.12"
 optional = true
 
 [dependencies.pistoncore-glfw_window]
-version = "0.3"
+version = "0.9"
 optional = true
 
 [dependencies.pistoncore-glutin_window]
-version = "0.4"
+version = "0.12"
 optional = true
 
 [features]

@@ -2,7 +2,7 @@ use vec_map::VecMap;
 use core::default::Default;
 use core::f32;
 use core::iter::Iterator;
-use piston::event;
+use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
@@ -89,7 +89,7 @@ impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 	where M: Map,
 	      <M as grid::Grid>::Cell: Cell + Copy
 {
-	fn update(&mut self,args: &event::UpdateArgs,players: &VecMap<Player>,_: &VecMap<M>){
+	fn update(&mut self,args: &UpdateArgs,players: &VecMap<Player>,_: &VecMap<M>){
 		if let Some(player) = players.get(&(self.player_id as usize)){
 			self.move_time_count-= args.dt;
 			self.rotate_time_count-= args.dt;

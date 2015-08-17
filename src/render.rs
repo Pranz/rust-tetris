@@ -1,7 +1,7 @@
 pub mod default{
     use graphics::{self,Transformed};
     use opengl_graphics::GlGraphics;
-    use piston::event;
+    use piston::input::RenderArgs;
 
     use data::{cell,colors,grid};
     use data::map::Map;
@@ -9,7 +9,7 @@ pub mod default{
     use gamestate::GameState;
 
     ///Renders the pause state
-    pub fn pause<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &event::RenderArgs)
+    pub fn pause<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
         where M: Map<Cell = cell::ShapeCell>
     {
         gamestate(state,gl,args);
@@ -22,7 +22,7 @@ pub mod default{
     }
 
     ///Renders the game state
-    pub fn gamestate<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &event::RenderArgs)
+    pub fn gamestate<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
         where M: Map<Cell = cell::ShapeCell>
     {
         const BLOCK_PIXEL_SIZE: f64 = 24.0;

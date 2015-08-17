@@ -31,8 +31,8 @@ pub mod tmp_ptr;
 use controller::Controller;
 use endian_type::types::*;
 use piston::window::WindowSettings;
-use piston::event::{self,Events,PressEvent,RenderEvent,UpdateEvent};
-use piston::input::{Button,Key};
+use piston::event_loop::Events;
+use piston::input::{Button,Key,PressEvent,RenderEvent,UpdateEvent,UpdateArgs};
 use opengl_graphics::{GlGraphics,OpenGL};
 use std::{net,sync};
 #[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
@@ -54,13 +54,13 @@ struct App{
     gl: GlGraphics,
     game_state: GameState<Map<cell::ShapeCell>,rand::StdRng>,
     controllers: Vec<Box<Controller<Map<cell::ShapeCell>,Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map<cell::ShapeCell>>)>>>>,
-    input_receiver: sync::mpsc::Receiver<(Input, PlayerId)>,
+    input_receiver: sync::mpsc::Receiver<(Input,PlayerId)>,
     connection: online::ConnectionType,
     paused: bool,
 }
 
 impl App{
-    fn update(&mut self, args: &event::UpdateArgs){
+    fn update(&mut self, args: &UpdateArgs){
         //Controllers
         if !self.paused{
             for mut controller in self.controllers.iter_mut(){
@@ -140,6 +140,7 @@ impl App{
     }
 }
 
+//Constants
 macro_rules! PROGRAM_NAME{() => ("tetr")}
 macro_rules! PROGRAM_NAME_VERSION{() => (concat!(PROGRAM_NAME!()," v",env!("CARGO_PKG_VERSION")))}
 
@@ -194,7 +195,7 @@ fn main(){
     }
 
     //Define the OpenGL version to be used
-    let opengl = OpenGL::_3_2;
+    let opengl = OpenGL::V3_2;
 
     //Create a window.
     let window = Window::new(
@@ -204,7 +205,7 @@ fn main(){
         )
         .exit_on_esc(true)
         .opengl(opengl)
-    );
+    ).unwrap();
 
     let (input_sender,input_receiver) = sync::mpsc::channel();
 

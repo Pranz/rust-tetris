@@ -1,6 +1,6 @@
 use vec_map::VecMap;
 use core::{cmp,f64};
-use piston::event;
+use piston::input::UpdateArgs;
 use rand::{self,Rand};
 
 use super::data::cell::Cell;
@@ -58,7 +58,7 @@ impl<Map,Rng> GameState<Map,Rng>
     }}
 
     ///Updates the game state
-    pub fn update<EL>(&mut self, args: &event::UpdateArgs,event_listener: &mut EL)
+    pub fn update<EL>(&mut self, args: &UpdateArgs,event_listener: &mut EL)
         where Map: MapTrait,
               <Map as Grid>::Cell: Cell,
               Rng: rand::Rng,
