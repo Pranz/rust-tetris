@@ -33,10 +33,10 @@ use core::f64;
 use endian_type::types::*;
 use piston::window::WindowSettings;
 use piston::event_loop::Events;
-use piston::input::{Button,Key,PressEvent,RenderEvent,UpdateEvent,UpdateArgs};
+use piston::input::{Button,Key,PressEvent,ReleaseEvent,RenderEvent,UpdateEvent,UpdateArgs};
 use opengl_graphics::{GlGraphics,OpenGL};
 use std::{net,sync};
-use std::collections::hash_map::HashMap;
+use std::collections::hash_map::{self,HashMap};
 #[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
 #[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
@@ -59,15 +59,31 @@ struct App{
     input_receiver: sync::mpsc::Receiver<(Input,PlayerId)>,
     connection: online::ConnectionType,
     paused: bool,
-    key_map: input::key::KeyMap,
+    key_map: data::input::key::KeyMap,
+    key_down: HashMap<Key,f64>,
 }
 
 impl App{
-    fn update(&mut self, args: &UpdateArgs){
+    fn update(&mut self, args: &UpdateArgs,input_sender: &sync::mpsc::Sender<(Input,PlayerId)>){
         //Controllers
         if !self.paused{
             for mut controller in self.controllers.iter_mut(){
                 controller.update(args,&self.game_state.players,&self.game_state.maps);
+            }
+        }
+
+        //Key repeat
+        for (key,time_left) in self.key_down.iter_mut(){
+            while{
+                *time_left-= args.dt;
+                *time_left <= 0.0
+            }{
+                *time_left = if let Some(mapping) = self.key_map.get(&key){
+                    input_sender.send((mapping.input,mapping.player)).unwrap();
+                    *time_left + mapping.repeat_frequency
+                }else{
+                    f64::NAN//TODO: If the mapping doesn't exist, it will never be removed
+                }
             }
         }
 
@@ -123,9 +139,18 @@ impl App{
 
             //Other keys, check key bindings
             key => if let Some(mapping) = self.key_map.get(&key){
-                input_sender.send((mapping.input,mapping.player)).unwrap();
+                if let hash_map::Entry::Vacant(entry) = self.key_down.entry(key){
+                    entry.insert(mapping.repeat_delay);
+                    input_sender.send((mapping.input,mapping.player)).unwrap();
+                }
             }
         }}
+    }
+
+    fn on_key_release(&mut self,key: Key){
+        if let hash_map::Entry::Occupied(entry) = self.key_down.entry(key){
+            entry.remove();
+        }
     }
 }
 
@@ -214,6 +239,7 @@ fn main(){
         paused: false,
         controllers: Vec::new(),
         key_map: HashMap::new(),
+        key_down: HashMap::new(),
         input_receiver: input_receiver,
         connection: match args.flag_online{
             //No connection
@@ -269,25 +295,24 @@ fn main(){
     }
 
     {//Key mappings
-        use input::key::Mapping;
+        use data::input::key::Mapping;
 
         //Player 0
-        app.key_map.insert(Key::Left   ,Mapping{input: Input::MoveLeft,           player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-        app.key_map.insert(Key::Right  ,Mapping{input: Input::MoveRight,          player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-        app.key_map.insert(Key::Down   ,Mapping{input: Input::SlowFall,           player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::Left   ,Mapping{input: Input::MoveLeft,           player: 0,repeat_delay: 0.3,repeat_frequency: 0.1});
+        app.key_map.insert(Key::Right  ,Mapping{input: Input::MoveRight,          player: 0,repeat_delay: 0.3,repeat_frequency: 0.1});
+        app.key_map.insert(Key::Down   ,Mapping{input: Input::SlowFall,           player: 0,repeat_delay: 0.3,repeat_frequency: 0.07});
         app.key_map.insert(Key::End    ,Mapping{input: Input::FastFall,           player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-        app.key_map.insert(Key::X      ,Mapping{input: Input::RotateAntiClockwise,player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-        app.key_map.insert(Key::Z      ,Mapping{input: Input::RotateClockwise,    player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::X      ,Mapping{input: Input::RotateAntiClockwise,player: 0,repeat_delay: 0.3,repeat_frequency: 0.2});
+        app.key_map.insert(Key::Z      ,Mapping{input: Input::RotateClockwise,    player: 0,repeat_delay: 0.3,repeat_frequency: 0.2});
 
         //Player 1
-        app.key_map.insert(Key::NumPad4,Mapping{input: Input::MoveLeft,           player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-        app.key_map.insert(Key::NumPad6,Mapping{input: Input::MoveRight,          player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-        app.key_map.insert(Key::NumPad5,Mapping{input: Input::SlowFall,           player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::NumPad4,Mapping{input: Input::MoveLeft,           player: 1,repeat_delay: 0.3,repeat_frequency: 0.1});
+        app.key_map.insert(Key::NumPad6,Mapping{input: Input::MoveRight,          player: 1,repeat_delay: 0.3,repeat_frequency: 0.1});
+        app.key_map.insert(Key::NumPad5,Mapping{input: Input::SlowFall,           player: 1,repeat_delay: 0.3,repeat_frequency: 0.07});
         app.key_map.insert(Key::NumPad2,Mapping{input: Input::FastFall,           player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-        app.key_map.insert(Key::NumPad1,Mapping{input: Input::RotateAntiClockwise,player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-        app.key_map.insert(Key::NumPad0,Mapping{input: Input::RotateClockwise,    player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::NumPad1,Mapping{input: Input::RotateAntiClockwise,player: 1,repeat_delay: 0.3,repeat_frequency: 0.2});
+        app.key_map.insert(Key::NumPad0,Mapping{input: Input::RotateClockwise,    player: 1,repeat_delay: 0.3,repeat_frequency: 0.2});
     }
-
 
     //Run the created application: Listen for events
     for e in window.events(){
@@ -295,10 +320,13 @@ fn main(){
         if let Some(Button::Keyboard(k)) = e.press_args(){
             app.on_key_press(k,&input_sender);
         }
+        if let Some(Button::Keyboard(k)) = e.release_args(){
+            app.on_key_release(k);
+        }
 
         //Update
         if let Some(u) = e.update_args(){
-            app.update(&u);
+            app.update(&u,&input_sender);//TODO: It "feels" not good having to give the input sender to the update method, where it should be receive input
         }
 
         //Render
