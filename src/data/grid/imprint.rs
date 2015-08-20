@@ -10,24 +10,24 @@ pub struct Grid<'ga,'gb,GA: GridTrait + 'ga,GB: GridTrait + 'gb,Cell>{
 }
 
 impl<'ga,'gb,GA,GB,Cell> GridTrait for Grid<'ga,'gb,GA,GB,Cell>
-    where GA: GridTrait + 'ga,
-          GB: GridTrait + 'gb,
-          <GA as GridTrait>::Cell: Copy,
-          <GB as GridTrait>::Cell: Copy,
-          Cell: Copy
+	where GA: GridTrait + 'ga,
+	      GB: GridTrait + 'gb,
+	      <GA as GridTrait>::Cell: Copy,
+	      <GB as GridTrait>::Cell: Copy,
+	      Cell: Copy
 {
 	type Cell = Cell;
 
-    #[inline]fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-        self.a.is_position_out_of_bounds(pos)
-    }
+	#[inline]fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
+		self.a.is_position_out_of_bounds(pos)
+	}
 
-    #[inline]fn offset(&self) -> Pos{self.a.offset()}
-    #[inline]fn width(&self) -> SizeAxis{self.a.width()}
-    #[inline]fn height(&self) -> SizeAxis{self.a.height()}
+	#[inline]fn offset(&self) -> Pos{self.a.offset()}
+	#[inline]fn width(&self) -> SizeAxis{self.a.width()}
+	#[inline]fn height(&self) -> SizeAxis{self.a.height()}
 
-    unsafe fn pos(&self,pos: Pos) -> Self::Cell{
-        let a_pos = self.a.pos(pos);
-        (self.map_fn)(a_pos,if self.b.is_position_out_of_bounds(pos){Some(self.b.pos(pos))}else{None})
-    }
+	unsafe fn pos(&self,pos: Pos) -> Self::Cell{
+		let a_pos = self.a.pos(pos);
+		(self.map_fn)(a_pos,if self.b.is_position_out_of_bounds(pos){Some(self.b.pos(pos))}else{None})
+	}
 }

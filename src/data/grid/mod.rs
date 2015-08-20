@@ -29,54 +29,54 @@ pub struct Size{pub x: SizeAxis,pub y: SizeAxis}
 pub trait Grid{
 	type Cell;
 
-    ///Returns whether the given position is out of bounds
-    fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-        let offset = self.offset();
-        pos.x<offset.x || pos.y<offset.y || pos.x>=self.width() as PosAxis+offset.x || pos.y>=self.height() as PosAxis+offset.y
-    }
+	///Returns whether the given position is out of bounds
+	fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
+		let offset = self.offset();
+		pos.x<offset.x || pos.y<offset.y || pos.x>=self.width() as PosAxis+offset.x || pos.y>=self.height() as PosAxis+offset.y
+	}
 
-    ///Returns the cell at the given position.
-    ///A None will be returned when out of bounds
-    fn position(&self,pos: Pos) -> Option<Self::Cell>{
-        if self.is_position_out_of_bounds(pos){
-            None
-        }else{
-            Some(unsafe{self.pos(pos)})
-        }
-    }
+	///Returns the cell at the given position.
+	///A None will be returned when out of bounds
+	fn position(&self,pos: Pos) -> Option<Self::Cell>{
+		if self.is_position_out_of_bounds(pos){
+			None
+		}else{
+			Some(unsafe{self.pos(pos)})
+		}
+	}
 
-    ///Returns the rectangular axis aligned offset of the map
-    fn offset(&self) -> Pos{Pos{x: 0,y: 0}}
+	///Returns the rectangular axis aligned offset of the map
+	fn offset(&self) -> Pos{Pos{x: 0,y: 0}}
 
-    ///Returns the rectangular axis aligned width of the map
-    fn width(&self) -> SizeAxis;
+	///Returns the rectangular axis aligned width of the map
+	fn width(&self) -> SizeAxis;
 
-    ///Returns the rectangular axis aligned height of the map
-    fn height(&self) -> SizeAxis;
+	///Returns the rectangular axis aligned height of the map
+	fn height(&self) -> SizeAxis;
 
-    ///Returns the rectangular axis aligned size of the map
-    fn size(&self) -> Size{
-        Size{x: self.width(),y: self.height()}
-    }
+	///Returns the rectangular axis aligned size of the map
+	fn size(&self) -> Size{
+		Size{x: self.width(),y: self.height()}
+	}
 
-    ///Returns the cell at the given position without checks
-    ///Requirements:
-    ///    pos.x < height()
-    ///    pos.y < height()
-    ///    is_position_out_of_bounds(pos) == false
-    unsafe fn pos(&self,pos: Pos) -> Self::Cell;
+	///Returns the cell at the given position without checks
+	///Requirements:
+	///    pos.x < height()
+	///    pos.y < height()
+	///    is_position_out_of_bounds(pos) == false
+	unsafe fn pos(&self,pos: Pos) -> Self::Cell;
 }
 
 ///Checks whether the `inside`'s occupied cells are inside `outside`
 pub fn is_grid_out_of_bounds<GIn,GOut>(outside: &GOut,inside: &GIn,inside_offset: Pos) -> bool
-    where GIn : Grid,
-          GOut: Grid,
-          <GIn  as Grid>::Cell: CellTrait + Copy,
+	where GIn : Grid,
+	      GOut: Grid,
+	      <GIn  as Grid>::Cell: CellTrait + Copy,
 {
-    for (pos,cell) in cells_iter::Iter::new(inside){
-        if cell.is_occupied() && outside.is_position_out_of_bounds(Pos{x: inside_offset.x + pos.x as PosAxis,y: inside_offset.y + pos.y as PosAxis}){
-            return true;
-        }
-    }
-    false
+	for (pos,cell) in cells_iter::Iter::new(inside){
+		if cell.is_occupied() && outside.is_position_out_of_bounds(Pos{x: inside_offset.x + pos.x as PosAxis,y: inside_offset.y + pos.y as PosAxis}){
+			return true;
+		}
+	}
+	false
 }
