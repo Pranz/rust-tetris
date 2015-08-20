@@ -1,11 +1,11 @@
-//!A basic tetrimino shape (4 blocks)
+//!A basic tetromino shape (4 blocks)
 
 use num::FromPrimitive;
 use rand::{Rand,Rng};
 
 use super::super::grid::{self,Grid};
 
-///All possible tetrimino shapes
+///All possible tetromino shapes
 enum_from_primitive!{
 #[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub enum Shape{
@@ -18,10 +18,10 @@ pub enum Shape{
     Z,
 }}
 impl Shape{
-    ///Number of possible tetrimino shapes
+    ///Number of possible tetromino shapes
     pub const LEN: usize = 7;
 
-    ///Returns the data of the tetrimino shape
+    ///Returns the data of the tetromino shape
     pub fn data(self,rotation: u8) -> (grid::SizeAxis,&'static [bool]){
         let rotation = rotation as usize;
         match self{

@@ -1,3 +1,3 @@
 //!Shapes in the game
 
-pub mod tetrimino;
+pub mod tetromino;

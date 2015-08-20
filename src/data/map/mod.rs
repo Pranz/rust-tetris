@@ -9,7 +9,7 @@ use core::ops::Range;
 
 use super::grid::{self,Grid,PosAxis,SizeAxis,Pos};
 use super::cell::Cell as CellTrait;
-use super::shapes::tetrimino::RotatedShape;
+use super::shapes::tetromino::RotatedShape;
 
 ///Common trait for a Map grid used in a game
 pub trait Map: Grid{
@@ -93,7 +93,7 @@ pub enum CellIntersection{
 ///Default methods for a map
 pub mod defaults{
     use super::super::grid::{self,Grid,PosAxis,Pos};
-    use super::super::shapes::tetrimino::RotatedShape;
+    use super::super::shapes::tetromino::RotatedShape;
     use super::super::cell::Cell as CellTrait;
     use super::Map;
 

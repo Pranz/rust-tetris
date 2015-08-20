@@ -8,7 +8,7 @@ use super::data::grid::{self,Grid};
 use super::data::map;
 use super::data::map::Map as MapTrait;
 use super::data::player::{self,Player};
-use super::data::shapes::tetrimino::{Shape,RotatedShape};
+use super::data::shapes::tetromino::{Shape,RotatedShape};
 use super::game::event::Event;
 use super::tmp_ptr::TmpPtr;
 

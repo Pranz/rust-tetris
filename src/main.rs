@@ -46,7 +46,7 @@ use data::{cell,player};
 use data::grid::{self,Grid};
 use data::map::dynamic_map::Map;
 use data::player::Player;
-use data::shapes::tetrimino::{Shape,RotatedShape};
+use data::shapes::tetromino::{Shape,RotatedShape};
 use data::input::Input;
 use gamestate::{GameState,MapId,PlayerId};
 use game::event::Event;

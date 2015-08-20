@@ -1,5 +1,5 @@
 use super::super::data::grid;
-use super::super::data::shapes::tetrimino::{Shape,RotatedShape};
+use super::super::data::shapes::tetromino::{Shape,RotatedShape};
 
 ///Events which can occur ingame.
 ///These should get signaled by the game state and listened to by a event listener.

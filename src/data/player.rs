@@ -2,7 +2,7 @@ use fixed_circular_buffer::CircularBuffer;
 
 use super::super::gamestate;
 use super::grid;
-use super::shapes::tetrimino::{RotatedShape,Shape};
+use super::shapes::tetromino::{RotatedShape,Shape};
 
 ///Player state data
 #[derive(Clone,PartialEq)]

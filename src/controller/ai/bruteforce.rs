@@ -11,7 +11,7 @@ use data::input::Input;
 use data::map::Map;
 use data::cell::Cell;
 use data::player::Player;
-use data::shapes::tetrimino::Shape;
+use data::shapes::tetromino::Shape;
 use gamestate;
 use game::event::Event;
 use tmp_ptr::TmpPtr;

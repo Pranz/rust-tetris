@@ -5,7 +5,7 @@ pub mod default{
 
     use data::{cell,colors,grid};
     use data::map::Map;
-    use data::shapes::tetrimino::Shape;
+    use data::shapes::tetromino::Shape;
     use gamestate::GameState;
 
     ///Renders the pause state
