@@ -33,7 +33,7 @@ version = "0.12"
 optional = true
 
 [features]
-default = ["include_glutin"]
+default = ["include_glfw"]
 include_sdl2   = ["pistoncore-sdl2_window"]
 include_glfw   = ["pistoncore-glfw_window"]
 include_glutin = ["pistoncore-glutin_window"]

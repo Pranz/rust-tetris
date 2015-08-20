@@ -1,5 +1,5 @@
 use vec_map::VecMap;
-use core::{cmp,f64};
+use core::cmp;
 use piston::input::UpdateArgs;
 use rand::{self,Rand};
 
@@ -28,11 +28,7 @@ pub struct GameState<Map,Rng>
     pub players       : VecMap<Player>,
 
     ///Random number generator mappings.
-    ///The first field of the tuple contains the global RNG.
-    ///The second field contains a map of RNGs
-    ///When looking up a RNG mapping and it does not exist, it should fallback to the more global one in the following order:
-    ///  Player -> Map -> Global
-    pub rngs          : rng::Mappings<Rng>,
+    pub rngs          : data_map::Mappings<Rng>,
 
     ///Function that maps a shape's cell to the map's cell
     pub imprint_cell  : fn(&RotatedShape) -> <Map as Grid>::Cell,
@@ -52,7 +48,7 @@ impl<Map,Rng> GameState<Map,Rng>
     ) -> Self{GameState{
         maps   : VecMap::new(),
         players: VecMap::new(),
-        rngs   : rng::Mappings::new(rng),
+        rngs   : data_map::Mappings::new(rng),
         imprint_cell: imprint_cell,
         respawn_pos: respawn_pos,
     }}
@@ -77,14 +73,12 @@ impl<Map,Rng> GameState<Map,Rng>
 
             if let Some(map) = self.maps.get_mut(&(player.map as usize)){
                 //Add the time since the last update to the time counts
-                player.gravityfall_time_count += args.dt;
-                player.slowfall_time_count    += args.dt;
-                player.move_time_count        += args.dt;
+                player.gravityfall_time_count -= args.dt;
 
                 //Gravity: If the time count is greater than the shape move frequency, then repeat until it is smaller
-                while player.gravityfall_time_count >= player.settings.gravityfall_frequency{
+                while player.gravityfall_time_count <= 0.0{
                     //Subtract one step of frequency
-                    player.gravityfall_time_count -= player.settings.gravityfall_frequency;
+                    player.gravityfall_time_count += player.settings.gravityfall_frequency;
 
                     //If able to move (no collision below)
                     if move_player(player,map,grid::Pos{x: 0,y: 1}){
@@ -113,7 +107,7 @@ impl<Map,Rng> GameState<Map,Rng>
                         });
 
                         //Respawn player and check for collision at spawn position
-                        let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.get(rng::MappingKey::Player(player_id))));
+                        let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.player_get(map_id,player_id)));
                         if !respawn_player((player_id,player),(map_id,map),shape,self.respawn_pos,event_listener){
                             action = Action::ResetMap(map_id);
                             break 'player_loop;
@@ -138,7 +132,7 @@ impl<Map,Rng> GameState<Map,Rng>
     {
         if let Some(map) = self.maps.get_mut(&(map_id as usize)){
             let new_id = self.players.len();
-            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.get(rng::MappingKey::Player(new_id as PlayerId))));
+            let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.player_get(map_id,new_id as PlayerId)));
 
             self.players.insert(new_id,Player{
                 pos                   : (self.respawn_pos)(&shape,map),
@@ -147,9 +141,7 @@ impl<Map,Rng> GameState<Map,Rng>
                 shape                 : shape,
                 map                   : map_id,
                 points                : 0,
-                gravityfall_time_count: 0.0,
-                slowfall_time_count   : f64::NAN,
-                move_time_count       : f64::NAN,
+                gravityfall_time_count: settings.gravityfall_frequency,
                 settings              : settings
             });
             let player = self.players.get_mut(&new_id).unwrap();
@@ -178,41 +170,67 @@ impl<Map,Rng> GameState<Map,Rng>
 
             for (player_id,player) in self.players.iter_mut().filter(|&(_,ref player)| player.map == map_id){
                 //Reset all players in the map
-                let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.get(rng::MappingKey::Player(player_id as PlayerId))));
+                let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.player_get(map_id,player_id as PlayerId)));
                 respawn_player((player_id as PlayerId,player),(map_id,map),shape,self.respawn_pos,event_listener);
-                if player.gravityfall_time_count!=f64::NAN{player.gravityfall_time_count = 0.0}
-                if player.slowfall_time_count   !=f64::NAN{player.slowfall_time_count    = 0.0}
-                if player.move_time_count       !=f64::NAN{player.move_time_count        = 0.0}
+                player.gravityfall_time_count = player.settings.gravityfall_frequency;
             }
         };
     }
 }
 
-pub mod rng{
+pub mod data_map{
+    use core::mem;
     use std::collections::hash_map::HashMap;
 
-    ///Kind of RNG mappings
+    ///Kind of data mappings
     #[derive(Copy,Clone,Debug,Eq,PartialEq,Hash)]
     pub enum MappingKey{
         Map(super::MapId),
         Player(super::PlayerId)
     }
 
-    ///The type of the `rngs` field in GameState.
-    ///Contains RNG mappings with a global fallback RNG
-    pub struct Mappings<Rng>(pub Rng,pub HashMap<MappingKey,Rng>);
+    ///Contains mappings with a global fallback.
+    ///The first field contains the global data.
+    ///The second field contains a map of datas.
+    ///When looking up a mapping and it does not exist, it falls back to the more global one in the following order:
+    ///  Player -> Map -> Global
+    pub struct Mappings<T>(T,pub HashMap<MappingKey,T>);
 
-    impl<Rng> Mappings<Rng>{
+    impl<T> Mappings<T>{
         ///Constructs a RNG mappings container with a default global fallback
-        pub fn new(global: Rng) -> Self{Mappings(global,HashMap::new())}
+        pub fn new(global: T) -> Self{Mappings(global,HashMap::new())}
 
-        ///Lookup a RNG from mappings with fallbacks.
-        ///See the documentation of the `GameState::rngs` field
-        pub fn get(&mut self,mapping: MappingKey) -> &mut Rng{
-            match self.1.get_mut(&mapping){
-                Some(rng) => rng,
-                None => &mut self.0
-            }
+        ///Gets the global fallback data
+        #[inline]pub fn global(&mut self) -> &mut T{&mut self.0}
+
+        ///Adds a copy of the global fallback data to the specified mapping
+        #[inline]pub fn insert_from_global(&mut self,mapping: MappingKey)
+            where T: Clone
+        {
+            self.1.insert(mapping,self.0.clone());
+        }
+
+        ///Lookup data from a map mapping with fallbacks.
+        pub fn map_get(&mut self,map: super::MapId) -> &mut T{
+            self.1.get_mut(&MappingKey::Map(map)).unwrap_or(&mut self.0)
+        }
+
+        ///Lookup data from a player mapping with fallbacks.
+        pub fn player_get(&mut self,map: super::MapId,player: super::PlayerId) -> &mut T{
+            let mappings1: &mut HashMap<MappingKey,T> = unsafe{mem::transmute(&mut self.1)};
+            let mappings2: &mut HashMap<MappingKey,T> = unsafe{mem::transmute(&mut self.1)};
+
+            match mappings1.get_mut(&MappingKey::Player(player)){
+                Some(rng) => return rng,
+                None => ()
+            };
+
+            match mappings2.get_mut(&MappingKey::Map(map)){
+                Some(rng) => return rng,
+                None => ()
+            };
+
+            &mut self.0
         }
     }
 }

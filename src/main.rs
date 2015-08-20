@@ -29,12 +29,14 @@ pub mod render;
 pub mod tmp_ptr;
 
 use controller::Controller;
+use core::f64;
 use endian_type::types::*;
 use piston::window::WindowSettings;
 use piston::event_loop::Events;
 use piston::input::{Button,Key,PressEvent,RenderEvent,UpdateEvent,UpdateArgs};
 use opengl_graphics::{GlGraphics,OpenGL};
 use std::{net,sync};
+use std::collections::hash_map::HashMap;
 #[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
 #[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
@@ -57,6 +59,7 @@ struct App{
     input_receiver: sync::mpsc::Receiver<(Input,PlayerId)>,
     connection: online::ConnectionType,
     paused: bool,
+    key_map: input::key::KeyMap,
 }
 
 impl App{
@@ -118,24 +121,10 @@ impl App{
             },
             Key::Home   => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.pos.y = 0;};},
 
-            //Player 0
-            Key::Left   => {input_sender.send((Input::MoveLeft,           0)).unwrap();},
-            Key::Right  => {input_sender.send((Input::MoveRight,          0)).unwrap();},
-            Key::Down   => {input_sender.send((Input::SlowFall,           0)).unwrap();},
-            Key::End    => {input_sender.send((Input::FastFall,           0)).unwrap();},
-            Key::X      => {input_sender.send((Input::RotateAntiClockwise,0)).unwrap();},
-            Key::Z      => {input_sender.send((Input::RotateClockwise,    0)).unwrap();},
-
-            //Player 1
-            Key::NumPad4 => {input_sender.send((Input::MoveLeft,           1)).unwrap();},
-            Key::NumPad6 => {input_sender.send((Input::MoveRight,          1)).unwrap();},
-            Key::NumPad5 => {input_sender.send((Input::SlowFall,           1)).unwrap();},
-            Key::NumPad2 => {input_sender.send((Input::FastFall,           1)).unwrap();},
-            Key::NumPad1 => {input_sender.send((Input::RotateAntiClockwise,1)).unwrap();},
-            Key::NumPad0 => {input_sender.send((Input::RotateClockwise,    1)).unwrap();},
-
-            //Other keys
-            _ => ()
+            //Other keys, check key bindings
+            key => if let Some(mapping) = self.key_map.get(&key){
+                input_sender.send((mapping.input,mapping.player)).unwrap();
+            }
         }}
     }
 }
@@ -219,11 +208,12 @@ fn main(){
             }f}as fn(&_) -> _,
             {fn f<M: Grid>(shape: &RotatedShape,map: &M) -> grid::Pos{grid::Pos{
                 x: map.width() as grid::PosAxis/2 - shape.center_x() as grid::PosAxis,
-                y: 0//TODO: Optionally spawn above: `-(shape.height() as grid::PosAxis);`. Problem is the collision checking. And this is not how it usually is done
+                y: 0//TODO: Optionally spawn above: `-(shape.height() as grid::PosAxis);`. Problem is the collision checking. And this is not how it usually is done in other games
             }}f::<Map<cell::ShapeCell>>}as fn(&_,&_) -> _,
         ),
         paused: false,
         controllers: Vec::new(),
+        key_map: HashMap::new(),
         input_receiver: input_receiver,
         connection: match args.flag_online{
             //No connection
@@ -258,18 +248,14 @@ fn main(){
     {let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
         if let online::ConnectionType::None = app.connection{
             //Create player 0
-            game.rngs.1.insert(gamestate::rng::MappingKey::Player(0),game.rngs.0);
+            game.rngs.insert_from_global(gamestate::data_map::MappingKey::Player(0));
             game.add_player(0,player::Settings{
                 gravityfall_frequency: 1.0,
-                slowfall_delay       : 1.0,
-                slowfall_frequency   : 1.0,
-                move_delay           : 1.0,
-                move_frequency       : 1.0,
                 fastfall_shadow      : true,
             },&mut |e| for c in cs.iter_mut(){c.event(e);});
 
             //Create player 1
-            game.rngs.1.insert(gamestate::rng::MappingKey::Player(1),game.rngs.0);
+            game.rngs.insert_from_global(gamestate::data_map::MappingKey::Player(1));
             cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
                 input_sender.clone(),
                 1,
@@ -277,14 +263,31 @@ fn main(){
             )));
             game.add_player(1,player::Settings{
                 gravityfall_frequency: 1.0,
-                slowfall_delay       : 1.0,
-                slowfall_frequency   : 1.0,
-                move_delay           : 1.0,
-                move_frequency       : 1.0,
                 fastfall_shadow      : true,
             },&mut |e| for c in cs.iter_mut(){c.event(e);});
         }
     }
+
+    {//Key mappings
+        use input::key::Mapping;
+
+        //Player 0
+        app.key_map.insert(Key::Left   ,Mapping{input: Input::MoveLeft,           player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::Right  ,Mapping{input: Input::MoveRight,          player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::Down   ,Mapping{input: Input::SlowFall,           player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::End    ,Mapping{input: Input::FastFall,           player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::X      ,Mapping{input: Input::RotateAntiClockwise,player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::Z      ,Mapping{input: Input::RotateClockwise,    player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+
+        //Player 1
+        app.key_map.insert(Key::NumPad4,Mapping{input: Input::MoveLeft,           player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::NumPad6,Mapping{input: Input::MoveRight,          player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::NumPad5,Mapping{input: Input::SlowFall,           player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::NumPad2,Mapping{input: Input::FastFall,           player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::NumPad1,Mapping{input: Input::RotateAntiClockwise,player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+        app.key_map.insert(Key::NumPad0,Mapping{input: Input::RotateClockwise,    player: 1,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
+    }
+
 
     //Run the created application: Listen for events
     for e in window.events(){
