@@ -1,11 +1,12 @@
-#![feature(associated_consts,collections,core,ip_addr,lookup_host,optin_builtin_traits,plugin,raw,slice_patterns,str_split_at)]
+#![feature(associated_consts,collections,core,custom_derive,ip,ip_addr,lookup_host,optin_builtin_traits,plugin,slice_patterns,str_split_at)]
 
 #![plugin(docopt_macros)]
+#![plugin(rand_macros)]
+#![plugin(serde_macros)]
+extern crate bincode;
 extern crate collections;
 extern crate core;
 extern crate docopt;
-extern crate endian_type;
-#[macro_use] extern crate enum_primitive;
 extern crate fixed_circular_buffer;
 extern crate graphics;
 extern crate num;
@@ -13,6 +14,7 @@ extern crate opengl_graphics;
 extern crate piston;
 extern crate rand;
 extern crate rustc_serialize;
+extern crate serde;
 extern crate vec_map;
 #[cfg(feature = "include_sdl2")]  extern crate sdl2_window;
 #[cfg(feature = "include_glfw")]  extern crate glfw_window;
@@ -30,7 +32,6 @@ pub mod tmp_ptr;
 
 use controller::Controller;
 use core::f64;
-use endian_type::types::*;
 use piston::window::WindowSettings;
 use piston::event_loop::Events;
 use piston::input::{Button,Key,PressEvent,ReleaseEvent,RenderEvent,UpdateEvent,UpdateArgs};
@@ -96,11 +97,11 @@ impl App{
 			}
 
 			if let online::ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
-				socket.send_to(online::client::packet::PlayerInput{
-					connection_id: u32_le::from(0),
-					player_network_id: u32_le::from(0),
-					input: input as u8
-				}.into_packet(u16_le::from(0)).as_bytes(),address).unwrap();
+				socket.send_to(&*online::client::packet::Data::PlayerInput{
+					connection: 0,
+					player: 0,
+					input: input
+				}.into_packet(0).serialize(),address).unwrap();
 			}}
 		}
 
@@ -247,7 +248,13 @@ fn main(){
 
 			//Start to act as a client, connecting to a server
 			command_arg::OnlineConnection::client => {
-				let server_addr = net::SocketAddr::new(args.flag_host.0,args.flag_port);
+				let server_addr = net::SocketAddr::new(
+					match args.flag_host.0{
+						net::IpAddr::V4(ip) if ip.is_unspecified() => net::IpAddr::V4(net::Ipv4Addr::new(127,0,0,1)),
+						ip => ip
+					},
+					args.flag_port
+				);
 
 				match online::client::start(server_addr,input_sender.clone()){
 					Ok(socket) => online::ConnectionType::Client(socket,server_addr),

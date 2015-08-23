@@ -18,7 +18,7 @@ pub struct Player{
 }
 
 ///Player settings
-#[derive(Copy,Clone,PartialEq)]
+#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
 pub struct Settings{
 	pub gravityfall_frequency: f64,//Unit: seconds/block
 	pub fastfall_shadow      : bool,

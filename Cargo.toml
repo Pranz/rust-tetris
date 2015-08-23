@@ -5,14 +5,16 @@ authors = ["Pranz <jesper.fridefors@gmail.com", "Lolirofle <lolipopple@hotmail.c
 license = "LGPL-3.0"
 
 [dependencies]
+bincode = "0.4"
 docopt = "0.6"
 docopt_macros = {git = "https://github.com/docopt/docopt.rs.git"}#"0.6"
-endian-type = "0.1"
 fixed_circular_buffer = "0.2"
-enum_primitive = "0.1"
 num = "0.1"
 rand = "0.3"
+rand_macros = "*"
 rustc-serialize = "0.3"
+serde = "0.5"
+serde_macros = "0.5"
 vec_map = "0.3"
 
 piston = "0.10"

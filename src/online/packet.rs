@@ -1,39 +1,69 @@
-use endian_type::types::*;
+use core::mem;
+use serde::{de,Serialize,Serializer,Deserialize,Deserializer};
 
-pub const HEADER_SIZE: usize = 1 + 2;//Packet type + Packet id
+pub struct ProtocolId;
+impl Serialize for ProtocolId{
+	#[inline]
+	fn serialize<S>(&self,serializer: &mut S) -> Result<(),S::Error>
+		where S: Serializer
+	{
+		serializer.visit_str("TETR")
+	}
+}
+impl Deserialize for ProtocolId{
+	#[inline]
+	fn deserialize<D>(deserializer: &mut D) -> Result<Self,D::Error>
+		where D: Deserializer
+	{
+		struct V;
+		impl de::Visitor for V{
+			type Value = ProtocolId;
 
-pub type Id = u16_le;
+			fn visit_str<E>(&mut self,s: &str) -> Result<Self::Value,E>
+				where E: de::Error,
+			{
+				if s=="TETR"{
+					Ok(ProtocolId)
+				}else{
+					Err(de::Error::syntax("Expected `TETR` as the protocol id"))
+				}
+			}
 
-#[repr(packed)]
-pub struct Header<Type: Sized + Copy>(pub Type,pub Id);
-
-#[repr(packed)]
-pub struct Packet<Type: Sized + Copy,Data: Sized + Copy>(pub Header<Type>,pub Data);
-impl<Type: Sized + Copy,Data: Sized + Copy> Packet<Type,Data>{
-	pub fn as_bytes(&self) -> &[u8]{
-		unsafe{::core::slice::from_raw_parts(
-			self as *const Self as *const u8,
-			::core::mem::size_of::<Self>()
-		)}
+			fn visit_bytes<E>(&mut self,s: &[u8]) -> Result<Self::Value,E>
+				where E: de::Error,
+			{
+				if s==b"TETR"{
+					Ok(ProtocolId)
+				}else{
+					Err(de::Error::syntax("Expected `TETR` as the protocol id"))
+				}
+			}
+		}
+		deserializer.visit_string(V)
 	}
 }
 
-macro_rules! impl_FromPacketBytes{
-	( $ty:ident : $variant:ident ) => {
-		impl $ty{
-			pub fn from_packet_bytes(bytes: &[u8]) -> &Self{
-				use $crate::online::Packet;
-				use core::mem;
-				use core::raw::Repr;
+pub type Id = u16;
 
-				let bytes = bytes.repr();
-				debug_assert_eq!(bytes.len,mem::size_of::<Packet<$variant,Self>>());
-				unsafe{&(*(bytes.data as *const Packet<$variant,Self>)).1}
-			}
-
-			pub fn into_packet(self,id: $crate::online::packet::Id) -> $crate::online::Packet<$variant,Self>{
-				$crate::online::Packet($crate::online::packet::Header($variant::$ty,id),self)
-			}
-		}
-	};
+#[derive(Serialize,Deserialize)]
+pub struct Packet<Data: Serialize + Deserialize>{
+	pub protocol: ProtocolId,
+	pub packet: Id,
+	pub data: Data,
 }
+
+impl<Data> Packet<Data>
+		where Data: Serialize + Deserialize
+{
+	pub fn serialize(&self) -> Vec<u8>
+	{
+		::bincode::serde::serialize(self,::bincode::SizeLimit::Bounded(256)).unwrap()
+	}
+}
+
+pub type ProtocolVersion = u16;
+pub type ConnectionId = u32;
+pub type PlayerNetworkId = u32;
+
+#[inline(always)]
+pub fn buffer() -> [u8; 256]{unsafe{mem::uninitialized()}}//TODO: 256 is just a constant made up on top of my head. This should be of the size of the largest packet sent/received.

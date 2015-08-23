@@ -1,64 +1,68 @@
 pub mod packet;
 
 
-use num::traits::FromPrimitive;
+
+use core::mem;
 use rand::{Rng,StdRng};
 use std::{net,sync,thread};
+use std::error::Error;
 
+use super::{client,Packet};
 use data::input::Input;
-use endian_type::types::*;
 use gamestate::PlayerId;
 
 pub fn start(host_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Input,PlayerId)>) -> Result<(),()>{
 	match net::UdpSocket::bind(host_addr){
 		Ok(socket) => {
-			use core::mem;
-
 			println!("Server: Listening on {}...",host_addr);
+
+			//Listen for packets from clients in a new thread
 			thread::spawn(move ||{
-				use online::client::packet::*;
-
-				let mut buffer: PacketBytes = [0; SIZE];
+				let mut buffer = super::packet::buffer();
 				let mut connection_id_gen = StdRng::new().unwrap();
+
+				//For each received packet
 				while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
-					//First byte is the packet type
-					match Type::from_packet_bytes(&buffer[..]){
-						//Recevied connection request
-						Some(Type::Connect) if buffer_size==mem::size_of::<super::Packet<Type,Connect>>() => {
-							let packet = Connect::from_packet_bytes(&buffer[..buffer_size]);
-							print!("Server: Connection request from {}... ",address);
-							match packet.protocol_version.into(){
-								1 => {
-									println!("OK");
-									socket.send_to(
-										packet::ConnectionEstablished{
-											connection_id: u32_le::from(connection_id_gen.gen::<u32>())
-										}.into_packet(u16_le::from(0)).as_bytes(),
-										address
-									).unwrap();
-								},
+					if buffer_size > mem::size_of_val(&buffer){
+						println!("Server: Client sent too big of a packet: {} bytes",buffer_size);
+						continue;
+					}
 
-								version => {
-									println!("Server: Invalid version: {}",version);
-									socket.send_to(packet::ConnectionInvalid.into_packet(u16_le::from(0)).as_bytes(),address).unwrap();
+					//Deserialize packet
+					match ::bincode::serde::deserialize(&buffer[..]){
+						Ok(Packet{data,..}) => match data{
+							//Recevied connection request
+							client::packet::Data::Connect{protocol_version} => {
+								print!("Server: Connection request from {}... ",address);
+								match protocol_version{
+									1 => {
+										println!("OK");
+										socket.send_to(
+											&*packet::Data::ConnectionEstablished{
+												connection: connection_id_gen.gen::<u32>()
+											}.into_packet(0).serialize(),
+											address
+										).unwrap();
+									},
+
+									version => {
+										println!("Server: Invalid version: {}",version);
+										socket.send_to(&*packet::Data::ConnectionInvalid.into_packet(0).serialize(),address).unwrap();
+									}
 								}
-							}
-						},
+							},
 
-						//Received player input
-						Some(Type::PlayerInput) if buffer_size==mem::size_of::<super::Packet<Type,PlayerInput>>() => {
-							let packet = PlayerInput::from_packet_bytes(&buffer[..buffer_size]);
-							match Input::from_u8(packet.input){
-								Some(input) => input_sender.send((input,1)).unwrap(),
-								None => ()
-							}
-						},
+							//Received player input
+							client::packet::Data::PlayerInput{input,..} => {
+								input_sender.send((input,1)).unwrap()
+							},
 
-						//Received unimplemented TODO stuff
-						Some(ty) => println!("Server: {:?}: {:?} (Size: {})",ty,buffer,buffer_size),
+							//Received unimplemented TODO stuff
+							data => println!("Server: {:?}",data),
+						},
 
 						//Received other stuff
-						None => ()
+						Err(e) => println!("Server: Receuived data but error: {}: {}",e,e.description())
 					}
 				}
 			});

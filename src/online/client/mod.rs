@@ -2,74 +2,57 @@ pub mod packet;
 
 
 
-use num::traits::FromPrimitive;
+use core::mem;
 use std::{net,sync,thread};
+use std::error::Error;
 
+use super::{server,Packet};
 use data::input::Input;
 use gamestate::PlayerId;
 
 pub fn start(server_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Input,PlayerId)>) -> Result<net::UdpSocket,()>{
 	match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),0)){
 		Ok(socket) => {
-			use core::mem;
-			use endian_type::types::*;
-
-
 			println!("Client: Connecting to {}...",server_addr);
 
-			//Send connect packet
-			{let mut retry = 0;loop{match socket.send_to(
-				packet::Connect{
-					protocol_version: u16_le::from(1)
-				}.into_packet(u16_le::from(0)).as_bytes(),//TODO: Packet id and all other `into_packet`s
-				server_addr
-			){
-				Ok(_) => break,
-				Err(e) => {use std::io::ErrorKind::*;match e.kind(){
-					Interrupted | TimedOut => {
-						if retry>5{
-							println!("Client: Error when sending socket: Retried {} times",retry);
-							return Err(());
-						}else{
-							retry+=1;
-							continue;
-						}
-					},
-					kind => {
-						println!("Client: {:?} error when sending socket",kind);
-						return Err(());
-					}
-				}}
-			}}}
+			//Send connect packet to server
+			try!(connect_server(&socket,server_addr,5));
 
-			//Listen for server packets
+			//Listen for packets from server in a new thread
 			{let socket = socket.try_clone().unwrap();thread::spawn(move ||{
-				use super::server::packet::*;
+				let mut buffer = super::packet::buffer();
 
-				let mut buffer: PacketBytes = [0; SIZE];
+				//For each received packet
 				while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
-					//First byte is the packet type
-					match Type::from_packet_bytes(&buffer[..]){
-						//Received connection request established
-						Some(Type::ConnectionEstablished) if buffer_size==mem::size_of::<super::Packet<Type,ConnectionEstablished>>() => {
-							let packet = ConnectionEstablished::from_packet_bytes(&buffer[..buffer_size]);
-							println!("Client: Connection established to {} (Id: {})",address,Into::<u32>::into(packet.connection_id));
-						},
+					if server_addr != address{
+						println!("Client: Not server who sent the packet ({} (Server) != {})",server_addr,address);
+						continue;
+					}
 
-						//Received player input
-						Some(Type::PlayerInput) if buffer_size==mem::size_of::<super::Packet<Type,PlayerInput>>() => {
-							let packet = PlayerInput::from_packet_bytes(&buffer[..buffer_size]);
-							match Input::from_u8(packet.input){
-								Some(input) => input_sender.send((input,1)).unwrap(),
-								None => ()
-							}
-						},
+					if buffer_size > mem::size_of_val(&buffer){
+						println!("Client: Server sent too big of a packet: {} bytes",buffer_size);
+						continue;
+					}
 
-						//Received unimplemented TODO stuff
-						Some(ty) => println!("Client: {:?}: {:?} (Size: {})",ty,buffer,buffer_size),
+					//Deserialize packet
+					match ::bincode::serde::deserialize(&buffer[..]){
+						Ok(Packet{data,..}) => match data{
+							//Received connection request established
+							server::packet::Data::ConnectionEstablished{connection} => {
+								println!("Client: Connection established to {} (Id: {})",address,connection);
+							},
+
+							//Received player input
+							server::packet::Data::PlayerInput{input,..} => {
+								input_sender.send((input,1)).unwrap();
+							},
+
+							//Received unimplemented TODO stuff
+							data => println!("Client: {:?}",data),
+						},
 
 						//Received other stuff
-						None => ()
+						Err(e) => println!("Client: Receuived data but error: {}: {}",e,e.description())
 					}
 				}
 			});}
@@ -81,4 +64,33 @@ pub fn start(server_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Inpu
 			Err(())
 		}
 	}
+}
+
+pub fn connect_server(socket: &net::UdpSocket,address: net::SocketAddr,mut retries: u8) -> Result<(),()>{
+	loop{match socket.send_to(
+		&*packet::Data::Connect{
+			protocol_version: 1
+		}.into_packet(0).serialize(),//TODO: Packet id and all other `into_packet`s
+		address
+	){
+		Ok(_) => return Ok(()),
+		Err(e) => {use std::io::ErrorKind::*;match e.kind(){
+			Interrupted | TimedOut => {
+				match retries.checked_sub(1){
+					Some(n) => {
+						retries = n;
+						continue;
+					},
+					None => {
+						println!("Client: Error when sending socket: Gave up, no more retries");
+						return Err(());
+					}
+				}
+			},
+			kind => {
+				println!("Client: {:?} error when sending socket",kind);
+				return Err(());
+			}
+		}}
+	}}
 }

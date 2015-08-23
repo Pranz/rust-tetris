@@ -1,13 +1,9 @@
 //!A basic tetromino shape (4 blocks)
 
-use num::FromPrimitive;
-use rand::{Rand,Rng};
-
 use super::super::grid::{self,Grid};
 
 ///All possible tetromino shapes
-enum_from_primitive!{
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq,Rand)]
 pub enum Shape{
 	I,
 	L,
@@ -16,7 +12,7 @@ pub enum Shape{
 	T,
 	S,
 	Z,
-}}
+}
 impl Shape{
 	///Number of possible tetromino shapes
 	pub const LEN: usize = 7;
@@ -64,14 +60,6 @@ impl Shape{
 	#[inline(always)]
 	pub fn rotations(self) -> ShapeRotations{
 		ShapeRotations(RotatedShape{shape: self,rotation: self.rotation_count()})
-	}
-}
-impl Rand for Shape{
-	fn rand<R: Rng>(rng: &mut R) -> Self{
-		match Shape::from_u8(rng.gen_range(0,Shape::LEN as u8)){
-			Some(out) => out,
-			None => unreachable!()
-		}
 	}
 }
 

@@ -1,6 +1,4 @@
-enum_from_primitive!{
-#[derive(Copy,Clone,Debug,Eq,PartialEq)]
-#[repr(u8)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq,Serialize,Deserialize)]
 pub enum Input{
 	MoveLeft,
 	MoveRight,
@@ -9,7 +7,7 @@ pub enum Input{
 	RotateClockwise,
 	RotateAntiClockwise,
 	Pause,
-}}
+}
 
 pub mod key{
 	use piston::input::Key;
@@ -20,7 +18,7 @@ pub mod key{
 
 	pub type KeyMap = HashMap<Key,Mapping>;
 
-	#[derive(Copy,Clone,PartialEq)]
+	#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
 	pub struct Mapping{
 		pub player          : PlayerId,
 		pub input           : Input,
