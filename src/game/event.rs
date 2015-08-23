@@ -4,33 +4,33 @@ use super::super::data::shapes::tetromino::{Shape,RotatedShape};
 ///Events which can occur ingame.
 ///These should get signaled by the game state and listened to by a event listener.
 #[derive(Copy,Clone,Debug)]
-pub enum Event<Player,Map>{
-	//MapStart(Map),
-	//MapUpdate(Map),
-	//MapEnd(Map),
+pub enum Event<Player,World>{
+	//WorldStart(World),
+	//WorldUpdate(World),
+	//WorldEnd(World),
 	PlayerAdd{
 		player: Player,
-		map: Map
+		world: World
 	},
-	//PlayerRemove(PlayerId,Map),
-	//PlayerMapChange(PlayerId,Map,Map),
+	//PlayerRemove(PlayerId,World),
+	//PlayerWorldChange(PlayerId,World,World),
 	//PlayerRotate(PlayerId),
-	//PlayerRotateCollide(PlayerId,Map),
-	//PlayerMove(PlayerId,Map,grid::PosAxis,grid::PosAxis),
-	//PlayerMoveCollide(PlayerId,Map,grid::PosAxis,grid::PosAxis),
+	//PlayerRotateCollide(PlayerId,World),
+	//PlayerMove(PlayerId,World,grid::PosAxis,grid::PosAxis),
+	//PlayerMoveCollide(PlayerId,World,grid::PosAxis,grid::PosAxis),
 	PlayerMoveGravity{
 		player: Player,
-		map: Map,
+		world: World,
 	},
-	MapImprintShape{
-		map: Map,
+	WorldImprintShape{
+		world: World,
 		shape: (RotatedShape,grid::Pos),
 		full_rows: grid::SizeAxis,
 		cause: Option<Player>,
 	},
 	PlayerChangeShape{
 		player: Player,
-		map: Map,
+		world: World,
 		shape: Shape,
 		pos: grid::Pos
 	},

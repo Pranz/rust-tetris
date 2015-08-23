@@ -8,7 +8,7 @@ use std::sync;
 use super::super::Controller as ControllerTrait;
 use data::grid::{self,translate};
 use data::shapes::tetromino::Shape;
-use data::{Cell,Input,Grid,Map,Player,Request};
+use data::{Cell,Input,Grid,Player,Request,World};
 use game::Event;
 use gamestate;
 use tmp_ptr::TmpPtr;
@@ -50,27 +50,27 @@ impl Controller{
 		target_rotation: 1,
 	}}
 
-	pub fn recalculate_optimal_target<M>(&mut self,map: &M,shape: Shape,pos: grid::Pos)
-		where M: Map,
-		      <M as Grid>::Cell: Cell + Copy
+	pub fn recalculate_optimal_target<W>(&mut self,world: &W,shape: Shape,pos: grid::Pos)
+		where W: World,
+		      <W as Grid>::Cell: Cell + Copy
 	{
 		let mut greatest_o   = f32::NEG_INFINITY;
 
 		for rotated_shape in shape.rotations(){
-			for x in -(rotated_shape.width() as grid::PosAxis)+1 .. map.width() as grid::PosAxis{
-				if !grid::is_grid_out_of_bounds(map,&rotated_shape,grid::Pos{x: x,y: 0}){
+			for x in -(rotated_shape.width() as grid::PosAxis)+1 .. world.width() as grid::PosAxis{
+				if !grid::is_grid_out_of_bounds(world,&rotated_shape,grid::Pos{x: x,y: 0}){
 					let pos = gamestate::fastfallen_shape_pos(
 						&rotated_shape,
-						map,
+						world,
 						grid::Pos{
 							x: x,
 							y: pos.y
 						}
 					);
 
-					let optimality_test_map = grid::imprint_bool::Grid{a: map,b: &translate::Grid{grid: &rotated_shape,pos: grid::Pos{x: -pos.x,y: -pos.y}}};
+					let optimality_test_world = grid::imprint_bool::Grid{a: world,b: &translate::Grid{grid: &rotated_shape,pos: grid::Pos{x: -pos.x,y: -pos.y}}};
 
-					let current_o = map_optimality2(&optimality_test_map);
+					let current_o = world_optimality2(&optimality_test_world);
 					if current_o > greatest_o{
 						greatest_o = current_o;
 						self.target = pos;
@@ -82,11 +82,11 @@ impl Controller{
 	}
 }
 
-impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>> for Controller
-	where M: Map,
-	      <M as Grid>::Cell: Cell + Copy
+impl<W> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::WorldId,TmpPtr<W>)>> for Controller
+	where W: World,
+	      <W as Grid>::Cell: Cell + Copy
 {
-	fn update(&mut self,args: &UpdateArgs,players: &VecMap<Player>,_: &VecMap<M>){
+	fn update(&mut self,args: &UpdateArgs,players: &VecMap<Player>,_: &VecMap<W>){
 		if let Some(player) = players.get(&(self.player_id as usize)){
 			self.move_time_count-= args.dt;
 			self.rotate_time_count-= args.dt;
@@ -117,22 +117,22 @@ impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 		}
 	}
 
-	fn event(&mut self,event: Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>){
+	fn event(&mut self,event: Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::WorldId,TmpPtr<W>)>){
 		use game::Event::*;
 
 		match event{
-			PlayerAdd{player: (player_id,player),map: (_,map)} if player_id == self.player_id => {
-				self.recalculate_optimal_target(&*map,player.shape.shape(),player.pos);
+			PlayerAdd{player: (player_id,player),world: (_,world)} if player_id == self.player_id => {
+				self.recalculate_optimal_target(&*world,player.shape.shape(),player.pos);
 			},
-			/*TODO: When other players imprints on the map (Problem: Cannot access self's player)
-			MapImprintShape{cause: Some((player_id,_)),map: (_,map),..} if player_id != self.player_id => {
-				self.recalculate_optimal_target(&*map,player.shape.shape(),player.pos);
+			/*TODO: When other players imprints on the world (Problem: Cannot access self's player)
+			WorldImprintShape{cause: Some((player_id,_)),world: (_,world),..} if player_id != self.player_id => {
+				self.recalculate_optimal_target(&*world,player.shape.shape(),player.pos);
 			},*/
-			PlayerChangeShape{player: (player_id,_),map: (_,map),shape,pos,..} if player_id == self.player_id => {
+			PlayerChangeShape{player: (player_id,_),world: (_,world),shape,pos,..} if player_id == self.player_id => {
 				self.move_time_count = 0.0;
 				self.rotate_time_count = 0.0;
 
-				self.recalculate_optimal_target(&*map,shape,pos);
+				self.recalculate_optimal_target(&*world,shape,pos);
 			},
 			_ => ()
 		}
@@ -140,22 +140,22 @@ impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 }
 
 #[allow(unused)]
-fn map_optimality<M>(map: &M) -> f32
-	where M: Grid,
-	      <M as Grid>::Cell: Cell + Copy
+fn world_optimality<W>(world: &W) -> f32
+	where W: Grid,
+	      <W as Grid>::Cell: Cell + Copy
 {
 	let mut o = 0.0;
-	let map_height = map.height();
+	let world_height = world.height();
 
-	for row in grid::rows_iter::Iter::new(map){
+	for row in grid::rows_iter::Iter::new(world){
 		let y = row.y;
-		let height = map_height - y;
+		let height = world_height - y;
 		let penalty = height as f32 * 20.0;
 
 		for (x,cell) in grid::row::Iter::new(row){
 			if cell.is_occupied(){
 				o+= height as f32 * 3.0;
-			}else if let Some(cell) = map.position(grid::Pos{x: x as grid::PosAxis,y: y as grid::PosAxis - 1}){
+			}else if let Some(cell) = world.position(grid::Pos{x: x as grid::PosAxis,y: y as grid::PosAxis - 1}){
 				if cell.is_occupied(){
 					o+= penalty;
 				}
@@ -168,12 +168,12 @@ fn map_optimality<M>(map: &M) -> f32
 
 ///Greater is better
 #[allow(unused)]
-fn map_optimality2<M>(map: &M) -> f32
-	where M: Grid,
-	      <M as Grid>::Cell: Cell + Copy
+fn world_optimality2<W>(world: &W) -> f32
+	where W: Grid,
+	      <W as Grid>::Cell: Cell + Copy
 {
-	let map_height = map.height();
-	let rows_completed = grid::rows_iter::Iter::new(map).filter_map(|row| if grid::row::Iter::new(row).all(|(_,cell)| cell.is_occupied()){Some(())}else{None}).count();
+	let world_height = world.height();
+	let rows_completed = grid::rows_iter::Iter::new(world).filter_map(|row| if grid::row::Iter::new(row).all(|(_,cell)| cell.is_occupied()){Some(())}else{None}).count();
 	let mut columns_height_sum = 0;
 	let mut cells_vertically_blocked_penalty = 0.0;
 	let mut height_bumpiness = 0;
@@ -181,12 +181,12 @@ fn map_optimality2<M>(map: &M) -> f32
 	let mut previous_height = None::<grid::SizeAxis>;
 
 	//Iterating columns
-	for column in grid::columns_iter::Iter::new(map){
+	for column in grid::columns_iter::Iter::new(world){
 		let mut column = grid::column::Iter::new(column);
 
 		//Find height (First occurence of a occupied cell)
 		let height = if let Some((y,_)) = column.find(|&(_,cell)| cell.is_occupied()){
-			let height = map_height - y;
+			let height = world_height - y;
 
 			//Count cells vertically blocked
 			for (_,cell) in &mut column{

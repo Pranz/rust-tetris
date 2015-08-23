@@ -1,21 +1,21 @@
 use core::ops::Range;
 
-use super::super::Cell as CellTrait;
 use super::super::grid::{self,Grid};
 use super::super::shapes::tetromino::RotatedShape;
-use super::Map as MapTrait;
+use super::super::Cell as CellTrait;
+use super::World as WorldTrait;
 
-///Constant width of the map
+///Constant width of the world
 const WIDTH : grid::SizeAxis = 10;
 
-///Constant height of the map
+///Constant height of the world
 const HEIGHT: grid::SizeAxis = 20;
 
-///Rectangular static sized game map
+///Rectangular static sized game world
 #[derive(Copy,Clone,Eq,PartialEq)]
-pub struct Map<Cell: Copy>([[Cell; WIDTH as usize]; HEIGHT as usize]);
+pub struct World<Cell: Copy>([[Cell; WIDTH as usize]; HEIGHT as usize]);
 
-impl<Cell: Copy> Grid for Map<Cell>{
+impl<Cell: Copy> Grid for World<Cell>{
 	type Cell = Cell;
 
 	#[inline(always)]
@@ -30,7 +30,7 @@ impl<Cell: Copy> Grid for Map<Cell>{
 	}
 }
 
-impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
+impl<Cell: CellTrait + Copy> WorldTrait for World<Cell>{
 	#[inline(always)]
 	unsafe fn set_pos(&mut self,x: usize,y: usize,state: Cell){
 		self.0[y][x] = state;
@@ -77,8 +77,8 @@ impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
 	}
 }
 
-impl<Cell: CellTrait + Copy> Default for Map<Cell>{
+impl<Cell: CellTrait + Copy> Default for World<Cell>{
 	fn default() -> Self{
-		Map([[Cell::empty(); WIDTH as usize]; HEIGHT as usize])
+		World([[Cell::empty(); WIDTH as usize]; HEIGHT as usize])
 	}
 }

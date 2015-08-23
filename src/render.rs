@@ -3,13 +3,13 @@ pub mod default{
 	use opengl_graphics::GlGraphics;
 	use piston::input::RenderArgs;
 
-	use data::{cell,colors,grid,Map};
+	use data::{cell,colors,grid,World};
 	use data::shapes::tetromino::Shape;
 	use gamestate::GameState;
 
 	///Renders the pause state
-	pub fn pause<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
-		where M: Map<Cell = cell::ShapeCell>
+	pub fn pause<W,Rng>(state: &mut GameState<W,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
+		where W: World<Cell = cell::ShapeCell>
 	{
 		gamestate(state,gl,args);
 
@@ -21,13 +21,13 @@ pub mod default{
 	}
 
 	///Renders the game state
-	pub fn gamestate<M,Rng>(state: &mut GameState<M,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
-		where M: Map<Cell = cell::ShapeCell>
+	pub fn gamestate<W,Rng>(state: &mut GameState<W,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
+		where W: World<Cell = cell::ShapeCell>
 	{
 		const BLOCK_PIXEL_SIZE: f64 = 24.0;
 
-		fn map_render_pos(map_no: usize) -> (f64,f64){
-			(map_no as f64 * 12.0 * BLOCK_PIXEL_SIZE,0.0)
+		fn world_render_pos(world_no: usize) -> (f64,f64){
+			(world_no as f64 * 12.0 * BLOCK_PIXEL_SIZE,0.0)
 		}
 
 		//Unit square
@@ -38,18 +38,18 @@ pub mod default{
 			//Clear screen
 			graphics::clear(colors::BLACK,gl);
 
-			//Draw maps
-			for (map_id,map) in state.maps.iter(){
+			//Draw worlds
+			for (world_id,world) in state.worlds.iter(){
 				let transform = {
-					let (x,y) = map_render_pos(map_id);
+					let (x,y) = world_render_pos(world_id);
 					context.transform.trans(x,y)
 				};
 
 				//Background
-				graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,map.width() as f64 * BLOCK_PIXEL_SIZE,map.height() as f64 * BLOCK_PIXEL_SIZE],transform,gl);
+				graphics::rectangle(colors::LIGHT_BLACK,[0.0,0.0,world.width() as f64 * BLOCK_PIXEL_SIZE,world.height() as f64 * BLOCK_PIXEL_SIZE],transform,gl);
 
 				//Imprinted cells
-				for (cell_pos,cell::ShapeCell(cell)) in grid::cells_iter::Iter::new(map){
+				for (cell_pos,cell::ShapeCell(cell)) in grid::cells_iter::Iter::new(world){
 					if let Some(cell) = cell{
 						let transform = transform.trans(cell_pos.x as f64 * BLOCK_PIXEL_SIZE,cell_pos.y as f64 * BLOCK_PIXEL_SIZE);
 						graphics::rectangle(
@@ -71,10 +71,10 @@ pub mod default{
 			}
 
 			//Draw players
-			for (_,player) in state.players.iter(){match state.maps.get(&(player.map as usize)){
+			for (_,player) in state.players.iter(){match state.worlds.get(&(player.world as usize)){
 				Some(_) => {
 					let transform = {
-						let (x,y) = map_render_pos(player.map as usize);
+						let (x,y) = world_render_pos(player.world as usize);
 						context.transform.trans(x,y)
 					};
 

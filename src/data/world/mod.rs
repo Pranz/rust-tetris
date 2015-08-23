@@ -1,7 +1,7 @@
-//!A game map
+//!A game world
 
-pub mod default_map;
-pub mod dynamic_map;
+pub mod default;
+pub mod dynamic;
 
 
 
@@ -11,8 +11,8 @@ use super::grid::{self,Grid,PosAxis,SizeAxis,Pos};
 use super::Cell as CellTrait;
 use super::shapes::tetromino::RotatedShape;
 
-///Common trait for a Map grid used in a game
-pub trait Map: Grid{
+///Common trait for a World grid used in a game
+pub trait World: Grid{
 	///Sets the cell at the given position.
 	///Returns Err when out of bounds or failing to set the cell at the given position.
 	fn set_position(&mut self,pos: Pos,state: Self::Cell) -> Result<(),()>{
@@ -30,7 +30,7 @@ pub trait Map: Grid{
 	///    y < height()
 	unsafe fn set_pos(&mut self,x: usize,y: usize,state: Self::Cell);//TODO: `pos_ref` and `pos_ref_mut` instead
 
-	//Clears the map
+	//Clears the world
 	fn clear(&mut self) where <Self as Grid>::Cell: CellTrait{
 		for y in 0..self.height(){
 			for x in 0..self.width(){
@@ -39,10 +39,10 @@ pub trait Map: Grid{
 		}
 	}
 
-	///Collision checks. Whether the given shape at the given position will collide with a imprinted shape on the map
+	///Collision checks. Whether the given shape at the given position will collide with a imprinted shape on the world
 	fn shape_intersects(&self,shape: &RotatedShape,pos: Pos) -> CellIntersection;
 
-	///Imprints the given shape at the given position on the map
+	///Imprints the given shape at the given position on the world
 	fn imprint_shape(&mut self,shape: &RotatedShape,pos: Pos,cell_constructor: &fn(&RotatedShape) -> Self::Cell){
 		for (cell_pos,cell) in grid::cells_iter::Iter::new(shape){
 			if cell{
@@ -80,33 +80,33 @@ pub trait Map: Grid{
 
 ///When checking for intersections, these are the different kinds of intersections that can occur
 pub enum CellIntersection{
-	///Intersects with another imprinted cell in the map
+	///Intersects with another imprinted cell in the world
 	Imprint(Pos),
 
-	///Intersects with the boundary of the map or the outside non-existent cells
+	///Intersects with the boundary of the world or the outside non-existent cells
 	OutOfBounds(Pos),
 
 	///No intersection
 	None
 }
 
-///Default methods for a map
+///Default methods for a world
 pub mod defaults{
 	use super::super::grid::{self,Grid,PosAxis,Pos};
 	use super::super::shapes::tetromino::RotatedShape;
 	use super::super::Cell as CellTrait;
-	use super::Map;
+	use super::World;
 
-	pub fn shape_intersects<M>(map: &M,shape: &RotatedShape,pos: Pos) -> super::CellIntersection
-		where M: Map,
-		      <M as Grid>::Cell: CellTrait + Copy
+	pub fn shape_intersects<W>(world: &W,shape: &RotatedShape,pos: Pos) -> super::CellIntersection
+		where W: World,
+		      <W as Grid>::Cell: CellTrait + Copy
 	{
 		for (cell_pos,cell) in grid::cells_iter::Iter::new(shape){
 			if cell{
 				let pos = Pos{x: cell_pos.x as PosAxis + pos.x,y: cell_pos.y as PosAxis + pos.y};
-				match map.position(pos){
+				match world.position(pos){
 					None                                     => return super::CellIntersection::OutOfBounds(pos),
-					Some(map_cell) if map_cell.is_occupied() => return super::CellIntersection::Imprint(pos),
+					Some(world_cell) if world_cell.is_occupied() => return super::CellIntersection::Imprint(pos),
 					_ => ()
 				};
 			}

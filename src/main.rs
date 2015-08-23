@@ -44,16 +44,16 @@ use std::collections::hash_map::{self,HashMap};
 
 use controller::ai;
 use data::{cell,grid,player,Grid,Input,Player};
-use data::map::dynamic_map::Map;
+use data::world::dynamic::World;
 use data::shapes::tetromino::{Shape,RotatedShape};
 use game::Event;
-use gamestate::{GameState,MapId,PlayerId};
+use gamestate::{GameState,WorldId,PlayerId};
 use tmp_ptr::TmpPtr;
 
 struct App{
 	gl: GlGraphics,
-	game_state: GameState<Map<cell::ShapeCell>,rand::StdRng>,
-	controllers: Vec<Box<Controller<Map<cell::ShapeCell>,Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map<cell::ShapeCell>>)>>>>,
+	game_state: GameState<World<cell::ShapeCell>,rand::StdRng>,
+	controllers: Vec<Box<Controller<World<cell::ShapeCell>,Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World<cell::ShapeCell>>)>>>>,
 	request_receiver: sync::mpsc::Receiver<data::Request>,
 	connection: online::ConnectionType,
 	paused: bool,
@@ -66,7 +66,7 @@ impl App{
 		//Controllers
 		if !self.paused{
 			for mut controller in self.controllers.iter_mut(){
-				controller.update(args,&self.game_state.players,&self.game_state.maps);
+				controller.update(args,&self.game_state.players,&self.game_state.worlds);
 			}
 		}
 
@@ -89,8 +89,8 @@ impl App{
 		while let Ok(request) = self.request_receiver.try_recv(){use data::Request::*;match request{
 			Input{input,player: pid} => {
 				if let Some(player) = self.game_state.players.get_mut(&(pid as usize)){
-					if let Some(map) = self.game_state.maps.get_mut(&(player.map as usize)){
-						input::perform(input,player,map);
+					if let Some(world) = self.game_state.worlds.get_mut(&(player.world as usize)){
+						input::perform(input,player,world);
 					}
 				}
 
@@ -132,10 +132,10 @@ impl App{
 			Key::D6     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::S);};},
 			Key::D7     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::Z);};},
 			Key::R      => {
-				match self.game_state.players.get(&(0 as usize)).map(|player| player.map){//TODO: New seed for rng
-					Some(map_id) => {
+				match self.game_state.players.get(&(0 as usize)).map(|player| player.world){//TODO: New seed for rng
+					Some(world_id) => {
 						let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
-						game.reset_map(map_id,&mut |e| for c in cs.iter_mut(){c.event(e);});
+						game.reset_world(world_id,&mut |e| for c in cs.iter_mut(){c.event(e);});
 					},
 					None => ()
 				};
@@ -236,10 +236,10 @@ fn main(){
 			{fn f(variant: &RotatedShape) -> cell::ShapeCell{
 				cell::ShapeCell(Some(variant.shape()))
 			}f}as fn(&_) -> _,
-			{fn f<M: Grid>(shape: &RotatedShape,map: &M) -> grid::Pos{grid::Pos{
-				x: map.width() as grid::PosAxis/2 - shape.center_x() as grid::PosAxis,
+			{fn f<W: Grid>(shape: &RotatedShape,world: &W) -> grid::Pos{grid::Pos{
+				x: world.width() as grid::PosAxis/2 - shape.center_x() as grid::PosAxis,
 				y: 0//TODO: Optionally spawn above: `-(shape.height() as grid::PosAxis);`. Problem is the collision checking. And this is not how it usually is done in other games
-			}}f::<Map<cell::ShapeCell>>}as fn(&_,&_) -> _,
+			}}f::<World<cell::ShapeCell>>}as fn(&_,&_) -> _,
 		),
 		paused: false,
 		controllers: Vec::new(),
@@ -278,9 +278,9 @@ fn main(){
 		},
 	};
 
-	//Create map
-	app.game_state.maps.insert(0,Map::new(10,20));
-	app.game_state.maps.insert(1,Map::new(10,20));
+	//Create world
+	app.game_state.worlds.insert(0,World::new(10,20));
+	app.game_state.worlds.insert(1,World::new(10,20));
 
 	{let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
 		if let online::ConnectionType::None = app.connection{
@@ -309,12 +309,12 @@ fn main(){
 		use data::input::key::Mapping;
 
 		//Player 0
-		app.key_map.insert(Key::Left   ,Mapping{input: Input::MoveLeft,           player: 0,repeat_delay: 0.3,repeat_frequency: 0.1});
-		app.key_map.insert(Key::Right  ,Mapping{input: Input::MoveRight,          player: 0,repeat_delay: 0.3,repeat_frequency: 0.1});
-		app.key_map.insert(Key::Down   ,Mapping{input: Input::SlowFall,           player: 0,repeat_delay: 0.3,repeat_frequency: 0.07});
+		app.key_map.insert(Key::Left   ,Mapping{input: Input::MoveLeft,           player: 0,repeat_delay: 0.2,repeat_frequency: 0.125});
+		app.key_map.insert(Key::Right  ,Mapping{input: Input::MoveRight,          player: 0,repeat_delay: 0.2,repeat_frequency: 0.125});
+		app.key_map.insert(Key::Down   ,Mapping{input: Input::SlowFall,           player: 0,repeat_delay: 0.2,repeat_frequency: 0.07});
 		app.key_map.insert(Key::End    ,Mapping{input: Input::FastFall,           player: 0,repeat_delay: f64::NAN,repeat_frequency: f64::NAN});
-		app.key_map.insert(Key::X      ,Mapping{input: Input::RotateAntiClockwise,player: 0,repeat_delay: 0.3,repeat_frequency: 0.2});
-		app.key_map.insert(Key::Z      ,Mapping{input: Input::RotateClockwise,    player: 0,repeat_delay: 0.3,repeat_frequency: 0.2});
+		app.key_map.insert(Key::X      ,Mapping{input: Input::RotateAntiClockwise,player: 0,repeat_delay: 0.2,repeat_frequency: 0.2});
+		app.key_map.insert(Key::Z      ,Mapping{input: Input::RotateClockwise,    player: 0,repeat_delay: 0.2,repeat_frequency: 0.2});
 
 		//Player 1
 		app.key_map.insert(Key::NumPad4,Mapping{input: Input::MoveLeft,           player: 1,repeat_delay: 0.3,repeat_frequency: 0.1});

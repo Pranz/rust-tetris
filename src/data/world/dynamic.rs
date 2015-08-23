@@ -4,24 +4,24 @@ use core::ptr;
 
 use super::super::grid::{self,Grid};
 use super::super::shapes::tetromino::RotatedShape;
-use super::Map as MapTrait;
 use super::super::Cell as CellTrait;
+use super::World as WorldTrait;
 
-///Rectangular dynamic sized game map
+///Rectangular dynamic sized game world
 #[derive(Eq,PartialEq)]
-pub struct Map<Cell>{
+pub struct World<Cell>{
 	slice : Box<[Cell]>,
 	width : grid::SizeAxis,
 }
 
-impl<Cell: Copy> Clone for Map<Cell>{
-	fn clone(&self) -> Self{Map{
+impl<Cell: Copy> Clone for World<Cell>{
+	fn clone(&self) -> Self{World{
 		slice: Vec::from_iter(self.slice.iter().map(|cell| *cell)).into_boxed_slice(),
 		width: self.width
 	}}
 }
 
-impl<Cell: Copy> Grid for Map<Cell>{
+impl<Cell: Copy> Grid for World<Cell>{
 	type Cell = Cell;
 
 	#[inline(always)]
@@ -36,7 +36,7 @@ impl<Cell: Copy> Grid for Map<Cell>{
 	}
 }
 
-impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
+impl<Cell: CellTrait + Copy> WorldTrait for World<Cell>{
 	#[inline(always)]
 	unsafe fn set_pos(&mut self,x: usize,y: usize,state: <Self as Grid>::Cell){
 		self.slice[x + y*(self.width as usize)] = state;
@@ -124,8 +124,8 @@ impl<Cell: CellTrait + Copy> MapTrait for Map<Cell>{
 	}
 }
 
-impl<Cell: CellTrait + Copy> Map<Cell>{
-	pub fn new(width: grid::SizeAxis,height: grid::SizeAxis) -> Self{Map{
+impl<Cell: CellTrait + Copy> World<Cell>{
+	pub fn new(width: grid::SizeAxis,height: grid::SizeAxis) -> Self{World{
 		slice : Vec::from_iter(iter::repeat(<Self as Grid>::Cell::empty()).take((width as usize)*(height as usize))).into_boxed_slice(),
 		width : width,
 	}}

@@ -45,16 +45,16 @@ pub trait Grid{
 		}
 	}
 
-	///Returns the rectangular axis aligned offset of the map
+	///Returns the rectangular axis aligned offset of the world
 	fn offset(&self) -> Pos{Pos{x: 0,y: 0}}
 
-	///Returns the rectangular axis aligned width of the map
+	///Returns the rectangular axis aligned width of the world
 	fn width(&self) -> SizeAxis;
 
-	///Returns the rectangular axis aligned height of the map
+	///Returns the rectangular axis aligned height of the world
 	fn height(&self) -> SizeAxis;
 
-	///Returns the rectangular axis aligned size of the map
+	///Returns the rectangular axis aligned size of the world
 	fn size(&self) -> Size{
 		Size{x: self.width(),y: self.height()}
 	}

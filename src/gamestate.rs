@@ -3,46 +3,46 @@ use core::cmp;
 use piston::input::UpdateArgs;
 use rand::{self,Rand};
 
-use super::data::{grid,map,player,Cell,Grid,Map as MapTrait,Player};
+use super::data::{grid,world,player,Cell,Grid,Player,World as WorldTrait};
 use super::data::shapes::tetromino::{Shape,RotatedShape};
 use super::game::Event;
 use super::tmp_ptr::TmpPtr;
 
-///Type of the map id
-pub type MapId    = u8;
+///Type of the world id
+pub type WorldId    = u8;
 ///Type of the player id
 pub type PlayerId = u8;
 
 ///The ingame game state
-pub struct GameState<Map,Rng>
-	where Map: MapTrait
+pub struct GameState<World,Rng>
+	where World: WorldTrait
 {
-	///Map pairs of maps and map ids
-	pub maps          : VecMap<Map>,
+	///World pairs of worlds and world ids
+	pub worlds          : VecMap<World>,
 
-	///Map pairs of players and player ids
+	///World pairs of players and player ids
 	pub players       : VecMap<Player>,
 
 	///Random number generator mappings.
 	pub rngs          : data_map::Mappings<Rng>,
 
-	///Function that maps a shape's cell to the map's cell
-	pub imprint_cell  : fn(&RotatedShape) -> <Map as Grid>::Cell,
+	///Function that worlds a shape's cell to the world's cell
+	pub imprint_cell  : fn(&RotatedShape) -> <World as Grid>::Cell,
 
-	///Function that returns the origin position of a player based on shape and map
-	pub respawn_pos   : fn(&RotatedShape,&Map) -> grid::Pos
+	///Function that returns the origin position of a player based on shape and world
+	pub respawn_pos   : fn(&RotatedShape,&World) -> grid::Pos
 }
 
-impl<Map,Rng> GameState<Map,Rng>
-	where Map: MapTrait
+impl<World,Rng> GameState<World,Rng>
+	where World: WorldTrait
 {
 	///A simple constructor
 	pub fn new(
 		rng: Rng,
-		imprint_cell: fn(&RotatedShape) -> <Map as Grid>::Cell,
-		respawn_pos : fn(&RotatedShape,&Map) -> grid::Pos
+		imprint_cell: fn(&RotatedShape) -> <World as Grid>::Cell,
+		respawn_pos : fn(&RotatedShape,&World) -> grid::Pos
 	) -> Self{GameState{
-		maps   : VecMap::new(),
+		worlds   : VecMap::new(),
 		players: VecMap::new(),
 		rngs   : data_map::Mappings::new(rng),
 		imprint_cell: imprint_cell,
@@ -51,23 +51,23 @@ impl<Map,Rng> GameState<Map,Rng>
 
 	///Updates the game state
 	pub fn update<EL>(&mut self, args: &UpdateArgs,event_listener: &mut EL)
-		where Map: MapTrait,
-		      <Map as Grid>::Cell: Cell,
+		where World: WorldTrait,
+		      <World as Grid>::Cell: Cell,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map>)>)
+		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
 	{
 		//After action
 		enum Action{
 			None,
-			ResetMap(MapId)
+			ResetWorld(WorldId)
 		}let mut action = Action::None;
 
 		//Players
 		'player_loop: for (player_id,player) in self.players.iter_mut(){
 			let player_id = player_id  as PlayerId;
-			let map_id    = player.map as MapId;
+			let world_id    = player.world as WorldId;
 
-			if let Some(map) = self.maps.get_mut(&(player.map as usize)){
+			if let Some(world) = self.worlds.get_mut(&(player.world as usize)){
 				//Add the time since the last update to the time counts
 				player.gravityfall_time_count -= args.dt;
 
@@ -77,35 +77,35 @@ impl<Map,Rng> GameState<Map,Rng>
 					player.gravityfall_time_count += player.settings.gravityfall_frequency;
 
 					//If able to move (no collision below)
-					if move_player(player,map,grid::Pos{x: 0,y: 1}){
+					if move_player(player,world,grid::Pos{x: 0,y: 1}){
 						event_listener(Event::PlayerMoveGravity{
 							player: (player_id,TmpPtr::new(player as &_)),
-							map: (map_id,TmpPtr::new(map as &_))
+							world: (world_id,TmpPtr::new(world as &_))
 						});
 					}else{
-						//Imprint the current shape onto the map
-						map.imprint_shape(&player.shape,player.pos,&self.imprint_cell);
+						//Imprint the current shape onto the world
+						world.imprint_shape(&player.shape,player.pos,&self.imprint_cell);
 
 						//Handles the filled rows
 						let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
-						let max_y = cmp::min(min_y + player.shape.height(),map.height());
+						let max_y = cmp::min(min_y + player.shape.height(),world.height());
 						let full_rows = if min_y!=max_y{
-							map.handle_full_rows(min_y .. max_y)
+							world.handle_full_rows(min_y .. max_y)
 						}else{
 							0
 						};
 
-						event_listener(Event::MapImprintShape{
-							map: (map_id,TmpPtr::new(map as &_)),
+						event_listener(Event::WorldImprintShape{
+							world: (world_id,TmpPtr::new(world as &_)),
 							shape: (player.shape,player.pos),
 							full_rows: full_rows,
 							cause: Some((player_id,TmpPtr::new(player as &_))),
 						});
 
 						//Respawn player and check for collision at spawn position
-						let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.player_get(map_id,player_id)));
-						if !respawn_player((player_id,player),(map_id,map),shape,self.respawn_pos,event_listener){
-							action = Action::ResetMap(map_id);
+						let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.player_get(world_id,player_id)));
+						if !respawn_player((player_id,player),(world_id,world),shape,self.respawn_pos,event_listener){
+							action = Action::ResetWorld(world_id);
 							break 'player_loop;
 						}
 					}
@@ -115,27 +115,27 @@ impl<Map,Rng> GameState<Map,Rng>
 
 		match action{
 			Action::None => (),
-			Action::ResetMap(map_id) => self.reset_map(map_id,event_listener),
+			Action::ResetWorld(world_id) => self.reset_world(world_id,event_listener),
 		};
 	}
 
-	///Adds a player to the specified map and with the specified player settings
+	///Adds a player to the specified world and with the specified player settings
 	///Returns the new player id
-	pub fn add_player<EL>(&mut self,map_id: MapId,settings: player::Settings,event_listener: &mut EL) -> Option<PlayerId>
-		where Map: MapTrait,
+	pub fn add_player<EL>(&mut self,world_id: WorldId,settings: player::Settings,event_listener: &mut EL) -> Option<PlayerId>
+		where World: WorldTrait,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map>)>)
+		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
 	{
-		if let Some(map) = self.maps.get_mut(&(map_id as usize)){
+		if let Some(world) = self.worlds.get_mut(&(world_id as usize)){
 			let new_id = self.players.len();
-			let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.player_get(map_id,new_id as PlayerId)));
+			let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.player_get(world_id,new_id as PlayerId)));
 
 			self.players.insert(new_id,Player{
-				pos                   : (self.respawn_pos)(&shape,map),
+				pos                   : (self.respawn_pos)(&shape,world),
 				shadow_pos            : None,
 				shapes_lookahead      : None,
 				shape                 : shape,
-				map                   : map_id,
+				world                   : world_id,
 				points                : 0,
 				gravityfall_time_count: settings.gravityfall_frequency,
 				settings              : settings
@@ -144,7 +144,7 @@ impl<Map,Rng> GameState<Map,Rng>
 
 			event_listener(Event::PlayerAdd{
 				player: (new_id as PlayerId,TmpPtr::new(player as &_)),
-				map: (map_id,TmpPtr::new(map as &_)),
+				world: (world_id,TmpPtr::new(world as &_)),
 			});
 
 			Some(new_id as PlayerId)
@@ -153,21 +153,21 @@ impl<Map,Rng> GameState<Map,Rng>
 		}
 	}
 
-	///Resets the specified map, respawning all players and resetting time counts
-	pub fn reset_map<EL>(&mut self,map_id: MapId,event_listener: &mut EL)
-		where Map: MapTrait,
-		      <Map as Grid>::Cell: Cell,
+	///Resets the specified world, respawning all players and resetting time counts
+	pub fn reset_world<EL>(&mut self,world_id: WorldId,event_listener: &mut EL)
+		where World: WorldTrait,
+		      <World as Grid>::Cell: Cell,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map>)>)
+		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
 	{
-		if let Some(map) = self.maps.get_mut(&(map_id as usize)){
-			//Clear map
-			map.clear();
+		if let Some(world) = self.worlds.get_mut(&(world_id as usize)){
+			//Clear world
+			world.clear();
 
-			for (player_id,player) in self.players.iter_mut().filter(|&(_,ref player)| player.map == map_id){
-				//Reset all players in the map
-				let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.player_get(map_id,player_id as PlayerId)));
-				respawn_player((player_id as PlayerId,player),(map_id,map),shape,self.respawn_pos,event_listener);
+			for (player_id,player) in self.players.iter_mut().filter(|&(_,ref player)| player.world == world_id){
+				//Reset all players in the world
+				let shape = player_next_shape(player,<Shape as Rand>::rand(self.rngs.player_get(world_id,player_id as PlayerId)));
+				respawn_player((player_id as PlayerId,player),(world_id,world),shape,self.respawn_pos,event_listener);
 				player.gravityfall_time_count = player.settings.gravityfall_frequency;
 			}
 		};
@@ -181,15 +181,15 @@ pub mod data_map{
 	///Kind of data mappings
 	#[derive(Copy,Clone,Debug,Eq,PartialEq,Hash)]
 	pub enum MappingKey{
-		Map(super::MapId),
+		World(super::WorldId),
 		Player(super::PlayerId)
 	}
 
 	///Contains mappings with a global fallback.
 	///The first field contains the global data.
-	///The second field contains a map of datas.
+	///The second field contains a world of datas.
 	///When looking up a mapping and it does not exist, it falls back to the more global one in the following order:
-	///  Player -> Map -> Global
+	///  Player -> World -> Global
 	pub struct Mappings<T>(T,pub HashMap<MappingKey,T>);
 
 	impl<T> Mappings<T>{
@@ -206,13 +206,13 @@ pub mod data_map{
 			self.1.insert(mapping,self.0.clone());
 		}
 
-		///Lookup data from a map mapping with fallbacks.
-		pub fn map_get(&mut self,map: super::MapId) -> &mut T{
-			self.1.get_mut(&MappingKey::Map(map)).unwrap_or(&mut self.0)
+		///Lookup data from a world mapping with fallbacks.
+		pub fn world_get(&mut self,world: super::WorldId) -> &mut T{
+			self.1.get_mut(&MappingKey::World(world)).unwrap_or(&mut self.0)
 		}
 
 		///Lookup data from a player mapping with fallbacks.
-		pub fn player_get(&mut self,map: super::MapId,player: super::PlayerId) -> &mut T{
+		pub fn player_get(&mut self,world: super::WorldId,player: super::PlayerId) -> &mut T{
 			let mappings1: &mut HashMap<MappingKey,T> = unsafe{mem::transmute(&mut self.1)};
 			let mappings2: &mut HashMap<MappingKey,T> = unsafe{mem::transmute(&mut self.1)};
 
@@ -221,7 +221,7 @@ pub mod data_map{
 				None => ()
 			};
 
-			match mappings2.get_mut(&MappingKey::Map(map)){
+			match mappings2.get_mut(&MappingKey::World(world)){
 				Some(rng) => return rng,
 				None => ()
 			};
@@ -233,24 +233,24 @@ pub mod data_map{
 
 ///Moves player if there are no collisions at the new position.
 ///Returns whether the movement was successful or not due to collisions.
-pub fn move_player<Map>(player: &mut Player,map: &Map,delta: grid::Pos) -> bool
-	where Map: MapTrait
+pub fn move_player<World>(player: &mut Player,world: &World,delta: grid::Pos) -> bool
+	where World: WorldTrait
 {
 	//Collision check
-	match map.shape_intersects(&player.shape,grid::Pos{x: player.pos.x + delta.x,y: player.pos.y + delta.y}){
+	match world.shape_intersects(&player.shape,grid::Pos{x: player.pos.x + delta.x,y: player.pos.y + delta.y}){
 		//Collided => cannot move
-		map::CellIntersection::Imprint(_) |
-		map::CellIntersection::OutOfBounds(_) => false,
+		world::CellIntersection::Imprint(_) |
+		world::CellIntersection::OutOfBounds(_) => false,
 
 		//No collision, able to move and does so
-		map::CellIntersection::None => {
+		world::CellIntersection::None => {
 			//Change position
 			player.pos.x += delta.x;
 			player.pos.y += delta.y;
 
 			//Recalcuate fastfall shadow position when moving horizontally
 			if player.settings.fastfall_shadow && delta.x!=0{
-				player.shadow_pos = Some(fastfallen_shape_pos(&player.shape,map,player.pos));
+				player.shadow_pos = Some(fastfallen_shape_pos(&player.shape,world,player.pos));
 			}
 
 			true
@@ -258,20 +258,20 @@ pub fn move_player<Map>(player: &mut Player,map: &Map,delta: grid::Pos) -> bool
 	}
 }
 
-///Checks if the player with the transformed shape is intersecting with the map or the map boundaries.
+///Checks if the player with the transformed shape is intersecting with the world or the world boundaries.
 ///If that is true, try to resolve the collision by moving in the x axis.
 ///If the collision cannot resolve, undo the rotation and return false, otherwise return true.
-pub fn resolve_transformed_player<Map>(player: &mut Player,shape: RotatedShape,map: &Map) -> bool
-	where Map: MapTrait
+pub fn resolve_transformed_player<World>(player: &mut Player,shape: RotatedShape,world: &World) -> bool
+	where World: WorldTrait
 {
 	'try_rotate: loop{
-		match map.shape_intersects(&shape,player.pos){
-			map::CellIntersection::Imprint(pos) |
-			map::CellIntersection::OutOfBounds(pos) => {
+		match world.shape_intersects(&shape,player.pos){
+			world::CellIntersection::Imprint(pos) |
+			world::CellIntersection::OutOfBounds(pos) => {
 				let center_x = player.pos.x + player.shape.center_x() as grid::PosAxis;
 				let sign = if pos.x < center_x {1} else {-1};
 				for i in 1..shape.width(){
-					if let map::CellIntersection::None = map.shape_intersects(&shape,grid::Pos{x: player.pos.x + (i as grid::PosAxis * sign),y: player.pos.y}){
+					if let world::CellIntersection::None = world.shape_intersects(&shape,grid::Pos{x: player.pos.x + (i as grid::PosAxis * sign),y: player.pos.y}){
 						player.pos.x += i as grid::PosAxis * sign;
 						break 'try_rotate;
 					}
@@ -288,7 +288,7 @@ pub fn resolve_transformed_player<Map>(player: &mut Player,shape: RotatedShape,m
 
 		//Recalcuate fastfall shadow position when moving horizontally
 		if player.settings.fastfall_shadow{
-			player.shadow_pos = Some(fastfallen_shape_pos(&player.shape,map,player.pos));
+			player.shadow_pos = Some(fastfallen_shape_pos(&player.shape,world,player.pos));
 		}
 		return true;
 	}
@@ -296,16 +296,16 @@ pub fn resolve_transformed_player<Map>(player: &mut Player,shape: RotatedShape,m
 
 ///Respawns player to its origin position
 ///Returns whether the respawning was successful or not due to collisions.
-pub fn respawn_player<Map,EL>((player_id,player): (PlayerId,&mut Player),(map_id,map): (MapId,&Map),new_shape: Shape,respawn_pos: fn(&RotatedShape,&Map) -> grid::Pos,event_listener: &mut EL) -> bool
-	where Map: MapTrait,
-	      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map>)>)
+pub fn respawn_player<World,EL>((player_id,player): (PlayerId,&mut Player),(world_id,world): (WorldId,&World),new_shape: Shape,respawn_pos: fn(&RotatedShape,&World) -> grid::Pos,event_listener: &mut EL) -> bool
+	where World: WorldTrait,
+	      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
 {
 	//Select a new shape at random, setting its position to the starting position
-	let pos = respawn_pos(&player.shape,map);
+	let pos = respawn_pos(&player.shape,world);
 
 	event_listener(Event::PlayerChangeShape{
 		player: (player_id,TmpPtr::new(player as &_)),
-		map: (map_id,TmpPtr::new(map)),
+		world: (world_id,TmpPtr::new(world)),
 		shape: new_shape,
 		pos: pos,
 	});
@@ -314,24 +314,24 @@ pub fn respawn_player<Map,EL>((player_id,player): (PlayerId,&mut Player),(map_id
 	player.pos = pos;
 
 	if player.settings.fastfall_shadow{
-		player.shadow_pos = Some(fastfallen_shape_pos(&player.shape,map,player.pos));
+		player.shadow_pos = Some(fastfallen_shape_pos(&player.shape,world,player.pos));
 	}
 
 	//If the new shape at the starting position also collides with another shape
-	match map.shape_intersects(&player.shape,player.pos){
-		map::CellIntersection::Imprint(_) => false,
+	match world.shape_intersects(&player.shape,player.pos){
+		world::CellIntersection::Imprint(_) => false,
 		_ => true
 	}
 }
 
-///Returns the position of the shape if it were to fast fall downwards in the map at the given position
-pub fn fastfallen_shape_pos<Map>(shape: &RotatedShape,map: &Map,shape_pos: grid::Pos) -> grid::Pos
-	where Map: MapTrait
+///Returns the position of the shape if it were to fast fall downwards in the world at the given position
+pub fn fastfallen_shape_pos<World>(shape: &RotatedShape,world: &World,shape_pos: grid::Pos) -> grid::Pos
+	where World: WorldTrait
 {
-	for y in shape_pos.y .. map.height() as grid::PosAxis{
-		match map.shape_intersects(&shape,grid::Pos{x: shape_pos.x,y: y+1}){
-			map::CellIntersection::Imprint(_)     |
-			map::CellIntersection::OutOfBounds(_) => return grid::Pos{x: shape_pos.x,y: y},
+	for y in shape_pos.y .. world.height() as grid::PosAxis{
+		match world.shape_intersects(&shape,grid::Pos{x: shape_pos.x,y: y+1}){
+			world::CellIntersection::Imprint(_)     |
+			world::CellIntersection::OutOfBounds(_) => return grid::Pos{x: shape_pos.x,y: y},
 			_ => ()
 		};
 	}

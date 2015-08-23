@@ -3,7 +3,7 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use data::{Input,Map,Player,Request};
+use data::{Input,Player,Request,World};
 use game::Event;
 use gamestate;
 use tmp_ptr::TmpPtr;
@@ -25,8 +25,8 @@ impl Controller{
 	}}
 }
 
-impl<M: Map> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>> for Controller{
-	fn update(&mut self,args: &UpdateArgs,_: &VecMap<Player>,_: &VecMap<M>){
+impl<W: World> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::WorldId,TmpPtr<W>)>> for Controller{
+	fn update(&mut self,args: &UpdateArgs,_: &VecMap<Player>,_: &VecMap<W>){
 		self.move_time+= args.dt;
 
 		if self.move_time > 0.3{
@@ -38,7 +38,7 @@ impl<M: Map> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(games
 		}
 	}
 
-	fn event(&mut self,_: Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>){/*
+	fn event(&mut self,_: Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::WorldId,TmpPtr<W>)>){/*
 		use game::Event::*;
 
 		match event{
