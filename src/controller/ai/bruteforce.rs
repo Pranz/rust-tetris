@@ -6,19 +6,16 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use data::grid::{self,translate,Grid};
-use data::input::Input;
-use data::map::Map;
-use data::cell::Cell;
-use data::player::Player;
+use data::grid::{self,translate};
 use data::shapes::tetromino::Shape;
+use data::{Cell,Input,Grid,Map,Player,Request};
+use game::Event;
 use gamestate;
-use game::event::Event;
 use tmp_ptr::TmpPtr;
 
 #[derive(Clone)]
 pub struct Controller{
-	pub input_sender: sync::mpsc::Sender<(Input,gamestate::PlayerId)>,
+	pub request_sender: sync::mpsc::Sender<Request>,
 	pub player_id: gamestate::PlayerId,
 	pub settings: Settings,
 	move_time_count: f64,
@@ -43,8 +40,8 @@ impl Default for Settings{
 }
 
 impl Controller{
-	pub fn new(input_sender: sync::mpsc::Sender<(Input,gamestate::PlayerId)>,player_id: gamestate::PlayerId,settings: Settings) -> Self{Controller{
-		input_sender: input_sender,
+	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: gamestate::PlayerId,settings: Settings) -> Self{Controller{
+		request_sender: request_sender,
 		player_id: player_id,
 		settings: settings,
 		move_time_count: 0.0,
@@ -55,7 +52,7 @@ impl Controller{
 
 	pub fn recalculate_optimal_target<M>(&mut self,map: &M,shape: Shape,pos: grid::Pos)
 		where M: Map,
-		      <M as grid::Grid>::Cell: Cell + Copy
+		      <M as Grid>::Cell: Cell + Copy
 	{
 		let mut greatest_o   = f32::NEG_INFINITY;
 
@@ -87,7 +84,7 @@ impl Controller{
 
 impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>> for Controller
 	where M: Map,
-	      <M as grid::Grid>::Cell: Cell + Copy
+	      <M as Grid>::Cell: Cell + Copy
 {
 	fn update(&mut self,args: &UpdateArgs,players: &VecMap<Player>,_: &VecMap<M>){
 		if let Some(player) = players.get(&(self.player_id as usize)){
@@ -96,13 +93,13 @@ impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 
 			while self.move_time_count <= 0.0{
 				if player.pos.x > self.target.x{
-					let _ = self.input_sender.send((Input::MoveLeft,self.player_id));
+					let _ = self.request_sender.send(Request::Input{input: Input::MoveLeft,player: self.player_id});
 					self.move_time_count+=self.settings.move_time;
 				}else if player.pos.x < self.target.x{
-					let _ = self.input_sender.send((Input::MoveRight,self.player_id));
+					let _ = self.request_sender.send(Request::Input{input: Input::MoveRight,player: self.player_id});
 					self.move_time_count+=self.settings.move_time;
 				}else if player.shape.rotation() == self.target_rotation{
-					let _ = self.input_sender.send((Input::SlowFall,self.player_id));
+					let _ = self.request_sender.send(Request::Input{input: Input::SlowFall,player: self.player_id});
 					self.move_time_count+=self.settings.fall_time;
 				}else{
 					break
@@ -111,7 +108,7 @@ impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 
 			while self.rotate_time_count <= 0.0{
 				if player.shape.rotation() != self.target_rotation{
-					let _ = self.input_sender.send((Input::RotateAntiClockwise,self.player_id));
+					let _ = self.request_sender.send(Request::Input{input: Input::RotateAntiClockwise,player: self.player_id});
 					self.rotate_time_count+=self.settings.rotate_time;
 				}else{
 					break;
@@ -121,7 +118,7 @@ impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 	}
 
 	fn event(&mut self,event: Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::MapId,TmpPtr<M>)>){
-		use game::event::Event::*;
+		use game::Event::*;
 
 		match event{
 			PlayerAdd{player: (player_id,player),map: (_,map)} if player_id == self.player_id => {
@@ -144,8 +141,8 @@ impl<M> ControllerTrait<M,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 
 #[allow(unused)]
 fn map_optimality<M>(map: &M) -> f32
-	where M: grid::Grid,
-	      <M as grid::Grid>::Cell: Cell + Copy
+	where M: Grid,
+	      <M as Grid>::Cell: Cell + Copy
 {
 	let mut o = 0.0;
 	let map_height = map.height();
@@ -172,8 +169,8 @@ fn map_optimality<M>(map: &M) -> f32
 ///Greater is better
 #[allow(unused)]
 fn map_optimality2<M>(map: &M) -> f32
-	where M: grid::Grid,
-	      <M as grid::Grid>::Cell: Cell + Copy
+	where M: Grid,
+	      <M as Grid>::Cell: Cell + Copy
 {
 	let map_height = map.height();
 	let rows_completed = grid::rows_iter::Iter::new(map).filter_map(|row| if grid::row::Iter::new(row).all(|(_,cell)| cell.is_occupied()){Some(())}else{None}).count();

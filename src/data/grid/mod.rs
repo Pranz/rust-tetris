@@ -8,7 +8,7 @@ pub mod row;
 pub mod rows_iter;
 pub mod translate;
 
-use super::cell::Cell as CellTrait;
+use super::Cell as CellTrait;
 
 ///Signed integer type used for describing a position axis.
 ///The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.

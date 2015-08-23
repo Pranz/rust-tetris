@@ -7,10 +7,9 @@ use std::{net,sync,thread};
 use std::error::Error;
 
 use super::{server,Packet};
-use data::input::Input;
-use gamestate::PlayerId;
+use data::{player,Input,Request};
 
-pub fn start(server_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Input,PlayerId)>) -> Result<net::UdpSocket,()>{
+pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request>) -> Result<net::UdpSocket,()>{
 	match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),0)){
 		Ok(socket) => {
 			println!("Client: Connecting to {}...",server_addr);
@@ -21,6 +20,8 @@ pub fn start(server_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Inpu
 			//Listen for packets from server in a new thread
 			{let socket = socket.try_clone().unwrap();thread::spawn(move ||{
 				let mut buffer = super::packet::buffer();
+				let mut connected = false;
+				let mut connection_id;
 
 				//For each received packet
 				while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
@@ -38,21 +39,42 @@ pub fn start(server_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Inpu
 					match ::bincode::serde::deserialize(&buffer[..]){
 						Ok(Packet{data,..}) => match data{
 							//Received connection request established
-							server::packet::Data::ConnectionEstablished{connection} => {
+							server::packet::Data::ConnectionEstablished{connection} if !connected => {
 								println!("Client: Connection established to {} (Id: {})",address,connection);
+								connected = true;
+								connection_id = connection;
+
+								//Request new player
+								println!("Client: Request new player...");
+								let settings = player::Settings{
+									gravityfall_frequency: 1.0,
+									fastfall_shadow      : true,
+								};
+								socket.send_to(
+									&*packet::Data::PlayerCreateRequest{
+										connection: connection_id,
+										settings: settings
+									}.into_packet(0).serialize(),//TODO: Packet id and all other `into_packet`s
+									address
+								).unwrap();
+
+								request_sender.send(Request::PlayerAdd{settings: settings}).unwrap();
 							},
 
 							//Received player input
-							server::packet::Data::PlayerInput{input,..} => {
-								input_sender.send((input,1)).unwrap();
+							server::packet::Data::PlayerInput{input,..} if connected => {
+								request_sender.send(Request::Input{input: input,player: 0}).unwrap();
 							},
 
+							//Received player add response
+							//server::packet::Data::PlayerCreateResponse{..} if connected => {},
+
 							//Received unimplemented TODO stuff
-							data => println!("Client: {:?}",data),
+							data => println!("Client: {:?} (Connected: {})",data,connected),
 						},
 
 						//Received other stuff
-						Err(e) => println!("Client: Receuived data but error: {}: {}",e,e.description())
+						Err(e) => println!("Client: Received data but error: {}: {}",e,e.description())
 					}
 				}
 			});}
@@ -67,6 +89,7 @@ pub fn start(server_addr: net::SocketAddr,input_sender: sync::mpsc::Sender<(Inpu
 }
 
 pub fn connect_server(socket: &net::UdpSocket,address: net::SocketAddr,mut retries: u8) -> Result<(),()>{
+	//Send packet with retries
 	loop{match socket.send_to(
 		&*packet::Data::Connect{
 			protocol_version: 1

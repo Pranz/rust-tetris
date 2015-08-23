@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use super::super::cell::Cell as CellTrait;
+use super::super::Cell as CellTrait;
 use super::super::grid::{self,Grid};
 use super::super::shapes::tetromino::RotatedShape;
 use super::Map as MapTrait;

@@ -43,21 +43,18 @@ use std::collections::hash_map::{self,HashMap};
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
 use controller::ai;
-use data::{cell,player};
-use data::grid::{self,Grid};
+use data::{cell,grid,player,Grid,Input,Player};
 use data::map::dynamic_map::Map;
-use data::player::Player;
 use data::shapes::tetromino::{Shape,RotatedShape};
-use data::input::Input;
+use game::Event;
 use gamestate::{GameState,MapId,PlayerId};
-use game::event::Event;
 use tmp_ptr::TmpPtr;
 
 struct App{
 	gl: GlGraphics,
 	game_state: GameState<Map<cell::ShapeCell>,rand::StdRng>,
 	controllers: Vec<Box<Controller<Map<cell::ShapeCell>,Event<(PlayerId,TmpPtr<Player>),(MapId,TmpPtr<Map<cell::ShapeCell>>)>>>>,
-	input_receiver: sync::mpsc::Receiver<(Input,PlayerId)>,
+	request_receiver: sync::mpsc::Receiver<data::Request>,
 	connection: online::ConnectionType,
 	paused: bool,
 	key_map: data::input::key::KeyMap,
@@ -65,7 +62,7 @@ struct App{
 }
 
 impl App{
-	fn update(&mut self, args: &UpdateArgs,input_sender: &sync::mpsc::Sender<(Input,PlayerId)>){
+	fn update(&mut self, args: &UpdateArgs,request_sender: &sync::mpsc::Sender<data::Request>){
 		//Controllers
 		if !self.paused{
 			for mut controller in self.controllers.iter_mut(){
@@ -80,7 +77,7 @@ impl App{
 				*time_left <= 0.0
 			}{
 				*time_left = if let Some(mapping) = self.key_map.get(&key){
-					input_sender.send((mapping.input,mapping.player)).unwrap();
+					request_sender.send(data::Request::Input{input: mapping.input,player: mapping.player}).unwrap();
 					*time_left + mapping.repeat_frequency
 				}else{
 					f64::NAN//TODO: If the mapping doesn't exist, it will never be removed
@@ -89,21 +86,28 @@ impl App{
 		}
 
 		//Input
-		while let Ok((input,pid)) = self.input_receiver.try_recv(){
-			if let Some(player) = self.game_state.players.get_mut(&(pid as usize)){
-				if let Some(map) = self.game_state.maps.get_mut(&(player.map as usize)){
-					input::perform(input,player,map);
+		while let Ok(request) = self.request_receiver.try_recv(){use data::Request::*;match request{
+			Input{input,player: pid} => {
+				if let Some(player) = self.game_state.players.get_mut(&(pid as usize)){
+					if let Some(map) = self.game_state.maps.get_mut(&(player.map as usize)){
+						input::perform(input,player,map);
+					}
 				}
-			}
 
-			if let online::ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
-				socket.send_to(&*online::client::packet::Data::PlayerInput{
-					connection: 0,
-					player: 0,
-					input: input
-				}.into_packet(0).serialize(),address).unwrap();
-			}}
-		}
+				if let online::ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
+					socket.send_to(&*online::client::packet::Data::PlayerInput{
+						connection: 0,
+						player: 0,
+						input: input
+					}.into_packet(0).serialize(),address).unwrap();
+				}}
+			},
+			PlayerAdd{settings} => {
+				let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
+				game.add_player(0,settings,&mut |e| for c in cs.iter_mut(){c.event(e);});
+			},
+			_ => ()
+		}}
 
 		//Update
 		if !self.paused{
@@ -112,7 +116,7 @@ impl App{
 		}
 	}
 
-	fn on_key_press(&mut self,key: Key,input_sender: &sync::mpsc::Sender<(Input,PlayerId)>){
+	fn on_key_press(&mut self,key: Key,request_sender: &sync::mpsc::Sender<data::Request>){
 		if self.paused{match key{
 			Key::Return => {self.paused = false},
 			_ => {},
@@ -142,7 +146,7 @@ impl App{
 			key => if let Some(mapping) = self.key_map.get(&key){
 				if let hash_map::Entry::Vacant(entry) = self.key_down.entry(key){
 					entry.insert(mapping.repeat_delay);
-					input_sender.send((mapping.input,mapping.player)).unwrap();
+					request_sender.send(data::Request::Input{input: mapping.input,player: mapping.player}).unwrap();
 				}
 			}
 		}}
@@ -222,7 +226,7 @@ fn main(){
 		.opengl(opengl)
 	).unwrap();
 
-	let (input_sender,input_receiver) = sync::mpsc::channel();
+	let (request_sender,request_receiver) = sync::mpsc::channel();
 
 	//Create a new application
 	let mut app = App{
@@ -241,7 +245,7 @@ fn main(){
 		controllers: Vec::new(),
 		key_map: HashMap::new(),
 		key_down: HashMap::new(),
-		input_receiver: input_receiver,
+		request_receiver: request_receiver,
 		connection: match args.flag_online{
 			//No connection
 			command_arg::OnlineConnection::none => online::ConnectionType::None,
@@ -256,7 +260,7 @@ fn main(){
 					args.flag_port
 				);
 
-				match online::client::start(server_addr,input_sender.clone()){
+				match online::client::start(server_addr,request_sender.clone()){
 					Ok(socket) => online::ConnectionType::Client(socket,server_addr),
 					Err(_)     => online::ConnectionType::None
 				}
@@ -266,7 +270,7 @@ fn main(){
 			command_arg::OnlineConnection::server => {
 				let server_addr = net::SocketAddr::new(args.flag_host.0,args.flag_port);
 
-				match online::server::start(server_addr,input_sender.clone()){
+				match online::server::start(server_addr,request_sender.clone()){
 					Ok(_)  => online::ConnectionType::Server,
 					Err(_) => online::ConnectionType::None
 				}
@@ -290,7 +294,7 @@ fn main(){
 			//Create player 1
 			game.rngs.insert_from_global(gamestate::data_map::MappingKey::Player(1));
 			cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
-				input_sender.clone(),
+				request_sender.clone(),
 				1,
 				ai::bruteforce::Settings::default()
 			)));
@@ -325,7 +329,7 @@ fn main(){
 	for e in window.events(){
 		//Player inflicted input: Keyboard events
 		if let Some(Button::Keyboard(k)) = e.press_args(){
-			app.on_key_press(k,&input_sender);
+			app.on_key_press(k,&request_sender);
 		}
 		if let Some(Button::Keyboard(k)) = e.release_args(){
 			app.on_key_release(k);
@@ -333,7 +337,7 @@ fn main(){
 
 		//Update
 		if let Some(u) = e.update_args(){
-			app.update(&u,&input_sender);//TODO: It "feels" not good having to give the input sender to the update method, where it should be receive input
+			app.update(&u,&request_sender);//TODO: It "feels" not good having to give the input sender to the update method, where it should be receive input
 		}
 
 		//Render

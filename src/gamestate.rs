@@ -3,13 +3,9 @@ use core::cmp;
 use piston::input::UpdateArgs;
 use rand::{self,Rand};
 
-use super::data::cell::Cell;
-use super::data::grid::{self,Grid};
-use super::data::map;
-use super::data::map::Map as MapTrait;
-use super::data::player::{self,Player};
+use super::data::{grid,map,player,Cell,Grid,Map as MapTrait,Player};
 use super::data::shapes::tetromino::{Shape,RotatedShape};
-use super::game::event::Event;
+use super::game::Event;
 use super::tmp_ptr::TmpPtr;
 
 ///Type of the map id

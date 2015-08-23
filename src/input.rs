@@ -1,7 +1,4 @@
-use data::grid;
-use data::input::Input;
-use data::map::Map;
-use data::player::Player;
+use data::{grid,Input,Map,Player};
 use gamestate;
 
 ///Performs an action based on the given input on a player in a map

@@ -5,7 +5,7 @@ use core::ptr;
 use super::super::grid::{self,Grid};
 use super::super::shapes::tetromino::RotatedShape;
 use super::Map as MapTrait;
-use super::super::cell::Cell as CellTrait;
+use super::super::Cell as CellTrait;
 
 ///Rectangular dynamic sized game map
 #[derive(Eq,PartialEq)]

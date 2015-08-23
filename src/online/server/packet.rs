@@ -1,6 +1,5 @@
 use super::super::packet::*;
-use data::input::Input;
-use data::player;
+use data::{player,Input};
 
 ///Type of packet sent from the server
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
@@ -16,9 +15,9 @@ pub enum Data{
 	ConnectionInvalid,
 
 	///Sent when a new player request has been confirmed
-	PlayerCreatedResponse{
+	PlayerCreateResponse{
 		player  : PlayerNetworkId,
-		rng_seed: u32,
+		rng_seed: u32,//TODO: Send the whole RNG map in a packet instead?
 	},
 
 	///Sent when a new player has been added

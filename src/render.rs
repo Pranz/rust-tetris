@@ -3,8 +3,7 @@ pub mod default{
 	use opengl_graphics::GlGraphics;
 	use piston::input::RenderArgs;
 
-	use data::{cell,colors,grid};
-	use data::map::Map;
+	use data::{cell,colors,grid,Map};
 	use data::shapes::tetromino::Shape;
 	use gamestate::GameState;
 

@@ -5,7 +5,7 @@ pub mod ai;
 use piston::input::UpdateArgs;
 use vec_map::VecMap;
 
-use data::player::Player;
+use data::Player;
 
 ///Controlls a player and its map with inputs
 pub trait Controller<Map,Event>{
