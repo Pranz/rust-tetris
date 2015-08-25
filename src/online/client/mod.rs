@@ -2,6 +2,7 @@ pub mod packet;
 
 
 
+use byte_conv::As;
 use core::mem;
 use std::{net,sync,thread};
 use std::error::Error;
@@ -19,24 +20,25 @@ pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Req
 
 			//Listen for packets from server in a new thread
 			{let socket = socket.try_clone().unwrap();thread::spawn(move ||{
-				let mut buffer = super::packet::buffer();
+				let mut _buffer: Packet<packet::Data> = unsafe{mem::uninitialized::<Packet<packet::Data>>()};
+				let buffer = unsafe{_buffer.as_bytes_mut()};
 				let mut connected = false;
 				let mut connection_id;
 
 				//For each received packet
-				while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
+				while let Ok((buffer_size,address)) = socket.recv_from(buffer){
 					if server_addr != address{
 						println!("Client: Not server who sent the packet ({} (Server) != {})",server_addr,address);
 						continue;
 					}
 
-					if buffer_size > mem::size_of_val(&buffer){
+					if buffer_size > buffer.len(){
 						println!("Client: Server sent too big of a packet: {} bytes",buffer_size);
 						continue;
 					}
 
 					//Deserialize packet
-					match ::bincode::serde::deserialize(&buffer[..]){
+					match Packet::deserialize(buffer){
 						Ok(Packet{data,..}) => match data{
 							//Received connection request established
 							server::packet::Data::ConnectionEstablished{connection} if !connected => {

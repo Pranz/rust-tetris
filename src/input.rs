@@ -1,3 +1,5 @@
+//! Input code
+
 use data::{grid,Input,Player,World};
 use gamestate;
 

@@ -1,3 +1,6 @@
+//! Render code
+
+///Default rendering
 pub mod default{
 	use graphics::{self,Transformed};
 	use opengl_graphics::GlGraphics;
@@ -39,7 +42,7 @@ pub mod default{
 			graphics::clear(colors::BLACK,gl);
 
 			//Draw worlds
-			for (world_id,world) in state.worlds.iter(){
+			for (world_id,world) in state.data.worlds.iter(){
 				let transform = {
 					let (x,y) = world_render_pos(world_id);
 					context.transform.trans(x,y)
@@ -71,7 +74,7 @@ pub mod default{
 			}
 
 			//Draw players
-			for (_,player) in state.players.iter(){match state.worlds.get(&(player.world as usize)){
+			for (_,player) in state.data.players.iter(){match state.data.worlds.get(&(player.world as usize)){
 				Some(_) => {
 					let transform = {
 						let (x,y) = world_render_pos(player.world as usize);

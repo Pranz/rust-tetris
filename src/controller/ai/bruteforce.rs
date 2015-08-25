@@ -62,13 +62,10 @@ impl Controller{
 					let pos = gamestate::fastfallen_shape_pos(
 						&rotated_shape,
 						world,
-						grid::Pos{
-							x: x,
-							y: pos.y
-						}
+						pos.with_x(x)
 					);
 
-					let optimality_test_world = grid::imprint_bool::Grid{a: world,b: &translate::Grid{grid: &rotated_shape,pos: grid::Pos{x: -pos.x,y: -pos.y}}};
+					let optimality_test_world = grid::imprint_bool::Grid{a: world,b: &translate::Grid{grid: &rotated_shape,pos: -pos}};
 
 					let current_o = world_optimality2(&optimality_test_world);
 					if current_o > greatest_o{

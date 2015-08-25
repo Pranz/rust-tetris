@@ -6,8 +6,9 @@ license = "LGPL-3.0"
 
 [dependencies]
 bincode = "0.4"
+byte_conv = "0.1"
 docopt = "0.6"
-docopt_macros = {git = "https://github.com/docopt/docopt.rs.git"}#"0.6"
+docopt_macros = "0.6"
 fixed_circular_buffer = "0.2"
 num = "0.1"
 rand = "0.3"

@@ -1,13 +1,13 @@
-use core::mem;
 use serde::{de,Serialize,Serializer,Deserialize,Deserializer};
 
+#[derive(Copy,Clone,Debug,Eq,PartialEq)]
 pub struct ProtocolId;
 impl Serialize for ProtocolId{
 	#[inline]
 	fn serialize<S>(&self,serializer: &mut S) -> Result<(),S::Error>
 		where S: Serializer
 	{
-		serializer.visit_str("TETR")
+		serializer.visit_bytes(b"TETR")
 	}
 }
 impl Deserialize for ProtocolId{
@@ -45,7 +45,7 @@ impl Deserialize for ProtocolId{
 
 pub type Id = u16;
 
-#[derive(Serialize,Deserialize)]
+#[derive(Copy,Clone,Debug,Serialize,Deserialize)]
 pub struct Packet<Data: Serialize + Deserialize>{
 	pub protocol: ProtocolId,
 	pub packet: Id,
@@ -53,17 +53,19 @@ pub struct Packet<Data: Serialize + Deserialize>{
 }
 
 impl<Data> Packet<Data>
-		where Data: Serialize + Deserialize
+	where Data: Serialize + Deserialize
 {
-	pub fn serialize(&self) -> Vec<u8>
-	{
+	#[inline(always)]
+	pub fn serialize(&self) -> Vec<u8>{
 		::bincode::serde::serialize(self,::bincode::SizeLimit::Bounded(256)).unwrap()
+	}
+
+	#[inline(always)]
+	pub fn deserialize(bytes: &[u8]) -> Result<Self,::bincode::serde::DeserializeError>{
+		::bincode::serde::deserialize(bytes)
 	}
 }
 
 pub type ProtocolVersion = u16;
 pub type ConnectionId = u32;
 pub type PlayerNetworkId = u32;
-
-#[inline(always)]
-pub fn buffer() -> [u8; 256]{unsafe{mem::uninitialized()}}//TODO: 256 is just a constant made up on top of my head. This should be of the size of the largest packet sent/received.

@@ -1,4 +1,4 @@
-//!A game world
+//!A game world where player's reside in
 
 pub mod default;
 pub mod dynamic;
@@ -7,7 +7,7 @@ pub mod dynamic;
 
 use core::ops::Range;
 
-use super::grid::{self,Grid,PosAxis,SizeAxis,Pos};
+use super::grid::{self,Grid,SizeAxis,Pos};
 use super::Cell as CellTrait;
 use super::shapes::tetromino::RotatedShape;
 
@@ -47,7 +47,7 @@ pub trait World: Grid{
 		for (cell_pos,cell) in grid::cells_iter::Iter::new(shape){
 			if cell{
 				//TODO: Range checks every iteration
-				self.set_position(Pos{x: pos.x+(cell_pos.x as PosAxis),y: pos.y+(cell_pos.y as PosAxis)},cell_constructor(shape)).ok();
+				self.set_position(pos + cell_pos,cell_constructor(shape)).ok();
 			}
 		}
 	}
@@ -92,7 +92,7 @@ pub enum CellIntersection{
 
 ///Default methods for a world
 pub mod defaults{
-	use super::super::grid::{self,Grid,PosAxis,Pos};
+	use super::super::grid::{self,Grid,Pos};
 	use super::super::shapes::tetromino::RotatedShape;
 	use super::super::Cell as CellTrait;
 	use super::World;
@@ -103,7 +103,7 @@ pub mod defaults{
 	{
 		for (cell_pos,cell) in grid::cells_iter::Iter::new(shape){
 			if cell{
-				let pos = Pos{x: cell_pos.x as PosAxis + pos.x,y: cell_pos.y as PosAxis + pos.y};
+				let pos = cell_pos + pos;
 				match world.position(pos){
 					None                                     => return super::CellIntersection::OutOfBounds(pos),
 					Some(world_cell) if world_cell.is_occupied() => return super::CellIntersection::Imprint(pos),

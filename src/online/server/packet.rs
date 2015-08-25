@@ -1,5 +1,6 @@
 use super::super::packet::*;
 use data::{player,Input};
+use data::shapes::tetromino::Shape;
 
 ///Type of packet sent from the server
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
@@ -36,6 +37,12 @@ pub enum Data{
 	PlayerInput{
 		player: PlayerNetworkId,
 		input : Input,
+	},
+
+	///Sent when a player's shape
+	PlayerQueueShape{
+		player: PlayerNetworkId,
+		shape : Shape
 	},
 }
 

@@ -1,9 +1,10 @@
-#![feature(associated_consts,collections,core,custom_derive,ip,ip_addr,lookup_host,optin_builtin_traits,plugin,slice_patterns,str_split_at)]
+#![feature(associated_consts,collections,core,custom_derive,ip,ip_addr,lookup_host,optin_builtin_traits,plugin,repr_simd,slice_patterns,str_split_at)]
 
 #![plugin(docopt_macros)]
 #![plugin(rand_macros)]
 #![plugin(serde_macros)]
 extern crate bincode;
+extern crate byte_conv;
 extern crate collections;
 extern crate core;
 extern crate docopt;
@@ -66,7 +67,7 @@ impl App{
 		//Controllers
 		if !self.paused{
 			for mut controller in self.controllers.iter_mut(){
-				controller.update(args,&self.game_state.players,&self.game_state.worlds);
+				controller.update(args,&self.game_state.data.players,&self.game_state.data.worlds);
 			}
 		}
 
@@ -88,8 +89,8 @@ impl App{
 		//Input
 		while let Ok(request) = self.request_receiver.try_recv(){use data::Request::*;match request{
 			Input{input,player: pid} => {
-				if let Some(player) = self.game_state.players.get_mut(&(pid as usize)){
-					if let Some(world) = self.game_state.worlds.get_mut(&(player.world as usize)){
+				if let Some(player) = self.game_state.data.players.get_mut(&(pid as usize)){
+					if let Some(world) = self.game_state.data.worlds.get_mut(&(player.world as usize)){
 						input::perform(input,player,world);
 					}
 				}
@@ -124,15 +125,15 @@ impl App{
 			Key::Return => {self.paused = true},
 
 			//Player 0 Tests
-			Key::D1     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::I);};},
-			Key::D2     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::L);};},
-			Key::D3     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::O);};},
-			Key::D4     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::J);};},
-			Key::D5     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::T);};},
-			Key::D6     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::S);};},
-			Key::D7     => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::Z);};},
-			Key::R      => {
-				match self.game_state.players.get(&(0 as usize)).map(|player| player.world){//TODO: New seed for rng
+			Key::D1 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::I);};},
+			Key::D2 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::L);};},
+			Key::D3 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::O);};},
+			Key::D4 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::J);};},
+			Key::D5 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::T);};},
+			Key::D6 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::S);};},
+			Key::D7 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::Z);};},
+			Key::R  => {
+				match self.game_state.data.players.get(&(0 as usize)).map(|player| player.world){//TODO: New seed for rng
 					Some(world_id) => {
 						let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
 						game.reset_world(world_id,&mut |e| for c in cs.iter_mut(){c.event(e);});
@@ -140,7 +141,7 @@ impl App{
 					None => ()
 				};
 			},
-			Key::Home   => {if let Some(player) = self.game_state.players.get_mut(&(0 as usize)){player.pos.y = 0;};},
+			Key::Home => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.pos.y = 0;};},
 
 			//Other keys, check key bindings
 			key => if let Some(mapping) = self.key_map.get(&key){
@@ -279,8 +280,8 @@ fn main(){
 	};
 
 	//Create world
-	app.game_state.worlds.insert(0,World::new(10,20));
-	app.game_state.worlds.insert(1,World::new(10,20));
+	app.game_state.data.worlds.insert(0,World::new(10,20));
+	app.game_state.data.worlds.insert(1,World::new(10,20));
 
 	{let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
 		if let online::ConnectionType::None = app.connection{

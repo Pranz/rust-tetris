@@ -2,6 +2,7 @@ pub mod packet;
 
 
 
+use byte_conv::As;
 use core::mem;
 use rand::{Rng,StdRng};
 use std::{net,sync,thread};
@@ -17,18 +18,19 @@ pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Reque
 
 			//Listen for packets from clients in a new thread
 			thread::spawn(move ||{
-				let mut buffer = super::packet::buffer();
+				let mut _buffer: Packet<packet::Data> = unsafe{mem::uninitialized()};
+				let mut buffer = unsafe{_buffer.as_bytes_mut()};
 				let mut connection_id_gen = StdRng::new().unwrap();
 
 				//For each received packet
-				while let Ok((buffer_size,address)) = socket.recv_from(&mut buffer){
-					if buffer_size > mem::size_of_val(&buffer){
+				while let Ok((buffer_size,address)) = socket.recv_from(buffer){
+					if buffer_size > buffer.len(){
 						println!("Server: Client sent too big of a packet: {} bytes",buffer_size);
 						continue;
 					}
 
 					//Deserialize packet
-					match ::bincode::serde::deserialize(&buffer[..]){
+					match Packet::deserialize(buffer){
 						Ok(Packet{data,..}) => match data{
 							//Recevied connection request
 							client::packet::Data::Connect{protocol_version} => {

@@ -16,17 +16,16 @@ impl<'g,G> GridTrait for Grid<'g,G>
 	type Cell = <G as GridTrait>::Cell;
 
 	#[inline]fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-		self.grid.is_position_out_of_bounds(Pos{x: self.pos.x + pos.x,y: self.pos.y + pos.y})
+		self.grid.is_position_out_of_bounds(self.pos + pos)
 	}
 
-	#[inline]fn offset(&self) -> Pos{Pos{
-		x: self.pos.x + self.grid.offset().x,
-		y: self.pos.y + self.grid.offset().y
-	}}
+	#[inline]fn offset(&self) -> Pos{
+		self.pos + self.grid.offset()
+	}
 	#[inline]fn width(&self) -> SizeAxis{self.grid.width()}
 	#[inline]fn height(&self) -> SizeAxis{self.grid.height()}
 
 	#[inline]unsafe fn pos(&self,pos: Pos) -> Self::Cell{
-		self.grid.pos(Pos{x: self.pos.x + pos.x,y: self.pos.y + pos.y})
+		self.grid.pos(self.pos + pos)
 	}
 }

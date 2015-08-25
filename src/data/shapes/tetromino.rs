@@ -3,7 +3,7 @@
 use super::super::grid::{self,Grid};
 
 ///All possible tetromino shapes
-#[derive(Copy,Clone,Debug,Eq,PartialEq,Rand)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq,Rand,Serialize,Deserialize)]
 pub enum Shape{
 	I,
 	L,
@@ -64,7 +64,7 @@ impl Shape{
 }
 
 ///A shape with its rotation
-#[derive(PartialEq,Eq,Copy,Clone,Debug)]
+#[derive(Copy,Clone,Debug,Eq,PartialEq,Rand,Serialize,Deserialize)]
 pub struct RotatedShape{
 	shape: Shape,
 	rotation: u8

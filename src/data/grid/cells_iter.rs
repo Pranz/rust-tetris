@@ -1,4 +1,4 @@
-use super::super::grid::{Pos,PosAxis,Size};
+use super::super::grid::Size;
 use super::Grid;
 
 ///Iterates through a grid's cells
@@ -32,10 +32,7 @@ impl<'g,G: Grid> Iterator for Iter<'g,G>
 			let x = self.pos.x;
 			self.pos.x+=1;
 
-			match self.grid.position(Pos{
-				x: x as PosAxis + self.grid.offset().x,
-				y: self.pos.y as PosAxis + self.grid.offset().y
-			}){
+			match self.grid.position(self.pos.with_x(x) + self.grid.offset()){
 				Some(cell) => return Some((Size{x: x,y: self.pos.y},cell)),
 				None => continue
 			}

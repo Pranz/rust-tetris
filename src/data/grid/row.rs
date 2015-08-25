@@ -25,11 +25,11 @@ impl<'g,G> GridTrait for Grid<'g,G>
 		}
 	}
 
-	#[inline]fn offset(&self) -> Pos{self.grid.offset()}
-	#[inline]fn width(&self) -> SizeAxis{self.grid.width()}
-	#[inline]fn height(&self) -> SizeAxis{1}
+	#[inline(always)]fn offset(&self) -> Pos{self.grid.offset()}
+	#[inline(always)]fn width(&self) -> SizeAxis{self.grid.width()}
+	#[inline(always)]fn height(&self) -> SizeAxis{1}
 
-	unsafe fn pos(&self,pos: Pos) -> Self::Cell{
+	#[inline(always)]unsafe fn pos(&self,pos: Pos) -> Self::Cell{
 		self.grid.pos(pos)
 	}
 }
@@ -44,7 +44,8 @@ pub struct Iter<'g,G: 'g>{
 impl<'g,G> Iter<'g,G>
 	where G: GridTrait + 'g,
 {
-	pub fn new(grid: Grid<'g,G>) -> Self{Iter{grid: grid,column: 0}}
+	#[inline(always)]pub fn new(grid: Grid<'g,G>) -> Self{Iter{grid: grid,column: 0}}
+	#[inline(always)]pub fn pos(&self) -> Pos{Pos{x: self.column as PosAxis,y: self.grid.y as PosAxis}}
 }
 
 impl<'g,G> iter::Iterator for Iter<'g,G>
@@ -54,7 +55,7 @@ impl<'g,G> iter::Iterator for Iter<'g,G>
 	type Item = (SizeAxis,<G as GridTrait>::Cell);
 
 	fn next(&mut self) -> Option<Self::Item>{
-		if let Some(cell) = self.grid.position(Pos{x: self.column as PosAxis + self.grid.offset().x,y: self.grid.y as PosAxis + self.grid.offset().y}){
+		if let Some(cell) = self.grid.position(self.pos() + self.grid.offset()){
 			let column = self.column;
 			self.column+= 1;
 			Some((column,cell))
@@ -63,6 +64,7 @@ impl<'g,G> iter::Iterator for Iter<'g,G>
 		}
 	}
 
+	#[inline(always)]
 	fn size_hint(&self) -> (usize,Option<usize>){
 		let len = self.len();
 		(len,Some(len))
