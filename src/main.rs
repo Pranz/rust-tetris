@@ -1,4 +1,5 @@
 #![feature(associated_consts,collections,core,custom_derive,ip,ip_addr,lookup_host,optin_builtin_traits,plugin,repr_simd,slice_patterns,str_split_at)]
+#![allow(dead_code)]
 
 #![plugin(docopt_macros)]
 #![plugin(rand_macros)]
@@ -22,14 +23,14 @@ extern crate vec_map;
 #[cfg(feature = "include_glutin")]extern crate glutin_window;
 
 mod command_arg;
-pub mod controller;
-pub mod data;
-pub mod gamestate;
-pub mod game;
-pub mod input;
-pub mod online;
-pub mod render;
-pub mod tmp_ptr;
+mod controller;
+mod data;
+mod gamestate;
+mod game;
+mod input;
+mod online;
+mod render;
+mod tmp_ptr;
 
 use controller::Controller;
 use core::f64;
@@ -237,7 +238,7 @@ fn main(){
 			{fn f(variant: &RotatedShape) -> cell::ShapeCell{
 				cell::ShapeCell(Some(variant.shape()))
 			}f}as fn(&_) -> _,
-			{fn f<W: Grid>(shape: &RotatedShape,world: &W) -> grid::Pos{grid::Pos{
+			{fn f<W: Grid + grid::RectangularBound>(shape: &RotatedShape,world: &W) -> grid::Pos{grid::Pos{
 				x: world.width() as grid::PosAxis/2 - shape.center_x() as grid::PosAxis,
 				y: 0//TODO: Optionally spawn above: `-(shape.height() as grid::PosAxis);`. Problem is the collision checking. And this is not how it usually is done in other games
 			}}f::<World<cell::ShapeCell>>}as fn(&_,&_) -> _,

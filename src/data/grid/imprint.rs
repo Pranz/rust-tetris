@@ -1,5 +1,5 @@
 use super::Grid as GridTrait;
-use super::{SizeAxis,Pos};
+use super::{SizeAxis,Pos,RectangularBound};
 
 ///Imprints `b` on `a`
 #[derive(Copy,Clone)]
@@ -18,16 +18,21 @@ impl<'ga,'gb,GA,GB,Cell> GridTrait for Grid<'ga,'gb,GA,GB,Cell>
 {
 	type Cell = Cell;
 
-	#[inline]fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-		self.a.is_position_out_of_bounds(pos)
+	#[inline]fn is_out_of_bounds(&self,pos: Pos) -> bool{
+		self.a.is_out_of_bounds(pos)
 	}
-
-	#[inline]fn offset(&self) -> Pos{self.a.offset()}
-	#[inline]fn width(&self) -> SizeAxis{self.a.width()}
-	#[inline]fn height(&self) -> SizeAxis{self.a.height()}
 
 	unsafe fn pos(&self,pos: Pos) -> Self::Cell{
 		let a_pos = self.a.pos(pos);
-		(self.map_fn)(a_pos,if self.b.is_position_out_of_bounds(pos){Some(self.b.pos(pos))}else{None})
+		(self.map_fn)(a_pos,if self.b.is_out_of_bounds(pos){Some(self.b.pos(pos))}else{None})
 	}
+}
+
+impl<'ga,'gb,GA,GB,Cell> RectangularBound for Grid<'ga,'gb,GA,GB,Cell>
+	where GA: GridTrait + RectangularBound + 'ga,
+	      GB: GridTrait + 'gb
+{
+	#[inline]fn bound_start(&self) -> Pos{self.a.bound_start()}
+	#[inline]fn width(&self) -> SizeAxis{self.a.width()}
+	#[inline]fn height(&self) -> SizeAxis{self.a.height()}
 }

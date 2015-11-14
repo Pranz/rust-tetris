@@ -2,11 +2,13 @@ use vec_map::VecMap;
 use core::cmp;
 use piston::input::UpdateArgs;
 use rand::{self,Rand};
+use serde::{Serialize,Serializer};
 
-use super::data::{grid,world,player,Cell,Grid,Player,World as WorldTrait};
-use super::data::shapes::tetromino::{Shape,RotatedShape};
-use super::game::Event;
-use super::tmp_ptr::TmpPtr;
+use data::{grid,world,player,Cell,Grid,Player,World as WorldTrait};
+use data::grid::RectangularBound;
+use data::shapes::tetromino::{Shape,RotatedShape};
+use game::Event;
+use tmp_ptr::TmpPtr;
 
 ///Type of the world id
 pub type WorldId = u8;
@@ -339,22 +341,27 @@ pub fn fastfallen_shape_pos<World>(shape: &RotatedShape,world: &World,shape_pos:
 }
 
 #[derive(Clone)]
-pub struct Data<World>{
+pub struct Data<W>{
 	///Mappings of worlds and world ids
-	pub worlds: VecMap<World>,
+	pub worlds: VecMap<W>,
 
 	///Mappings of players and player ids
 	pub players: VecMap<Player>,
 }
-/*TODO: impl Serialize for Data<World>{
+
+impl<W> Serialize for Data<W>
+	where W: WorldTrait,
+	      W: Grid,
+	      <W as Grid>::Cell: Cell + Copy
+{
 	#[inline]
 	fn serialize<S>(&self,serializer: &mut S) -> Result<(),S::Error>
 		where S: Serializer
 	{
-		serializer.visit_bytes(b"TETR")
+		grid::serde::GridSerializer::<_,W>::new(&self.worlds[0]).visit(serializer)
 	}
 }
-impl Deserialize for Data<World>{
+/*impl Deserialize for Data<World>{
 	#[inline]
 	fn deserialize<D>(deserializer: &mut D) -> Result<Self,D::Error>
 		where D: Deserializer

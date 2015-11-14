@@ -1,6 +1,6 @@
 //!A basic tetromino shape (4 blocks)
 
-use super::super::grid::{self,Grid};
+use super::super::grid::{self,Grid,RectangularBound};
 
 ///All possible tetromino shapes
 #[derive(Copy,Clone,Debug,Eq,PartialEq,Rand,Serialize,Deserialize)]
@@ -137,6 +137,10 @@ impl Grid for RotatedShape{
 		data[pos.x as usize + (pos.y as usize * width as usize)]
 	}
 
+	fn is_out_of_bounds(&self,pos: grid::Pos) -> bool{grid::is_position_outside_rectangle(self,pos)}
+}
+
+impl grid::RectangularBound for RotatedShape{
 	#[inline(always)]fn width(&self) -> grid::SizeAxis{self.shape.size().x}
 	#[inline(always)]fn height(&self) -> grid::SizeAxis{self.shape.size().y}
 	#[inline(always)]fn size(&self) -> grid::Size{self.shape.size()}

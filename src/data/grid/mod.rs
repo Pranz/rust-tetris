@@ -6,6 +6,7 @@ pub mod imprint;
 pub mod imprint_bool;
 pub mod row;
 pub mod rows_iter;
+pub mod serde;
 pub mod translate;
 
 
@@ -19,60 +20,121 @@ pub trait Grid{
 	type Cell;
 
 	///Returns whether the given position is out of bounds
-	fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-		let offset = self.offset();
-		pos.x<offset.x || pos.y<offset.y || pos.x>=self.width() as PosAxis+offset.x || pos.y>=self.height() as PosAxis+offset.y
-	}
+	fn is_out_of_bounds(&self,pos: Pos) -> bool;
 
-	///Returns the cell at the given position.
-	///A None will be returned when out of bounds
+	///Returns the cell at the given position if it is in bounds.
+	///`None` will be returned when out of bounds
 	fn position(&self,pos: Pos) -> Option<Self::Cell>{
-		if self.is_position_out_of_bounds(pos){
+		if self.is_out_of_bounds(pos){
 			None
 		}else{
 			Some(unsafe{self.pos(pos)})
 		}
 	}
 
-	///Returns the rectangular axis aligned offset of the world
-	fn offset(&self) -> Pos{Pos{x: 0,y: 0}}
+	///Returns the cell at the given position without checks
+	///Requirements:
+	///    is_out_of_bounds(pos) == false
+	unsafe fn pos(&self,pos: Pos) -> Self::Cell;
+}
 
-	///Returns the rectangular axis aligned width of the world
+///Represents a grid bounded by a axis aligned rectangle
+///
+///When implementing this trait, `width` and `height` needs to be implemented.
+///If a different start boundary is needed, then `bound_start` needs to be implemented.
+pub trait RectangularBound{
+	///Returns a position in the grid where the product of the axes is smallest
+	///This means the lower bound (smallest value) of each axis within the grid
+	///
+	///Requirements:
+	///  bound_end.x >= bound_start.x
+	///  bound_end.y >= bound_start.y
+	///  size = bound_end - bound_start
+	#[inline(always)]
+	fn bound_start(&self) -> Pos{Pos{x: 0,y: 0}}
+
+	///Returns a position in the grid where the product of the axes is greatest
+	///This means the upper bound (greatest value) of each axis within the grid
+	///
+	///Requirements:
+	///  bound_end.x >= bound_start.x
+	///  bound_end.y >= bound_start.y
+	///  size == bound_end - bound_start - Size(1,1)
+	#[inline(always)]
+	fn bound_end(&self) -> Pos{self.bound_start() + self.size() - Size{x: 1,y: 1}}
+
+	///Returns the width of the boundary
+	///
+	///Requirements:
+	///  size.x == width
 	fn width(&self) -> SizeAxis;
 
-	///Returns the rectangular axis aligned height of the world
+	///Returns the height of the boundary
+	///
+	///Requirements:
+	///  size.y == height
 	fn height(&self) -> SizeAxis;
 
-	///Returns the rectangular axis aligned size of the world
+	///Returns the size (size of each axis) of the boundary
+	///
+	///Requirements:
+	///  size == bound_end - bound_start
+	///  size.x == width
+	///  size.y == height
+	#[inline(always)]
 	fn size(&self) -> Size{
 		Size{x: self.width(),y: self.height()}
 	}
 
-	///Returns the cell at the given position without checks
+	///Returns the rectangular axis aligned bounds of the world
+	///
 	///Requirements:
-	///    pos.x < height()
-	///    pos.y < height()
-	///    is_position_out_of_bounds(pos) == false
-	unsafe fn pos(&self,pos: Pos) -> Self::Cell;
+	///  bounds = (bound_start,bound_end)
+	#[inline(always)]
+	fn bounds(&self) -> (Pos,Pos){(self.bound_start(),self.bound_end())}
+
+	unsafe fn pos_relative(&self,pos: Pos) -> <Self as Grid>::Cell
+		where Self: Grid
+	{
+		self.pos(pos + self.bound_start())
+	}
+}
+
+///Returns whether the given position is outside the rectangle
+pub fn is_position_outside_rectangle<R>(r: &R,pos: Pos) -> bool
+	where R: RectangularBound
+{
+	let (Pos{x: left,y: top},Pos{x: right,y: bottom}) = r.bounds();
+	pos.x<left || pos.y<top || pos.x>right || pos.y>bottom
+}
+
+///Returns whether the first rectangle is outside the second rectangle
+pub fn is_rectangle_outside_rectangle<R1,R2>(r1: R1,r2: R2) -> bool
+	where R1: RectangularBound,
+	      R2: RectangularBound
+{
+	let (Pos{x: left1,y: top1},Pos{x: right1,y: bottom1}) = r1.bounds();
+	let (Pos{x: left2,y: top2},Pos{x: right2,y: bottom2}) = r2.bounds();
+	right1 < left2 || left1 > right2 || bottom1 < top2 || top1 > bottom2
 }
 
 ///Checks whether the `inside`'s occupied cells are inside `outside`
-pub fn is_grid_out_of_bounds<GIn,GOut>(outside: &GOut,inside: &GIn,inside_offset: Pos) -> bool
-	where GIn : Grid,
+pub fn is_grid_out_of_bounds<GIn,GOut>(outside: &GOut,inside: &GIn) -> bool
+	where GIn : Grid + RectangularBound,
 	      GOut: Grid,
 	      <GIn  as Grid>::Cell: CellTrait + Copy,
 {
 	for (pos,cell) in cells_iter::Iter::new(inside){
-		if cell.is_occupied() && outside.is_position_out_of_bounds(inside_offset + pos){
-			return true;
+		if cell.is_occupied() && !outside.is_out_of_bounds(inside.bound_start() + pos){
+			return false;
 		}
 	}
-	false
+	true
 }
 
 ///Signed integer type used for describing a position axis.
 ///The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.
-pub type PosAxis  = i16;
+pub type PosAxis = i16;
 
 ///Unsigned integer type used for describing a size axis.
 pub type SizeAxis = u8;

@@ -107,7 +107,7 @@ pub fn connect_server(socket: &net::UdpSocket,address: net::SocketAddr,mut retri
 						continue;
 					},
 					None => {
-						println!("Client: Error when sending socket: Gave up, no more retries");
+						println!("Client: Error when sending socket: Gave up");
 						return Err(());
 					}
 				}

@@ -2,7 +2,7 @@ use core::iter::{self,FromIterator};
 use core::ops::Range;
 use core::ptr;
 
-use super::super::grid::{self,Grid};
+use super::super::grid::{self,Grid,RectangularBound};
 use super::super::shapes::tetromino::RotatedShape;
 use super::super::Cell as CellTrait;
 use super::World as WorldTrait;
@@ -25,15 +25,19 @@ impl<Cell: Copy> Grid for World<Cell>{
 	type Cell = Cell;
 
 	#[inline(always)]
+	unsafe fn pos(&self,pos: grid::Pos) -> <Self as Grid>::Cell{
+		self.slice[pos.x as usize + pos.y as usize*(self.width as usize)]
+	}
+
+	fn is_out_of_bounds(&self,pos: grid::Pos) -> bool{grid::is_position_outside_rectangle(self,pos)}
+}
+
+impl<Cell> grid::RectangularBound for World<Cell>{
+	#[inline(always)]
 	fn width(&self) -> grid::SizeAxis{self.width}
 
 	#[inline(always)]
 	fn height(&self) -> grid::SizeAxis{(self.slice.len()/(self.width as usize)) as grid::SizeAxis}
-
-	#[inline(always)]
-	unsafe fn pos(&self,pos: grid::Pos) -> <Self as Grid>::Cell{
-		self.slice[pos.x as usize + pos.y as usize*(self.width as usize)]
-	}
 }
 
 impl<Cell: CellTrait + Copy> WorldTrait for World<Cell>{

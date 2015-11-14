@@ -12,15 +12,15 @@ docopt_macros = "0.6"
 fixed_circular_buffer = "0.2"
 num = "0.1"
 rand = "0.3"
-rand_macros = "*"
+rand_macros = "0.1"
 rustc-serialize = "0.3"
 serde = "0.5"
 serde_macros = "0.5"
 vec_map = "0.3"
 
 piston = "0.10"
-piston2d-graphics = "0.4"
-piston2d-opengl_graphics = "0.6"
+piston2d-graphics = "0.6"
+piston2d-opengl_graphics = "0.8"
 pistoncore-event = "0.4.0"
 
 [dependencies.pistoncore-sdl2_window]

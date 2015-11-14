@@ -1,7 +1,6 @@
 use core::iter;
 
-use super::super::grid::SizeAxis;
-use super::{row,Grid};
+use super::{row,Grid,RectangularBound,SizeAxis};
 
 ///Iterates through a grid's rows
 #[derive(Copy,Clone,Eq,PartialEq)]
@@ -10,13 +9,15 @@ pub struct Iter<'g,Grid: 'g>{
 	y: SizeAxis,
 }
 
-impl<'g,G: Grid> Iter<'g,G>{
+impl<'g,G: Grid> Iter<'g,G>
+	where G: RectangularBound
+{
 	pub fn new(grid: &'g G) -> Self{Iter{grid: grid,y: 0}}
 	pub fn reversed(self) -> Self{Iter{y: self.grid.height(),..self}}
 }
 
 impl<'g,G> iter::Iterator for Iter<'g,G>
-	where G: Grid,
+	where G: Grid + RectangularBound + 'g,
 	      G::Cell: Copy
 {
 	type Item = row::Grid<'g,G>;
@@ -38,7 +39,7 @@ impl<'g,G> iter::Iterator for Iter<'g,G>
 }
 
 impl<'g,G> iter::ExactSizeIterator for Iter<'g,G>
-	where G: Grid + 'g,
+	where G: Grid + RectangularBound + 'g,
 	      <G as Grid>::Cell: Copy
 {
 	fn len(&self) -> usize{
@@ -47,7 +48,7 @@ impl<'g,G> iter::ExactSizeIterator for Iter<'g,G>
 }
 
 impl<'g,G> iter::DoubleEndedIterator for Iter<'g,G>
-	where G: Grid + 'g,
+	where G: Grid + RectangularBound + 'g,
 	      <G as Grid>::Cell: Copy
 {
 	fn next_back(&mut self) -> Option<Self::Item>{

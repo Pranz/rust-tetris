@@ -1,6 +1,6 @@
 use core::ops::Range;
 
-use super::super::grid::{self,Grid};
+use super::super::grid::{self,Grid,RectangularBound};
 use super::super::shapes::tetromino::RotatedShape;
 use super::super::Cell as CellTrait;
 use super::World as WorldTrait;
@@ -12,22 +12,37 @@ const WIDTH : grid::SizeAxis = 10;
 const HEIGHT: grid::SizeAxis = 20;
 
 ///Rectangular static sized game world
-#[derive(Copy,Clone,Eq,PartialEq)]
-pub struct World<Cell: Copy>([[Cell; WIDTH as usize]; HEIGHT as usize]);
+#[derive(Eq,PartialEq)]
+pub struct World<Cell>([[Cell; WIDTH as usize]; HEIGHT as usize]);
 
-impl<Cell: Copy> Grid for World<Cell>{
+impl<Cell> Copy for World<Cell>
+	where Cell: Copy{}
+
+impl<Cell> Clone for World<Cell>
+	where Cell: Copy
+{
+	fn clone(&self) -> Self{World(self.0)}
+}
+
+impl<Cell> Grid for World<Cell>
+	where Cell: Copy
+{
 	type Cell = Cell;
-
-	#[inline(always)]
-	fn width(&self) -> grid::SizeAxis{WIDTH}
-
-	#[inline(always)]
-	fn height(&self) -> grid::SizeAxis{HEIGHT}
 
 	#[inline(always)]
 	unsafe fn pos(&self,pos: grid::Pos) -> Cell{
 		self.0[pos.y as usize][pos.x as usize]
 	}
+
+	fn is_out_of_bounds(&self,pos: grid::Pos) -> bool{grid::is_position_outside_rectangle(self,pos)}
+}
+
+impl<Cell> grid::RectangularBound for World<Cell>{
+	#[inline(always)]
+	fn width(&self) -> grid::SizeAxis{WIDTH}
+
+	#[inline(always)]
+	fn height(&self) -> grid::SizeAxis{HEIGHT}
 }
 
 impl<Cell: CellTrait + Copy> WorldTrait for World<Cell>{

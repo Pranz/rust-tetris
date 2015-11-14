@@ -1,6 +1,6 @@
 use super::super::Cell;
 use super::Grid as GridTrait;
-use super::{SizeAxis,Pos};
+use super::{SizeAxis,Pos,RectangularBound};
 
 ///Translates `grid`
 #[derive(Copy,Clone,Eq,PartialEq)]
@@ -15,17 +15,21 @@ impl<'g,G> GridTrait for Grid<'g,G>
 {
 	type Cell = <G as GridTrait>::Cell;
 
-	#[inline]fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-		self.grid.is_position_out_of_bounds(self.pos + pos)
+	#[inline(always)]fn is_out_of_bounds(&self,pos: Pos) -> bool{
+		self.grid.is_out_of_bounds(self.pos + pos)
 	}
 
-	#[inline]fn offset(&self) -> Pos{
-		self.pos + self.grid.offset()
-	}
-	#[inline]fn width(&self) -> SizeAxis{self.grid.width()}
-	#[inline]fn height(&self) -> SizeAxis{self.grid.height()}
-
-	#[inline]unsafe fn pos(&self,pos: Pos) -> Self::Cell{
+	#[inline(always)]unsafe fn pos(&self,pos: Pos) -> Self::Cell{
 		self.grid.pos(self.pos + pos)
 	}
+}
+
+impl<'g,G> RectangularBound for Grid<'g,G>
+	where G: RectangularBound + 'g,
+{
+	#[inline(always)]fn bound_start(&self) -> Pos{
+		self.pos + self.grid.bound_start()
+	}
+	#[inline(always)]fn width(&self) -> SizeAxis{self.grid.width()}
+	#[inline(always)]fn height(&self) -> SizeAxis{self.grid.height()}
 }

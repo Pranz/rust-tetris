@@ -1,5 +1,5 @@
 use super::super::grid::Size;
-use super::Grid;
+use super::{Grid,RectangularBound};
 
 ///Iterates through a grid's cells
 #[derive(Copy,Clone,Eq,PartialEq)]
@@ -9,11 +9,12 @@ pub struct Iter<'g,Grid: 'g>{
 }
 
 impl<'g,G: Grid> Iter<'g,G>{
-	pub fn new(grid: &'g G) -> Self{Iter{grid: grid,pos: Size{x: 0,y: 0}}}
+	#[inline(always)]pub fn new(grid: &'g G) -> Self{Iter{grid: grid,pos: Size{x: 0,y: 0}}}
+	#[inline(always)]pub fn i(self) -> Size{self.pos}
 }
 
 impl<'g,G: Grid> Iterator for Iter<'g,G>
-	where G: Grid,
+	where G: Grid + RectangularBound,
 	      G::Cell: Copy
 {
 	type Item = (Size,G::Cell);
@@ -32,8 +33,8 @@ impl<'g,G: Grid> Iterator for Iter<'g,G>
 			let x = self.pos.x;
 			self.pos.x+=1;
 
-			match self.grid.position(self.pos.with_x(x) + self.grid.offset()){
-				Some(cell) => return Some((Size{x: x,y: self.pos.y},cell)),
+			match self.grid.position(self.pos.with_x(x) + self.grid.bound_start()){
+				Some(cell) => return Some((self.pos.with_x(x),cell)),
 				None => continue
 			}
 		}

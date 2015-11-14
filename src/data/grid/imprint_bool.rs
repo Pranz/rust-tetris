@@ -2,7 +2,7 @@ use core::ops::Deref;
 
 use super::super::Cell;
 use super::Grid as GridTrait;
-use super::{SizeAxis,Pos};
+use super::{SizeAxis,Pos,RectangularBound};
 
 ///Imprints `b` on `a`
 #[derive(Copy,Clone,Eq,PartialEq)]
@@ -21,23 +21,28 @@ impl<DA,DB,GA,GB> GridTrait for Grid<DA,DB>
 {
 	type Cell = bool;
 
-	#[inline]fn is_position_out_of_bounds(&self,pos: Pos) -> bool{
-		self.a.is_position_out_of_bounds(pos)
+	#[inline]fn is_out_of_bounds(&self,pos: Pos) -> bool{
+		self.a.is_out_of_bounds(pos)
 	}
-
-	#[inline]fn offset(&self) -> Pos{self.a.offset()}
-	#[inline]fn width(&self) -> SizeAxis{self.a.width()}
-	#[inline]fn height(&self) -> SizeAxis{self.a.height()}
 
 	unsafe fn pos(&self,pos: Pos) -> Self::Cell{
 		if self.a.pos(pos).is_occupied(){
 			true
 		}else{
-			if self.b.is_position_out_of_bounds(pos){
+			if self.b.is_out_of_bounds(pos){
 				false
 			}else{
 				self.b.pos(pos).is_occupied()
 			}
 		}
 	}
+}
+
+impl<DA,DB,GA> RectangularBound for Grid<DA,DB>
+	where DA: Deref<Target = GA>,
+	      GA: RectangularBound,
+{
+	#[inline]fn bound_start(&self) -> Pos{self.a.bound_start()}
+	#[inline]fn width(&self) -> SizeAxis{self.a.width()}
+	#[inline]fn height(&self) -> SizeAxis{self.a.height()}
 }

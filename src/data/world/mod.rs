@@ -12,11 +12,12 @@ use super::Cell as CellTrait;
 use super::shapes::tetromino::RotatedShape;
 
 ///Common trait for a World grid used in a game
-pub trait World: Grid{
+///A world is always rectangular and all cells within the rectangular boundaries are valid
+pub trait World: Grid + grid::RectangularBound{
 	///Sets the cell at the given position.
 	///Returns Err when out of bounds or failing to set the cell at the given position.
 	fn set_position(&mut self,pos: Pos,state: Self::Cell) -> Result<(),()>{
-		if self.is_position_out_of_bounds(pos){
+		if self.is_out_of_bounds(pos){
 			Err(())
 		}else{
 			unsafe{self.set_pos(pos.x as usize,pos.y as usize,state)};
@@ -105,7 +106,7 @@ pub mod defaults{
 			if cell{
 				let pos = cell_pos + pos;
 				match world.position(pos){
-					None                                     => return super::CellIntersection::OutOfBounds(pos),
+					None                                         => return super::CellIntersection::OutOfBounds(pos),
 					Some(world_cell) if world_cell.is_occupied() => return super::CellIntersection::Imprint(pos),
 					_ => ()
 				};

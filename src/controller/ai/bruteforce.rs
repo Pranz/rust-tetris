@@ -6,7 +6,7 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use data::grid::{self,translate};
+use data::grid::{self,translate,RectangularBound};
 use data::shapes::tetromino::Shape;
 use data::{Cell,Input,Grid,Player,Request,World};
 use game::Event;
@@ -58,7 +58,7 @@ impl Controller{
 
 		for rotated_shape in shape.rotations(){
 			for x in -(rotated_shape.width() as grid::PosAxis)+1 .. world.width() as grid::PosAxis{
-				if !grid::is_grid_out_of_bounds(world,&rotated_shape,grid::Pos{x: x,y: 0}){
+				if !grid::is_grid_out_of_bounds(world,&translate::Grid{grid: &rotated_shape,pos: grid::Pos{x: x,y: 0}}){
 					let pos = gamestate::fastfallen_shape_pos(
 						&rotated_shape,
 						world,
@@ -71,6 +71,7 @@ impl Controller{
 					if current_o > greatest_o{
 						greatest_o = current_o;
 						self.target = pos;
+						println!("{:?}",pos);
 						self.target_rotation = rotated_shape.rotation();
 					}
 				}
@@ -138,7 +139,7 @@ impl<W> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 
 #[allow(unused)]
 fn world_optimality<W>(world: &W) -> f32
-	where W: Grid,
+	where W: Grid + RectangularBound,
 	      <W as Grid>::Cell: Cell + Copy
 {
 	let mut o = 0.0;
@@ -166,7 +167,7 @@ fn world_optimality<W>(world: &W) -> f32
 ///Greater is better
 #[allow(unused)]
 fn world_optimality2<W>(world: &W) -> f32
-	where W: Grid,
+	where W: Grid + RectangularBound,
 	      <W as Grid>::Cell: Cell + Copy
 {
 	let world_height = world.height();
