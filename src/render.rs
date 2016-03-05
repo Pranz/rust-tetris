@@ -74,7 +74,7 @@ pub mod default{
 			}
 
 			//Draw players
-			for (_,player) in state.data.players.iter(){match state.data.worlds.get(&(player.world as usize)){
+			for (_,player) in state.data.players.iter(){match state.data.worlds.get(player.world as usize){
 				Some(_) => {
 					let transform = {
 						let (x,y) = world_render_pos(player.world as usize);

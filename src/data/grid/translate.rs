@@ -1,4 +1,3 @@
-use super::super::Cell;
 use super::Grid as GridTrait;
 use super::{SizeAxis,Pos,RectangularBound};
 

@@ -115,7 +115,7 @@ pub fn is_rectangle_outside_rectangle<R1,R2>(r1: R1,r2: R2) -> bool
 {
 	let (Pos{x: left1,y: top1},Pos{x: right1,y: bottom1}) = r1.bounds();
 	let (Pos{x: left2,y: top2},Pos{x: right2,y: bottom2}) = r2.bounds();
-	right1 < left2 || left1 > right2 || bottom1 < top2 || top1 > bottom2
+	right1 <= left2 || left1 >= right2 || bottom1 <= top2 || top1 >= bottom2
 }
 
 ///Checks whether the `inside`'s occupied cells are inside `outside`

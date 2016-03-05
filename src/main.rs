@@ -1,4 +1,4 @@
-#![feature(associated_consts,collections,core,custom_derive,ip,ip_addr,lookup_host,optin_builtin_traits,plugin,repr_simd,slice_patterns,str_split_at)]
+#![feature(associated_consts,collections,custom_derive,ip,lookup_host,optin_builtin_traits,plugin,repr_simd,slice_patterns)]
 #![allow(dead_code)]
 
 #![plugin(docopt_macros)]
@@ -78,7 +78,7 @@ impl App{
 				*time_left-= args.dt;
 				*time_left <= 0.0
 			}{
-				*time_left = if let Some(mapping) = self.key_map.get(&key){
+				*time_left = if let Some(mapping) = self.key_map.get(key){
 					request_sender.send(data::Request::Input{input: mapping.input,player: mapping.player}).unwrap();
 					*time_left + mapping.repeat_frequency
 				}else{
@@ -90,8 +90,8 @@ impl App{
 		//Input
 		while let Ok(request) = self.request_receiver.try_recv(){use data::Request::*;match request{
 			Input{input,player: pid} => {
-				if let Some(player) = self.game_state.data.players.get_mut(&(pid as usize)){
-					if let Some(world) = self.game_state.data.worlds.get_mut(&(player.world as usize)){
+				if let Some(player) = self.game_state.data.players.get_mut(pid as usize){
+					if let Some(world) = self.game_state.data.worlds.get_mut(player.world as usize){
 						input::perform(input,player,world);
 					}
 				}
@@ -126,15 +126,15 @@ impl App{
 			Key::Return => {self.paused = true},
 
 			//Player 0 Tests
-			Key::D1 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::I);};},
-			Key::D2 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::L);};},
-			Key::D3 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::O);};},
-			Key::D4 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::J);};},
-			Key::D5 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::T);};},
-			Key::D6 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::S);};},
-			Key::D7 => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.shape = RotatedShape::new(Shape::Z);};},
+			Key::D1 => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.shape = RotatedShape::new(Shape::I);};},
+			Key::D2 => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.shape = RotatedShape::new(Shape::L);};},
+			Key::D3 => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.shape = RotatedShape::new(Shape::O);};},
+			Key::D4 => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.shape = RotatedShape::new(Shape::J);};},
+			Key::D5 => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.shape = RotatedShape::new(Shape::T);};},
+			Key::D6 => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.shape = RotatedShape::new(Shape::S);};},
+			Key::D7 => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.shape = RotatedShape::new(Shape::Z);};},
 			Key::R  => {
-				match self.game_state.data.players.get(&(0 as usize)).map(|player| player.world){//TODO: New seed for rng
+				match self.game_state.data.players.get(0 as usize).map(|player| player.world){//TODO: New seed for rng
 					Some(world_id) => {
 						let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
 						game.reset_world(world_id,&mut |e| for c in cs.iter_mut(){c.event(e);});
@@ -142,7 +142,7 @@ impl App{
 					None => ()
 				};
 			},
-			Key::Home => {if let Some(player) = self.game_state.data.players.get_mut(&(0 as usize)){player.pos.y = 0;};},
+			Key::Home => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.pos.y = 0;};},
 
 			//Other keys, check key bindings
 			key => if let Some(mapping) = self.key_map.get(&key){
@@ -219,7 +219,7 @@ fn main(){
 	let opengl = OpenGL::V3_2;
 
 	//Create a window.
-	let window = Window::new(
+	let mut window = Window::new(
 		WindowSettings::new(
 			concat!(PROGRAM_NAME!()," v",env!("CARGO_PKG_VERSION")),
 			[args.flag_window_size.0,args.flag_window_size.1]
@@ -328,7 +328,8 @@ fn main(){
 	}
 
 	//Run the created application: Listen for events
-	for e in window.events(){
+	let mut events = window.events();
+	while let Some(e) = events.next(&mut window){
 		//Player inflicted input: Keyboard events
 		if let Some(Button::Keyboard(k)) = e.press_args(){
 			app.on_key_press(k,&request_sender);

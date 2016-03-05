@@ -54,7 +54,7 @@ impl Controller{
 		where W: World,
 		      <W as Grid>::Cell: Cell + Copy
 	{
-		let mut greatest_o   = f32::NEG_INFINITY;
+		let mut greatest_o = f32::NEG_INFINITY;
 
 		for rotated_shape in shape.rotations(){
 			for x in -(rotated_shape.width() as grid::PosAxis)+1 .. world.width() as grid::PosAxis{
@@ -64,14 +64,13 @@ impl Controller{
 						world,
 						pos.with_x(x)
 					);
-
-					let optimality_test_world = grid::imprint_bool::Grid{a: world,b: &translate::Grid{grid: &rotated_shape,pos: -pos}};
+					println!("{:?}",pos);
+					let optimality_test_world = grid::imprint_bool::Grid{a: world,b: &translate::Grid{grid: &rotated_shape,pos: pos}};
 
 					let current_o = world_optimality2(&optimality_test_world);
 					if current_o > greatest_o{
 						greatest_o = current_o;
 						self.target = pos;
-						println!("{:?}",pos);
 						self.target_rotation = rotated_shape.rotation();
 					}
 				}
@@ -85,7 +84,7 @@ impl<W> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 	      <W as Grid>::Cell: Cell + Copy
 {
 	fn update(&mut self,args: &UpdateArgs,players: &VecMap<Player>,_: &VecMap<W>){
-		if let Some(player) = players.get(&(self.player_id as usize)){
+		if let Some(player) = players.get(self.player_id as usize){
 			self.move_time_count-= args.dt;
 			self.rotate_time_count-= args.dt;
 

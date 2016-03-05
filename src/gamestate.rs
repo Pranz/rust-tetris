@@ -68,7 +68,7 @@ impl<World,Rng> GameState<World,Rng>
 			let player_id = player_id  as PlayerId;
 			let world_id  = player.world as WorldId;
 
-			if let Some(world) = self.data.worlds.get_mut(&(player.world as usize)){
+			if let Some(world) = self.data.worlds.get_mut(player.world as usize){
 				//Add the time since the last update to the time counts
 				player.gravityfall_time_count -= args.dt;
 
@@ -127,7 +127,7 @@ impl<World,Rng> GameState<World,Rng>
 		      Rng: rand::Rng,
 		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
 	{
-		if let Some(world) = self.data.worlds.get_mut(&(world_id as usize)){
+		if let Some(world) = self.data.worlds.get_mut(world_id as usize){
 			let new_id = self.data.players.len();
 			let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.player_get(world_id,new_id as PlayerId)));
 
@@ -141,7 +141,7 @@ impl<World,Rng> GameState<World,Rng>
 				gravityfall_time_count: settings.gravityfall_frequency,
 				settings              : settings
 			});
-			let player = self.data.players.get_mut(&new_id).unwrap();
+			let player = self.data.players.get_mut(new_id).unwrap();
 
 			event_listener(Event::PlayerAdd{
 				player: (new_id as PlayerId,TmpPtr::new(player as &_)),
@@ -161,7 +161,7 @@ impl<World,Rng> GameState<World,Rng>
 		      Rng: rand::Rng,
 		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
 	{
-		if let Some(world) = self.data.worlds.get_mut(&(world_id as usize)){
+		if let Some(world) = self.data.worlds.get_mut(world_id as usize){
 			//Clear world
 			world.clear();
 

@@ -7,7 +7,7 @@ impl Serialize for ProtocolId{
 	fn serialize<S>(&self,serializer: &mut S) -> Result<(),S::Error>
 		where S: Serializer
 	{
-		serializer.visit_bytes(b"TETR")
+		serializer.serialize_bytes(b"TETR")
 	}
 }
 impl Deserialize for ProtocolId{
@@ -25,7 +25,7 @@ impl Deserialize for ProtocolId{
 				if s=="TETR"{
 					Ok(ProtocolId)
 				}else{
-					Err(de::Error::syntax("Expected `TETR` as the protocol id"))
+					Err(E::invalid_value("Expected `TETR` as the protocol id"))
 				}
 			}
 
@@ -35,11 +35,11 @@ impl Deserialize for ProtocolId{
 				if s==b"TETR"{
 					Ok(ProtocolId)
 				}else{
-					Err(de::Error::syntax("Expected `TETR` as the protocol id"))
+					Err(E::invalid_value("Expected `TETR` as the protocol id"))
 				}
 			}
 		}
-		deserializer.visit_string(V)
+		deserializer.deserialize_string(V)
 	}
 }
 

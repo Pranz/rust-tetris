@@ -24,6 +24,6 @@ impl<B,G> GridSerializer<B,G>
 
 		try!(size.x.serialize(serializer));
 		try!(size.y.serialize(serializer));
-		serializer.visit_seq(SeqIteratorVisitor::new(CellIter::new(grid).map(|(_,cell)| cell.is_occupied()),Some(size.x as usize * size.y as usize)))
+		serializer.serialize_seq(SeqIteratorVisitor::new(CellIter::new(grid).map(|(_,cell)| cell.is_occupied()),Some(size.x as usize * size.y as usize)))
 	}
 }
