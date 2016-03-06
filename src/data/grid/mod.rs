@@ -4,6 +4,7 @@ pub mod columns_iter;
 pub mod difference;
 pub mod imprint;
 pub mod imprint_bool;
+pub mod printer;
 pub mod row;
 pub mod rows_iter;
 pub mod serde;
@@ -12,8 +13,6 @@ pub mod translate;
 
 
 use core::ops::{Add,Sub,Neg};
-
-use super::Cell as CellTrait;
 
 ///Common trait for a two-dimensional (2D) grid
 pub trait Grid{
@@ -119,18 +118,19 @@ pub fn is_rectangle_outside_rectangle<R1,R2>(r1: R1,r2: R2) -> bool
 }
 
 ///Checks whether the `inside`'s occupied cells are inside `outside`
-pub fn is_grid_out_of_bounds<GIn,GOut>(outside: &GOut,inside: &GIn) -> bool
+/*TODO: May not work
+pub fn is_grid_cells_inside<GIn,GOut>(outside: &GOut,inside: &GIn) -> bool
 	where GIn : Grid + RectangularBound,
 	      GOut: Grid,
 	      <GIn  as Grid>::Cell: CellTrait + Copy,
 {
 	for (pos,cell) in cells_iter::Iter::new(inside){
-		if cell.is_occupied() && !outside.is_out_of_bounds(inside.bound_start() + pos){
+		if cell.is_occupied() && outside.is_out_of_bounds(pos){
 			return false;
 		}
 	}
 	true
-}
+}*/
 
 ///Signed integer type used for describing a position axis.
 ///The range of `PosAxis` is guaranteed to contain the whole range (also including the negative range) of `SizeAxis`.

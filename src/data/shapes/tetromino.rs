@@ -1,6 +1,7 @@
 //!A basic tetromino shape (4 blocks)
 
 use super::super::grid::{self,Grid,RectangularBound};
+use data::cell::Cell;
 
 ///All possible tetromino shapes
 #[derive(Copy,Clone,Debug,Eq,PartialEq,Rand,Serialize,Deserialize)]
@@ -126,6 +127,19 @@ impl RotatedShape{
 	///Returns the center point (x,y) of the rotated shape
 	#[inline(always)]pub fn center(&self) -> grid::Size{
 		grid::Size{x: self.center_x(),y: self.center_y()}
+	}
+
+	pub fn real_bound_x(&self) -> Option<(grid::SizeAxis,grid::SizeAxis)>{
+		match grid::columns_iter::Iter::new(self).position( |col| grid::column::Iter::new(col).any(|(_,cell)| cell.is_occupied())){
+			Some(start) => match grid::columns_iter::Iter::new(self).reversed().rposition(|col| grid::column::Iter::new(col).any(|(_,cell)| cell.is_occupied())){
+				Some(end) => Some((
+					start as grid::SizeAxis,
+					end   as grid::SizeAxis
+				)),
+				None => None
+			},
+			None => None
+		}
 	}
 }
 

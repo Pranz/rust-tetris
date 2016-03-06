@@ -57,21 +57,25 @@ impl Controller{
 		let mut greatest_o = f32::NEG_INFINITY;
 
 		for rotated_shape in shape.rotations(){
-			for x in -(rotated_shape.width() as grid::PosAxis)+1 .. world.width() as grid::PosAxis{
-				if !grid::is_grid_out_of_bounds(world,&translate::Grid{grid: &rotated_shape,pos: grid::Pos{x: x,y: 0}}){
-					let pos = gamestate::fastfallen_shape_pos(
-						&rotated_shape,
-						world,
-						pos.with_x(x)
-					);
-					println!("{:?}",pos);
-					let optimality_test_world = grid::imprint_bool::Grid{a: world,b: &translate::Grid{grid: &rotated_shape,pos: pos}};
+			if let Some(shape_bound_x) = rotated_shape.real_bound_x(){
+				for x in -(rotated_shape.width() as grid::PosAxis)+1 .. world.width() as grid::PosAxis{
+					//TODO: This should work too (but slower): if grid::is_grid_cells_inside(world,&translate::Grid{grid: &rotated_shape,pos: grid::Pos{x: -x,y: 0}}){
+					if (shape_bound_x.0 as grid::PosAxis)+x >= 0 && (shape_bound_x.1 as grid::PosAxis)+x < world.width() as grid::PosAxis{
+						let pos = gamestate::fastfallen_shape_pos(
+							&rotated_shape,
+							world,
+							pos.with_x(x)
+						);
 
-					let current_o = world_optimality2(&optimality_test_world);
-					if current_o > greatest_o{
-						greatest_o = current_o;
-						self.target = pos;
-						self.target_rotation = rotated_shape.rotation();
+						let optimality_test_world = grid::imprint_bool::Grid{a: world,b: &translate::Grid{grid: &rotated_shape,pos: -pos}};
+//println!("{:?}",super::super::super::data::grid::printer::OccupyPrinter(&optimality_test_world));
+
+						let current_o = world_optimality2(&optimality_test_world);
+						if current_o > greatest_o{
+							greatest_o = current_o;
+							self.target = pos;
+							self.target_rotation = rotated_shape.rotation();
+						}
 					}
 				}
 			}
@@ -205,5 +209,5 @@ fn world_optimality2<W>(world: &W) -> f32
 		previous_height = Some(height);
 	}
 
-	(-0.4*columns_height_sum as f32) + (0.25*(rows_completed as f32).powi(2)) + (-0.3*cells_vertically_blocked_penalty as f32) + (-0.3*height_bumpiness.checked_sub(4*2).unwrap_or(0) as f32)
+	(-0.5*columns_height_sum as f32) + (0.25*(rows_completed as f32).powi(2)) + (-0.35*cells_vertically_blocked_penalty as f32) + (-0.3*height_bumpiness.checked_sub(4*2).unwrap_or(0) as f32)
 }
