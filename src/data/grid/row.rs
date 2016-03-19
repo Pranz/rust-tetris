@@ -1,7 +1,6 @@
 use core::iter;
 
-use super::Grid as GridTrait;
-use super::{PosAxis,SizeAxis,Pos,RectangularBound};
+use super::{Grid as GridTrait,PosAxis,SizeAxis,Pos,RectangularBound};
 
 ///Represents a row in a grid
 #[derive(Copy,Clone,Eq,PartialEq)]

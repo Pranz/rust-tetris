@@ -22,37 +22,39 @@ extern crate vec_map;
 #[cfg(feature = "include_glfw")]  extern crate glfw_window;
 #[cfg(feature = "include_glutin")]extern crate glutin_window;
 
-mod command_arg;
+//Constants
+macro_rules! PROGRAM_NAME{() => ("tetr")}
+macro_rules! PROGRAM_NAME_VERSION{() => (concat!(PROGRAM_NAME!()," v",env!("CARGO_PKG_VERSION")))}
+
+mod cli;
 mod controller;
 mod data;
-mod gamestate;
 mod game;
 mod input;
 mod online;
 mod render;
 
-use controller::Controller;
 use core::f64;
 use piston::window::WindowSettings;
 use piston::event_loop::Events;
 use piston::input::{Button,Key,PressEvent,ReleaseEvent,RenderEvent,UpdateEvent,UpdateArgs};
-use opengl_graphics::{GlGraphics,OpenGL};
+use opengl_graphics::GlGraphics;
 use std::{net,sync};
 use std::collections::hash_map::{self,HashMap};
 #[cfg(feature = "include_sdl2")]  use sdl2_window::Sdl2Window as Window;
 #[cfg(feature = "include_glfw")]  use glfw_window::GlfwWindow as Window;
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
-use controller::ai;
-use data::{cell,grid,player,Grid,Input};
-use data::world::dynamic::World;
-use data::shapes::tetromino::{Shape,RotatedShape};
-use game::Event;
-use gamestate::{GameState,WorldId,PlayerId};
+use ::controller::{ai,Controller};
+use ::data::{cell,grid,player,Grid,Input};
+use ::data::shapes::tetromino::{Shape,RotatedShape};
+use ::data::world::dynamic::World;
+use ::game::data::{WorldId,PlayerId};
+use ::game::Event;
 
 struct App{
 	gl: GlGraphics,
-	game_state: GameState<World<cell::ShapeCell>,rand::StdRng>,
+	game_state: game::State<World<cell::ShapeCell>,rand::StdRng>,
 	controllers: Vec<Box<for<'l> Controller<World<cell::ShapeCell>,Event<PlayerId,WorldId>>>>,
 	request_receiver: sync::mpsc::Receiver<data::Request>,
 	connection: online::ConnectionType,
@@ -159,36 +161,8 @@ impl App{
 	}
 }
 
-//Constants
-macro_rules! PROGRAM_NAME{() => ("tetr")}
-macro_rules! PROGRAM_NAME_VERSION{() => (concat!(PROGRAM_NAME!()," v",env!("CARGO_PKG_VERSION")))}
-
-docopt!(Args derive Debug,concat!("
-Usage: ",PROGRAM_NAME!()," [options]
-	   ",PROGRAM_NAME!()," --help
-
-A game with tetrominos falling.
-
-Options:
-  -h, --help           Show this message
-  -v, --version        Show version
-  --credits            Show credits/staff
-  --manual             Show instruction manual/guide for the game
-  --online=CONNECTION  Available modes: none, server, client [default: none]
-  --host=ADDR          Network address used for the online connection [default: 0.0.0.0]
-  --port=N             Network port used for the online connection [default: 7374]
-  --window-size=SIZE   Window size [default: 800x600]
-  --window-mode=MODE   Available modes: window, fullscreen [default: window]
-"),
-	flag_online     : command_arg::OnlineConnection,
-	flag_host       : command_arg::Host,
-	flag_port       : command_arg::Port,
-	flag_window_size: command_arg::WindowSize,
-	flag_window_mode: command_arg::WindowMode
-);
-
 fn main(){
-	let args: Args = match Args::docopt().decode(){
+	let args: cli::Args = match cli::Args_docopt().decode(){
 		Ok(args) => args,
 		Err(docopt::Error::WithProgramUsage(_,usage)) |
 		Err(docopt::Error::Usage(usage))              => {
@@ -213,9 +187,6 @@ fn main(){
 		return;
 	}
 
-	//Define the OpenGL version to be used
-	let opengl = OpenGL::V3_2;
-
 	//Create a window.
 	let mut window = Window::new(
 		WindowSettings::new(
@@ -223,15 +194,15 @@ fn main(){
 			[args.flag_window_size.0,args.flag_window_size.1]
 		)
 		.exit_on_esc(true)
-		.opengl(opengl)
+		.opengl(args.flag_gl_version.0)
 	).unwrap();
 
 	let (request_sender,request_receiver) = sync::mpsc::channel();
 
 	//Create a new application
 	let mut app = App{
-		gl: GlGraphics::new(opengl),
-		game_state: GameState::new(
+		gl: GlGraphics::new(args.flag_gl_version.0),
+		game_state: game::State::new(
 			rand::StdRng::new().unwrap(),
 			{fn f(variant: &RotatedShape) -> cell::ShapeCell{
 				cell::ShapeCell(Some(variant.shape()))
@@ -248,10 +219,10 @@ fn main(){
 		request_receiver: request_receiver,
 		connection: match args.flag_online{
 			//No connection
-			command_arg::OnlineConnection::none => online::ConnectionType::None,
+			cli::OnlineConnection::none => online::ConnectionType::None,
 
 			//Start to act as a client, connecting to a server
-			command_arg::OnlineConnection::client => {
+			cli::OnlineConnection::client => {
 				let server_addr = net::SocketAddr::new(
 					match args.flag_host.0{
 						net::IpAddr::V4(ip) if ip.is_unspecified() => net::IpAddr::V4(net::Ipv4Addr::new(127,0,0,1)),
@@ -267,7 +238,7 @@ fn main(){
 			},
 
 			//Start to act as a server, listening for clients
-			command_arg::OnlineConnection::server => {
+			cli::OnlineConnection::server => {
 				let server_addr = net::SocketAddr::new(args.flag_host.0,args.flag_port);
 
 				match online::server::start(server_addr,request_sender.clone()){
@@ -285,14 +256,14 @@ fn main(){
 	{let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
 		if let online::ConnectionType::None = app.connection{
 			//Create player 0
-			game.rngs.insert_from_global(gamestate::data_map::MappingKey::Player(0));
+			game.rngs.insert_from_global(game::data::mappings::Key::Player(0));
 			game.add_player(0,player::Settings{
 				gravityfall_frequency: 1.0,
 				fastfall_shadow      : true,
 			},&mut |e| for c in cs.iter_mut(){c.event(&e);});
 
 			//Create player 1
-			game.rngs.insert_from_global(gamestate::data_map::MappingKey::Player(1));
+			game.rngs.insert_from_global(game::data::mappings::Key::Player(1));
 			cs.push(Box::new(ai::bruteforce::Controller::new(//TODO: Controllers shoulld probably be bound to the individual players
 				request_sender.clone(),
 				1,

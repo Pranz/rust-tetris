@@ -2,9 +2,9 @@
 
 use fixed_circular_buffer::CircularBuffer;
 
-use super::super::gamestate;
-use super::grid;
-use super::shapes::tetromino::{RotatedShape,Shape};
+use ::data::grid;
+use ::data::shapes::tetromino::{RotatedShape,Shape};
+use ::game;
 
 ///Player state data
 #[derive(Clone,PartialEq)]
@@ -13,7 +13,7 @@ pub struct Player{
 	pub shadow_pos            : Option<grid::Pos>,
 	pub shapes_lookahead      : Option<CircularBuffer<Shape>>,
 	pub shape                 : RotatedShape,//TODO: Consider only having a circular buffer with shapes, and a separate rotation field. Then the circular buffer won't need to be wrapped in a Option because it is guaranteed to be non-empty
-	pub world                 : gamestate::WorldId,
+	pub world                 : game::data::WorldId,
 	pub points                : u32,
 	pub gravityfall_time_count: f64,//Unit: seconds
 	pub settings              : Settings,

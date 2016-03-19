@@ -1,5 +1,4 @@
-use super::Grid as GridTrait;
-use super::{SizeAxis,Pos,RectangularBound};
+use super::{Grid as GridTrait,SizeAxis,Pos,RectangularBound};
 
 ///Translates `grid`
 #[derive(Copy,Clone,Eq,PartialEq)]

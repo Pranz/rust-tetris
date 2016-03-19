@@ -6,16 +6,15 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use data::grid::{self,translate,RectangularBound};
-use data::shapes::tetromino::{Shape,Rotation};
-use data::{Cell,Input,Grid,Player,Request,World};
-use game::Event;
-use gamestate;
+use ::data::grid::{self,translate,RectangularBound};
+use ::data::shapes::tetromino::{Shape,Rotation};
+use ::data::{Cell,Input,Grid,Player,Request,World};
+use ::game::{self,Event};
 
 #[derive(Clone)]
 pub struct Controller{
 	pub request_sender: sync::mpsc::Sender<Request>,
-	pub player_id: gamestate::PlayerId,
+	pub player_id: game::data::PlayerId,
 	pub settings: Settings,
 	move_time_count: f64,
 	rotate_time_count: f64,
@@ -38,7 +37,7 @@ impl Default for Settings{
 }
 
 impl Controller{
-	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: gamestate::PlayerId,settings: Settings) -> Self{Controller{
+	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: game::data::PlayerId,settings: Settings) -> Self{Controller{
 		request_sender: request_sender,
 		player_id: player_id,
 		settings: settings,
@@ -58,7 +57,7 @@ impl Controller{
 				for x in -(rotated_shape.width() as grid::PosAxis)+1 .. world.width() as grid::PosAxis{
 					//TODO: This should work too (but slower): if grid::is_grid_cells_inside(world,&translate::Grid{grid: &rotated_shape,pos: grid::Pos{x: -x,y: 0}}){
 					if (shape_bound_x.0 as grid::PosAxis)+x >= 0 && (shape_bound_x.1 as grid::PosAxis)+x < world.width() as grid::PosAxis{
-						let pos = gamestate::fastfallen_shape_pos(
+						let pos = game::state::fastfallen_shape_pos(
 							&rotated_shape,
 							world,
 							pos.with_x(x)
@@ -79,7 +78,7 @@ impl Controller{
 	}
 }
 
-impl<'l,W> ControllerTrait<W,Event<gamestate::PlayerId,gamestate::WorldId>> for Controller
+impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> for Controller
 	where W: World,
 	      <W as Grid>::Cell: Cell + Copy
 {
@@ -127,7 +126,7 @@ impl<'l,W> ControllerTrait<W,Event<gamestate::PlayerId,gamestate::WorldId>> for 
 		}
 	}
 
-	fn event(&mut self,event: &Event<gamestate::PlayerId,gamestate::WorldId>){
+	fn event(&mut self,event: &Event<game::data::PlayerId,game::data::WorldId>){
 		use game::Event::*;
 
 		match event{

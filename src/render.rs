@@ -6,12 +6,12 @@ pub mod default{
 	use opengl_graphics::GlGraphics;
 	use piston::input::RenderArgs;
 
-	use data::{cell,colors,grid,World};
-	use data::shapes::tetromino::Shape;
-	use gamestate::GameState;
+	use ::data::{cell,colors,grid,World};
+	use ::data::shapes::tetromino::Shape;
+	use ::game;
 
 	///Renders the pause state
-	pub fn pause<W,Rng>(state: &mut GameState<W,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
+	pub fn pause<W,Rng>(state: &mut game::State<W,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
 		where W: World<Cell = cell::ShapeCell>
 	{
 		gamestate(state,gl,args);
@@ -24,7 +24,7 @@ pub mod default{
 	}
 
 	///Renders the game state
-	pub fn gamestate<W,Rng>(state: &mut GameState<W,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
+	pub fn gamestate<W,Rng>(state: &mut game::State<W,Rng>,gl: &mut GlGraphics,args: &RenderArgs)
 		where W: World<Cell = cell::ShapeCell>
 	{
 		const BLOCK_PIXEL_SIZE: f64 = 24.0;

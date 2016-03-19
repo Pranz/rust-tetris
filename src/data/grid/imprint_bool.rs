@@ -1,8 +1,7 @@
 use core::ops::Deref;
 
-use super::super::Cell;
-use super::Grid as GridTrait;
-use super::{SizeAxis,Pos,RectangularBound};
+use super::{Grid as GridTrait,SizeAxis,Pos,RectangularBound};
+use ::data::Cell;
 
 ///Imprints `b` on `a`
 #[derive(Copy,Clone,Eq,PartialEq)]

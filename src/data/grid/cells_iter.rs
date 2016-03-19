@@ -1,5 +1,4 @@
-use super::super::grid::Pos;
-use super::{Grid,RectangularBound};
+use super::{Grid,Pos,RectangularBound};
 
 ///Iterates through a grid's cells
 #[derive(Copy,Clone,Eq,PartialEq)]

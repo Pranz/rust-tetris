@@ -1,7 +1,7 @@
 use core::cmp;
 
-use super::super::Cell;
 use super::{Grid as GridTrait,SizeAxis,Pos,PosAxis,RectangularBound};
+use ::data::Cell;
 
 ///This grid only contains the cells where the cell occupation from both differs
 pub struct Grid<'ga,'gb,GA: 'ga,GB: 'gb>{

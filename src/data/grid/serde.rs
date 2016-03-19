@@ -3,9 +3,9 @@ use core::marker::PhantomData;
 use serde::{Serialize,Serializer};
 use serde::ser::impls::SeqIteratorVisitor;
 
-use data::{Cell,Grid};
-use data::grid::cells_iter::Iter as CellIter;
-use data::grid::RectangularBound;
+use ::data::{Cell,Grid};
+use ::data::grid::cells_iter::Iter as CellIter;
+use ::data::grid::RectangularBound;
 
 pub struct GridSerializer<B: Borrow<G>,G>(B,PhantomData<G>);
 

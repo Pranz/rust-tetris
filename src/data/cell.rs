@@ -1,4 +1,4 @@
-use super::shapes::tetromino::Shape;
+use ::data::shapes::tetromino::Shape;
 
 ///Represents a cell in a grid
 pub trait Cell: Sized{

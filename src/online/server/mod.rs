@@ -9,7 +9,7 @@ use std::{net,sync,thread};
 use std::error::Error;
 
 use super::{client,Packet};
-use data::Request;
+use ::data::Request;
 
 pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request>) -> Result<(),()>{
 	match net::UdpSocket::bind(host_addr){

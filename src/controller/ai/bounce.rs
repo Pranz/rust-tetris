@@ -3,20 +3,19 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use data::{Input,Player,Request,World};
-use game::Event;
-use gamestate;
+use ::data::{Input,Player,Request,World};
+use ::game::{self,Event};
 
 #[derive(Clone)]
 pub struct Controller{
 	pub request_sender: sync::mpsc::Sender<Request>,
-	pub player_id: gamestate::PlayerId,
+	pub player_id: game::data::PlayerId,
 	bounce: bool,
 	move_time: f64,
 }
 
 impl Controller{
-	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: gamestate::PlayerId) -> Self{Controller{
+	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: game::data::PlayerId) -> Self{Controller{
 		request_sender: request_sender,
 		player_id: player_id,
 		bounce: false,
@@ -24,7 +23,7 @@ impl Controller{
 	}}
 }
 
-impl<W> ControllerTrait<W,Event<gamestate::PlayerId,gamestate::WorldId>> for Controller
+impl<W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> for Controller
 	where W: World
 {
 	fn update(&mut self,args: &UpdateArgs,_: &VecMap<Player>,_: &VecMap<W>){
@@ -39,7 +38,7 @@ impl<W> ControllerTrait<W,Event<gamestate::PlayerId,gamestate::WorldId>> for Con
 		}
 	}
 
-	fn event<'l>(&mut self,event: &Event<gamestate::PlayerId,gamestate::WorldId>){/*
+	fn event<'l>(&mut self,_: &Event<game::data::PlayerId,game::data::WorldId>){/*
 		use game::Event::*;
 
 		match event{

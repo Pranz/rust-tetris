@@ -7,9 +7,9 @@ pub mod dynamic;
 
 use core::ops::Range;
 
-use super::grid::{self,Grid,SizeAxis,Pos};
-use super::Cell as CellTrait;
-use super::shapes::tetromino::RotatedShape;
+use ::data::grid::{self,Grid,SizeAxis,Pos};
+use ::data::shapes::tetromino::RotatedShape;
+use ::data::Cell as CellTrait;
 
 ///Common trait for a World grid used in a game
 ///A world is always rectangular and all cells within the rectangular boundaries are valid
@@ -93,10 +93,10 @@ pub enum CellIntersection{
 
 ///Default methods for a world
 pub mod defaults{
-	use super::super::grid::{self,Grid,Pos};
-	use super::super::shapes::tetromino::RotatedShape;
-	use super::super::Cell as CellTrait;
 	use super::World;
+	use ::data::grid::{self,Grid,Pos};
+	use ::data::shapes::tetromino::RotatedShape;
+	use ::data::Cell as CellTrait;
 
 	pub fn shape_intersects<W>(world: &W,shape: &RotatedShape,pos: Pos) -> super::CellIntersection
 		where W: World,

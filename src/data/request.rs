@@ -1,10 +1,10 @@
-use super::super::gamestate;
-use super::{Input,player};
+use ::data::{player,Input};
+use ::game;
 
 pub enum Request{
 	Input{
 		input: Input,
-		player: gamestate::PlayerId
+		player: game::data::PlayerId
 	},
 
 	PlayerAdd{
@@ -12,6 +12,6 @@ pub enum Request{
 	},
 
 	PlayerRemove{
-		player: gamestate::PlayerId
+		player: game::data::PlayerId
 	},
 }

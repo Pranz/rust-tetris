@@ -1,7 +1,7 @@
 use collections::borrow::Cow;
 
-use super::super::data::grid;
-use super::super::data::shapes::tetromino::{Shape,RotatedShape};
+use ::data::grid;
+use ::data::shapes::tetromino::{Shape,RotatedShape};
 
 ///Events which can occur ingame.
 ///These should get signaled by the game state and listened to by a event listener.
@@ -17,9 +17,9 @@ pub enum Event<Player,World>{
 	//PlayerRemove(PlayerId,World),
 	//PlayerWorldMove(PlayerId,World,World),
 	//PlayerRotate(PlayerId),
-	//PlayerRotationCollide(PlayerId,World),
-	//PlayerMovementCollide(PlayerId,World,grid::PosAxis,grid::PosAxis),
-	PlayerPositionMove{
+	//PlayerRotateCollide(PlayerId,World),
+	//PlayerMoveCollide(PlayerId,World,grid::PosAxis,grid::PosAxis),
+	PlayerMove{
 		player: Player,
 		world: World,
 		old: grid::Pos,
@@ -41,5 +41,5 @@ pub enum Event<Player,World>{
 }
 
 pub mod move_cause{
-	pub const GRAVITY: &'static str = "gravity";
+	pub const GRAVITY: &'static str = "gravity";//TODO: Replace with an enum
 }

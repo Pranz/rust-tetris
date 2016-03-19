@@ -1,5 +1,5 @@
 use super::super::packet::*;
-use data::{player,Input};
+use ::data::{player,Input};
 
 ///Type of packet sent from the clients
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]

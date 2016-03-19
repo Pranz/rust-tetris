@@ -2,10 +2,10 @@ use core::iter::{self,FromIterator};
 use core::ops::Range;
 use core::ptr;
 
-use super::super::grid::{self,Grid,RectangularBound};
-use super::super::shapes::tetromino::RotatedShape;
-use super::super::Cell as CellTrait;
 use super::World as WorldTrait;
+use ::data::grid::{self,Grid,RectangularBound};
+use ::data::shapes::tetromino::RotatedShape;
+use ::data::Cell as CellTrait;
 
 ///Rectangular dynamic sized game world
 #[derive(Eq,PartialEq)]

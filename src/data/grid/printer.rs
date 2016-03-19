@@ -1,6 +1,7 @@
 use core::fmt;
-use data::cell::Cell;
+
 use super::{Grid,RectangularBound};
+use ::data::Cell;
 
 pub struct Printer<'g,Grid: 'g>(pub &'g Grid);
 

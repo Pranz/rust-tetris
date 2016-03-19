@@ -2,29 +2,22 @@ use collections::borrow::Cow;
 use core::cmp;
 use piston::input::UpdateArgs;
 use rand::{self,Rand};
-use serde::{Serialize,Serializer};
-use vec_map::VecMap;
 
-use data::{grid,world,player,Cell,Grid,Player,World};
-use data::grid::RectangularBound;
-use data::shapes::tetromino::{Shape,RotatedShape};
-use game::{event,Event};
+use ::data::{grid,world,player,Cell,Grid,Player,World};
+use ::data::grid::RectangularBound;
+use ::data::shapes::tetromino::{Shape,RotatedShape};
+use ::game::{data,event,Data,Event};
+use ::game::data::{PlayerId,WorldId};
 
-///Type of the world id
-pub type WorldId = u8;
-///Type of the player id
-pub type PlayerId = u8;
-
-//TODO: Move to game module and rename to state. ALso move Data and Mappings to this module
 ///The ingame game state
-pub struct GameState<W,Rng>
+pub struct State<W,Rng>
 	where W: World
 {
 	///Data of the game state
 	pub data: Data<W>,
 
 	///Random number generator mappings.
-	pub rngs: data_map::Mappings<Rng>,
+	pub rngs: data::Mappings<Rng>,
 
 	///Function that maps a shape's cell to the world's cell
 	pub imprint_cell: fn(&RotatedShape) -> <W as Grid>::Cell,
@@ -33,7 +26,7 @@ pub struct GameState<W,Rng>
 	pub respawn_pos: fn(&RotatedShape,&W) -> grid::Pos
 }
 
-impl<W,Rng> GameState<W,Rng>
+impl<W,Rng> State<W,Rng>
 	where W: World
 {
 	///A simple constructor
@@ -41,9 +34,9 @@ impl<W,Rng> GameState<W,Rng>
 		rng: Rng,
 		imprint_cell: fn(&RotatedShape) -> <W as Grid>::Cell,
 		respawn_pos : fn(&RotatedShape,&W) -> grid::Pos
-	) -> Self{GameState{
+	) -> Self{State{
 		data        : Data::new(),
-		rngs        : data_map::Mappings::new(rng),
+		rngs        : data::Mappings::new(rng),
 		imprint_cell: imprint_cell,
 		respawn_pos : respawn_pos,
 	}}
@@ -61,8 +54,6 @@ impl<W,Rng> GameState<W,Rng>
 			ResetWorld(WorldId)
 		}let mut action = Action::None;
 
-		//TODO: event_listener(Event::Tick{delta_time: args.dt});
-
 		//Players
 		'player_loop: for (player_id,player) in self.data.players.iter_mut(){
 			let player_id = player_id    as PlayerId;
@@ -79,7 +70,7 @@ impl<W,Rng> GameState<W,Rng>
 
 					//If able to move (no collision below)
 					if move_player(player,world,grid::Pos{x: 0,y: 1}){
-						event_listener(Event::PlayerPositionMove{
+						event_listener(Event::PlayerMove{
 							player: player_id,
 							world: world_id,
 							old: player.pos,
@@ -174,82 +165,6 @@ impl<W,Rng> GameState<W,Rng>
 				player.gravityfall_time_count = player.settings.gravityfall_frequency;
 			}
 		};
-	}
-}
-
-pub mod data_map{
-	use core::mem;
-	use std::collections::hash_map::HashMap;
-
-	///Kind of data mappings
-	#[derive(Copy,Clone,Debug,Eq,PartialEq,Hash)]
-	pub enum MappingKey{
-		World(super::WorldId),
-		Player(super::PlayerId)
-	}
-
-	///Contains mappings with a global fallback.
-	///The first field contains the global data.
-	///The second field contains a map of datas.
-	///When looking up a mapping and it does not exist, it falls back to the more global one in the following order:
-	///  Player -> World -> Global
-	pub struct Mappings<T>(T,pub HashMap<MappingKey,T>);
-
-	impl<T> Mappings<T>{
-		///Constructs a RNG mappings container with a default global fallback
-		pub fn new(global: T) -> Self{Mappings(global,HashMap::new())}
-
-		///Gets the global fallback data
-		#[inline]pub fn global(&mut self) -> &mut T{&mut self.0}
-
-		///Adds a copy of the global fallback data to the specified mapping
-		#[inline]pub fn insert_from_global(&mut self,mapping: MappingKey)
-			where T: Clone
-		{
-			self.1.insert(mapping,self.0.clone());
-		}
-
-		///Lookup data from a world mapping with fallbacks.
-		pub fn world_get_mut(&mut self,world: super::WorldId) -> &mut T{
-			self.1.get_mut(&MappingKey::World(world)).unwrap_or(&mut self.0)
-		}
-
-		///Lookup data from a player mapping with fallbacks.
-		pub fn player_get_mut(&mut self,world: super::WorldId,player: super::PlayerId) -> &mut T{
-			let mappings1: &mut HashMap<MappingKey,T> = unsafe{mem::transmute(&mut self.1)};
-			let mappings2: &mut HashMap<MappingKey,T> = unsafe{mem::transmute(&mut self.1)};
-
-			match mappings1.get_mut(&MappingKey::Player(player)){
-				Some(rng) => return rng,
-				None => ()
-			};
-
-			match mappings2.get_mut(&MappingKey::World(world)){
-				Some(rng) => return rng,
-				None => ()
-			};
-
-			&mut self.0
-		}
-
-		///Lookup data from a world mapping with fallbacks.
-		pub fn world_get(&self,world: super::WorldId) -> &T{
-			self.1.get(&MappingKey::World(world)).unwrap_or(&self.0)
-		}
-
-		///Lookup data from a player mapping with fallbacks.
-		pub fn player_get(&self,world: super::WorldId,player: super::PlayerId) -> &T{
-			let mappings1: &HashMap<MappingKey,T> = unsafe{mem::transmute(&self.1)};
-			let mappings2: &HashMap<MappingKey,T> = unsafe{mem::transmute(&self.1)};
-
-			match mappings1.get(&MappingKey::Player(player)){
-				Some(rng) => rng,
-				None => match mappings2.get(&MappingKey::World(world)){
-					Some(rng) => rng,
-					None => &self.0
-				}
-			}
-		}
 	}
 }
 
@@ -360,64 +275,3 @@ pub fn fastfallen_shape_pos<W>(shape: &RotatedShape,world: &W,shape_pos: grid::P
 
 	unreachable!()
 }
-
-#[derive(Clone)]
-pub struct Data<W>{
-	///Mappings of worlds and world ids
-	pub worlds: VecMap<W>,
-
-	///Mappings of players and player ids
-	pub players: VecMap<Player>,
-}
-
-impl<W> Data<W>{
-	pub fn new() -> Self{Data{
-		worlds : VecMap::new(),
-		players: VecMap::new(),
-	}}
-}
-
-impl<W> Serialize for Data<W>
-	where W: World,
-	      W: Grid,
-	      <W as Grid>::Cell: Cell + Copy
-{
-	#[inline]
-	fn serialize<S>(&self,serializer: &mut S) -> Result<(),S::Error>
-		where S: Serializer
-	{
-		grid::serde::GridSerializer::<_,W>::new(&self.worlds[0]).visit(serializer)
-	}
-}
-/*impl Deserialize for Data<W>{
-	#[inline]
-	fn deserialize<D>(deserializer: &mut D) -> Result<Self,D::Error>
-		where D: Deserializer
-	{
-		struct V<W>;
-		impl de::Visitor for V<W>{
-			type Value = Data<W>;
-
-			fn visit_str<E>(&mut self,s: &str) -> Result<Self::Value,E>
-				where E: de::Error,
-			{
-				if s=="TETR"{
-					Ok(Data<W>)
-				}else{
-					Err(de::Error::syntax("Expected `TETR` as the protocol id"))
-				}
-			}
-
-			fn visit_bytes<E>(&mut self,s: &[u8]) -> Result<Self::Value,E>
-				where E: de::Error,
-			{
-				if s==b"TETR"{
-					Ok(Data<W>)
-				}else{
-					Err(de::Error::syntax("Expected `TETR` as the protocol id"))
-				}
-			}
-		}
-		deserializer.visit_string(V)
-	}
-}*/

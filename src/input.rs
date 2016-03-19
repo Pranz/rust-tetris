@@ -1,7 +1,7 @@
 //! Input code
 
-use data::{grid,Input,Player,World};
-use gamestate;
+use ::data::{grid,Input,Player,World};
+use ::game;
 
 ///Performs an action based on the given input on a player in a world
 pub fn perform<W>(input: Input,player: &mut Player,world: &W)
@@ -9,13 +9,13 @@ pub fn perform<W>(input: Input,player: &mut Player,world: &W)
 {
 	match input{
 		Input::MoveLeft => {
-			gamestate::move_player(player,world,grid::Pos{x: -1, y: 0});
+			game::state::move_player(player,world,grid::Pos{x: -1, y: 0});
 		},
 		Input::MoveRight => {
-			gamestate::move_player(player,world,grid::Pos{x: 1, y: 0});
+			game::state::move_player(player,world,grid::Pos{x: 1, y: 0});
 		},
 		Input::SlowFall => {
-			player.gravityfall_time_count = if gamestate::move_player(player,world,grid::Pos{x: 0,y: 1}){
+			player.gravityfall_time_count = if game::state::move_player(player,world,grid::Pos{x: 0,y: 1}){
 				//Reset timer
 				player.settings.gravityfall_frequency
 			} else {
@@ -24,16 +24,16 @@ pub fn perform<W>(input: Input,player: &mut Player,world: &W)
 			};
 		},
 		Input::FastFall => {
-			player.pos = gamestate::fastfallen_shape_pos(&player.shape, world, player.pos);
+			player.pos = game::state::fastfallen_shape_pos(&player.shape, world, player.pos);
 			player.gravityfall_time_count = 0.0;
 		},
 		Input::RotateAntiClockwise => {
 			let shape = player.shape.rotated_anticlockwise();
-			gamestate::resolve_transformed_player(player, shape, world);
+			game::state::resolve_transformed_player(player, shape, world);
 		},
 		Input::RotateClockwise => {
 			let shape = player.shape.rotated_clockwise();
-			gamestate::resolve_transformed_player(player, shape, world);
+			game::state::resolve_transformed_player(player, shape, world);
 		},
 		_ => (),
 	}

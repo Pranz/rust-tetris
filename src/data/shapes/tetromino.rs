@@ -1,7 +1,7 @@
 //!A basic tetromino shape (4 blocks)
 
-use super::super::grid::{self,Grid,RectangularBound};
-use data::cell::Cell;
+use ::data::grid::{self,Grid,RectangularBound};
+use ::data::Cell;
 
 ///All possible tetromino shapes
 #[derive(Copy,Clone,Debug,Eq,PartialEq,Rand,Serialize,Deserialize)]
@@ -180,7 +180,7 @@ impl Iterator for ShapeRotations{
 
 ///Contains data arrays of all the possible shapes and its rotations in a 4x4 grid
 pub mod data{
-	use super::super::super::grid::Size;
+	use ::data::grid::Size;
 
 	pub static I: (Size,[[bool; 4*4]; 2]) = (Size{x: 4,y: 4},[
 		[
