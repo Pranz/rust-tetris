@@ -30,7 +30,6 @@ mod game;
 mod input;
 mod online;
 mod render;
-mod tmp_ptr;
 
 use controller::Controller;
 use core::f64;
@@ -45,17 +44,16 @@ use std::collections::hash_map::{self,HashMap};
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
 use controller::ai;
-use data::{cell,grid,player,Grid,Input,Player};
+use data::{cell,grid,player,Grid,Input};
 use data::world::dynamic::World;
 use data::shapes::tetromino::{Shape,RotatedShape};
 use game::Event;
 use gamestate::{GameState,WorldId,PlayerId};
-use tmp_ptr::TmpPtr;
 
 struct App{
 	gl: GlGraphics,
 	game_state: GameState<World<cell::ShapeCell>,rand::StdRng>,
-	controllers: Vec<Box<Controller<World<cell::ShapeCell>,Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World<cell::ShapeCell>>)>>>>,
+	controllers: Vec<Box<for<'l> Controller<World<cell::ShapeCell>,Event<PlayerId,WorldId>>>>,
 	request_receiver: sync::mpsc::Receiver<data::Request>,
 	connection: online::ConnectionType,
 	paused: bool,
@@ -106,7 +104,7 @@ impl App{
 			},
 			PlayerAdd{settings} => {
 				let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
-				game.add_player(0,settings,&mut |e| for c in cs.iter_mut(){c.event(e);});
+				game.add_player(0,settings,&mut |e| for c in cs.iter_mut(){c.event(&e);});
 			},
 			_ => ()
 		}}
@@ -114,7 +112,7 @@ impl App{
 		//Update
 		if !self.paused{
 			let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
-			game.update(args,&mut |e| for c in cs.iter_mut(){c.event(e);});
+			game.update(args,&mut |e| for c in cs.iter_mut(){c.event(&e);});
 		}
 	}
 
@@ -137,7 +135,7 @@ impl App{
 				match self.game_state.data.players.get(0 as usize).map(|player| player.world){//TODO: New seed for rng
 					Some(world_id) => {
 						let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
-						game.reset_world(world_id,&mut |e| for c in cs.iter_mut(){c.event(e);});
+						game.reset_world(world_id,&mut |e| for c in cs.iter_mut(){c.event(&e);});
 					},
 					None => ()
 				};
@@ -291,7 +289,7 @@ fn main(){
 			game.add_player(0,player::Settings{
 				gravityfall_frequency: 1.0,
 				fastfall_shadow      : true,
-			},&mut |e| for c in cs.iter_mut(){c.event(e);});
+			},&mut |e| for c in cs.iter_mut(){c.event(&e);});
 
 			//Create player 1
 			game.rngs.insert_from_global(gamestate::data_map::MappingKey::Player(1));
@@ -303,7 +301,7 @@ fn main(){
 			game.add_player(1,player::Settings{
 				gravityfall_frequency: 1.0,
 				fastfall_shadow      : true,
-			},&mut |e| for c in cs.iter_mut(){c.event(e);});
+			},&mut |e| for c in cs.iter_mut(){c.event(&e);});
 		}
 	}
 

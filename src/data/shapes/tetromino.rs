@@ -19,7 +19,7 @@ impl Shape{
 	pub const LEN: usize = 7;
 
 	///Returns the data of the tetromino shape
-	pub fn data(self,rotation: u8) -> (grid::SizeAxis,&'static [bool]){
+	pub fn data(self,rotation: Rotation) -> (grid::SizeAxis,&'static [bool]){
 		let rotation = rotation as usize;
 		match self{
 			Shape::I => {let &(grid::Size{x,..},ref data) = &data::I;(x,&data[rotation])},
@@ -33,7 +33,7 @@ impl Shape{
 	}
 
 	///Returns the number of rotations for the current shape
-	fn rotation_count(self) -> u8{
+	fn rotation_count(self) -> Rotation{
 		(match self{
 			Shape::I => data::I.1.len(),
 			Shape::L => data::L.1.len(),
@@ -42,7 +42,7 @@ impl Shape{
 			Shape::T => data::T.1.len(),
 			Shape::S => data::S.1.len(),
 			Shape::Z => data::Z.1.len(),
-		}) as u8
+		}) as Rotation
 	}
 
 	///Returns the width and height in blocks
@@ -64,11 +64,13 @@ impl Shape{
 	}
 }
 
+pub type Rotation = u8;
+
 ///A shape with its rotation
 #[derive(Copy,Clone,Debug,Eq,PartialEq,Rand,Serialize,Deserialize)]
 pub struct RotatedShape{
 	shape: Shape,
-	rotation: u8
+	rotation: Rotation
 }
 
 impl RotatedShape{
@@ -98,18 +100,18 @@ impl RotatedShape{
 	///Number of possible rotations in the range 0 to 360° where the state step is 90° and the rotation state's cells is not equivalent of another rotation state's cells
 	///Requirements:
 	///    1 <= return_value <= 4
-	#[inline(always)]pub fn rotation_count(self) -> u8{
+	#[inline(always)]pub fn rotation_count(self) -> Rotation{
 		self.shape.rotation_count()
 	}
 
 	///Returns the current shape rotated an absolute number of times from the initial rotation with a 90° step
-	#[inline(always)]pub fn with_rotation(self,rotation: u8) -> Self{RotatedShape{
+	#[inline(always)]pub fn with_rotation(self,rotation: Rotation) -> Self{RotatedShape{
 		rotation: rotation % self.shape.rotation_count(),
 		..self
 	}}
 
 	///Returns the absolute number of rotations from the current shape's initial position
-	#[inline(always)]pub fn rotation(&self) -> u8{self.rotation}
+	#[inline(always)]pub fn rotation(&self) -> Rotation{self.rotation}
 
 	///Returns the shape without rotation
 	#[inline(always)]pub fn shape(&self) -> Shape{self.shape}

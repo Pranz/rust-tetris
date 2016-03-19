@@ -6,7 +6,6 @@ use super::super::Controller as ControllerTrait;
 use data::{Input,Player,Request,World};
 use game::Event;
 use gamestate;
-use tmp_ptr::TmpPtr;
 
 #[derive(Clone)]
 pub struct Controller{
@@ -25,7 +24,9 @@ impl Controller{
 	}}
 }
 
-impl<W: World> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::WorldId,TmpPtr<W>)>> for Controller{
+impl<W> ControllerTrait<W,Event<gamestate::PlayerId,gamestate::WorldId>> for Controller
+	where W: World
+{
 	fn update(&mut self,args: &UpdateArgs,_: &VecMap<Player>,_: &VecMap<W>){
 		self.move_time+= args.dt;
 
@@ -38,7 +39,7 @@ impl<W: World> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gam
 		}
 	}
 
-	fn event(&mut self,_: Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::WorldId,TmpPtr<W>)>){/*
+	fn event<'l>(&mut self,event: &Event<gamestate::PlayerId,gamestate::WorldId>){/*
 		use game::Event::*;
 
 		match event{

@@ -1,11 +1,13 @@
+use collections::borrow::Cow;
+
 use super::super::data::grid;
 use super::super::data::shapes::tetromino::{Shape,RotatedShape};
 
 ///Events which can occur ingame.
 ///These should get signaled by the game state and listened to by a event listener.
-#[derive(Copy,Clone,Debug)]
+#[derive(Clone,Debug,Serialize,Deserialize)]
 pub enum Event<Player,World>{
-	//WorldStart(World),
+	//WorldCreate(World),
 	//WorldUpdate(World),
 	//WorldEnd(World),
 	PlayerAdd{
@@ -13,14 +15,16 @@ pub enum Event<Player,World>{
 		world: World
 	},
 	//PlayerRemove(PlayerId,World),
-	//PlayerWorldChange(PlayerId,World,World),
+	//PlayerWorldMove(PlayerId,World,World),
 	//PlayerRotate(PlayerId),
-	//PlayerRotateCollide(PlayerId,World),
-	//PlayerMove(PlayerId,World,grid::PosAxis,grid::PosAxis),
-	//PlayerMoveCollide(PlayerId,World,grid::PosAxis,grid::PosAxis),
-	PlayerMoveGravity{
+	//PlayerRotationCollide(PlayerId,World),
+	//PlayerMovementCollide(PlayerId,World,grid::PosAxis,grid::PosAxis),
+	PlayerPositionMove{
 		player: Player,
 		world: World,
+		old: grid::Pos,
+		new: grid::Pos,
+		cause: Cow<'static,str>,
 	},
 	WorldImprintShape{
 		world: World,
@@ -34,4 +38,8 @@ pub enum Event<Player,World>{
 		shape: Shape,
 		pos: grid::Pos
 	},
+}
+
+pub mod move_cause{
+	pub const GRAVITY: &'static str = "gravity";
 }

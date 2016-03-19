@@ -13,5 +13,5 @@ pub trait Controller<World,Event>{
 	fn update(&mut self,args: &UpdateArgs,players: &VecMap<Player>,worlds: &VecMap<World>);
 
 	///Event listener. Called for each defined ingame event occcurring
-	fn event(&mut self,event: Event);
+	fn event<'l>(&mut self,event: &Event);
 }

@@ -1,50 +1,48 @@
-use vec_map::VecMap;
+use collections::borrow::Cow;
 use core::cmp;
 use piston::input::UpdateArgs;
 use rand::{self,Rand};
 use serde::{Serialize,Serializer};
+use vec_map::VecMap;
 
-use data::{grid,world,player,Cell,Grid,Player,World as WorldTrait};
+use data::{grid,world,player,Cell,Grid,Player,World};
 use data::grid::RectangularBound;
 use data::shapes::tetromino::{Shape,RotatedShape};
-use game::Event;
-use tmp_ptr::TmpPtr;
+use game::{event,Event};
 
 ///Type of the world id
 pub type WorldId = u8;
 ///Type of the player id
 pub type PlayerId = u8;
 
+//TODO: Move to game module and rename to state. ALso move Data and Mappings to this module
 ///The ingame game state
-pub struct GameState<World,Rng>
-	where World: WorldTrait
+pub struct GameState<W,Rng>
+	where W: World
 {
 	///Data of the game state
-	pub data: Data<World>,
+	pub data: Data<W>,
 
 	///Random number generator mappings.
 	pub rngs: data_map::Mappings<Rng>,
 
 	///Function that maps a shape's cell to the world's cell
-	pub imprint_cell: fn(&RotatedShape) -> <World as Grid>::Cell,
+	pub imprint_cell: fn(&RotatedShape) -> <W as Grid>::Cell,
 
 	///Function that returns the origin position of a player based on shape and world
-	pub respawn_pos: fn(&RotatedShape,&World) -> grid::Pos
+	pub respawn_pos: fn(&RotatedShape,&W) -> grid::Pos
 }
 
-impl<World,Rng> GameState<World,Rng>
-	where World: WorldTrait
+impl<W,Rng> GameState<W,Rng>
+	where W: World
 {
 	///A simple constructor
 	pub fn new(
 		rng: Rng,
-		imprint_cell: fn(&RotatedShape) -> <World as Grid>::Cell,
-		respawn_pos : fn(&RotatedShape,&World) -> grid::Pos
+		imprint_cell: fn(&RotatedShape) -> <W as Grid>::Cell,
+		respawn_pos : fn(&RotatedShape,&W) -> grid::Pos
 	) -> Self{GameState{
-		data: Data{
-			worlds : VecMap::new(),
-			players: VecMap::new(),
-		},
+		data        : Data::new(),
 		rngs        : data_map::Mappings::new(rng),
 		imprint_cell: imprint_cell,
 		respawn_pos : respawn_pos,
@@ -52,10 +50,10 @@ impl<World,Rng> GameState<World,Rng>
 
 	///Updates the game state
 	pub fn update<EL>(&mut self, args: &UpdateArgs,event_listener: &mut EL)
-		where World: WorldTrait,
-		      <World as Grid>::Cell: Cell,
+		where W: World,
+		      <W as Grid>::Cell: Cell,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
+		      EL: for<'l> FnMut(Event<PlayerId,WorldId>)
 	{
 		//After action
 		enum Action{
@@ -63,9 +61,11 @@ impl<World,Rng> GameState<World,Rng>
 			ResetWorld(WorldId)
 		}let mut action = Action::None;
 
+		//TODO: event_listener(Event::Tick{delta_time: args.dt});
+
 		//Players
 		'player_loop: for (player_id,player) in self.data.players.iter_mut(){
-			let player_id = player_id  as PlayerId;
+			let player_id = player_id    as PlayerId;
 			let world_id  = player.world as WorldId;
 
 			if let Some(world) = self.data.worlds.get_mut(player.world as usize){
@@ -79,9 +79,12 @@ impl<World,Rng> GameState<World,Rng>
 
 					//If able to move (no collision below)
 					if move_player(player,world,grid::Pos{x: 0,y: 1}){
-						event_listener(Event::PlayerMoveGravity{
-							player: (player_id,TmpPtr::new(player as &_)),
-							world: (world_id,TmpPtr::new(world as &_))
+						event_listener(Event::PlayerPositionMove{
+							player: player_id,
+							world: world_id,
+							old: player.pos,
+							new: player.pos,
+							cause: Cow::Borrowed(event::move_cause::GRAVITY),
 						});
 					}else{
 						//Imprint the current shape onto the world
@@ -97,14 +100,14 @@ impl<World,Rng> GameState<World,Rng>
 						};
 
 						event_listener(Event::WorldImprintShape{
-							world: (world_id,TmpPtr::new(world as &_)),
+							world: world_id,
 							shape: (player.shape,player.pos),
 							full_rows: full_rows,
-							cause: Some((player_id,TmpPtr::new(player as &_))),
+							cause: Some(player_id),
 						});
 
 						//Respawn player and check for collision at spawn position
-						let shape = player.next_shape(<Shape as Rand>::rand(self.rngs.player_get(world_id,player_id)));
+						let shape = player.next_shape(<Shape as Rand>::rand(self.rngs.player_get_mut(world_id,player_id)));
 						if !respawn_player((player_id,player),(world_id,world),shape,self.respawn_pos,event_listener){
 							action = Action::ResetWorld(world_id);
 							break 'player_loop;
@@ -123,13 +126,13 @@ impl<World,Rng> GameState<World,Rng>
 	///Adds a player to the specified world and with the specified player settings
 	///Returns the new player id
 	pub fn add_player<EL>(&mut self,world_id: WorldId,settings: player::Settings,event_listener: &mut EL) -> Option<PlayerId>
-		where World: WorldTrait,
+		where W: World,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
+		      EL: for<'l> FnMut(Event<PlayerId,WorldId>)
 	{
 		if let Some(world) = self.data.worlds.get_mut(world_id as usize){
 			let new_id = self.data.players.len();
-			let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.player_get(world_id,new_id as PlayerId)));
+			let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.player_get_mut(world_id,new_id as PlayerId)));
 
 			self.data.players.insert(new_id,Player{
 				pos                   : (self.respawn_pos)(&shape,world),
@@ -141,11 +144,10 @@ impl<World,Rng> GameState<World,Rng>
 				gravityfall_time_count: settings.gravityfall_frequency,
 				settings              : settings
 			});
-			let player = self.data.players.get_mut(new_id).unwrap();
 
 			event_listener(Event::PlayerAdd{
-				player: (new_id as PlayerId,TmpPtr::new(player as &_)),
-				world: (world_id,TmpPtr::new(world as &_)),
+				player: new_id as PlayerId,
+				world: world_id,
 			});
 
 			Some(new_id as PlayerId)
@@ -156,10 +158,10 @@ impl<World,Rng> GameState<World,Rng>
 
 	///Resets the specified world, respawning all players and resetting time counts
 	pub fn reset_world<EL>(&mut self,world_id: WorldId,event_listener: &mut EL)
-		where World: WorldTrait,
-		      <World as Grid>::Cell: Cell,
+		where W: World,
+		      <W as Grid>::Cell: Cell,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
+		      EL: for<'l> FnMut(Event<PlayerId,WorldId>)
 	{
 		if let Some(world) = self.data.worlds.get_mut(world_id as usize){
 			//Clear world
@@ -167,7 +169,7 @@ impl<World,Rng> GameState<World,Rng>
 
 			for (player_id,player) in self.data.players.iter_mut().filter(|&(_,ref player)| player.world == world_id){
 				//Reset all players in the world
-				let shape = player.next_shape(<Shape as Rand>::rand(self.rngs.player_get(world_id,player_id as PlayerId)));
+				let shape = player.next_shape(<Shape as Rand>::rand(self.rngs.player_get_mut(world_id,player_id as PlayerId)));
 				respawn_player((player_id as PlayerId,player),(world_id,world),shape,self.respawn_pos,event_listener);
 				player.gravityfall_time_count = player.settings.gravityfall_frequency;
 			}
@@ -208,12 +210,12 @@ pub mod data_map{
 		}
 
 		///Lookup data from a world mapping with fallbacks.
-		pub fn world_get(&mut self,world: super::WorldId) -> &mut T{
+		pub fn world_get_mut(&mut self,world: super::WorldId) -> &mut T{
 			self.1.get_mut(&MappingKey::World(world)).unwrap_or(&mut self.0)
 		}
 
 		///Lookup data from a player mapping with fallbacks.
-		pub fn player_get(&mut self,world: super::WorldId,player: super::PlayerId) -> &mut T{
+		pub fn player_get_mut(&mut self,world: super::WorldId,player: super::PlayerId) -> &mut T{
 			let mappings1: &mut HashMap<MappingKey,T> = unsafe{mem::transmute(&mut self.1)};
 			let mappings2: &mut HashMap<MappingKey,T> = unsafe{mem::transmute(&mut self.1)};
 
@@ -229,13 +231,32 @@ pub mod data_map{
 
 			&mut self.0
 		}
+
+		///Lookup data from a world mapping with fallbacks.
+		pub fn world_get(&self,world: super::WorldId) -> &T{
+			self.1.get(&MappingKey::World(world)).unwrap_or(&self.0)
+		}
+
+		///Lookup data from a player mapping with fallbacks.
+		pub fn player_get(&self,world: super::WorldId,player: super::PlayerId) -> &T{
+			let mappings1: &HashMap<MappingKey,T> = unsafe{mem::transmute(&self.1)};
+			let mappings2: &HashMap<MappingKey,T> = unsafe{mem::transmute(&self.1)};
+
+			match mappings1.get(&MappingKey::Player(player)){
+				Some(rng) => rng,
+				None => match mappings2.get(&MappingKey::World(world)){
+					Some(rng) => rng,
+					None => &self.0
+				}
+			}
+		}
 	}
 }
 
 ///Moves player if there are no collisions at the new position.
 ///Returns whether the movement was successful or not due to collisions.
-pub fn move_player<World>(player: &mut Player,world: &World,delta: grid::Pos) -> bool
-	where World: WorldTrait
+pub fn move_player<W>(player: &mut Player,world: &W,delta: grid::Pos) -> bool
+	where W: World
 {
 	//Collision check
 	match world.shape_intersects(&player.shape,player.pos + delta){
@@ -262,8 +283,8 @@ pub fn move_player<World>(player: &mut Player,world: &World,delta: grid::Pos) ->
 ///Checks if the player with the transformed shape is intersecting with the stuff in the world or the world boundaries.
 ///If that is true, try to resolve the collision by moving in the x axis.
 ///If the collision cannot resolve, undo the rotation and return false, otherwise return true.
-pub fn resolve_transformed_player<World>(player: &mut Player,shape: RotatedShape,world: &World) -> bool
-	where World: WorldTrait
+pub fn resolve_transformed_player<W>(player: &mut Player,shape: RotatedShape,world: &W) -> bool
+	where W: World
 {
 	'try_rotate: loop{
 		match world.shape_intersects(&shape,player.pos){
@@ -297,16 +318,16 @@ pub fn resolve_transformed_player<World>(player: &mut Player,shape: RotatedShape
 
 ///Respawns player to its origin position
 ///Returns whether the respawning was successful or not due to collisions.
-pub fn respawn_player<World,EL>((player_id,player): (PlayerId,&mut Player),(world_id,world): (WorldId,&World),new_shape: Shape,respawn_pos: fn(&RotatedShape,&World) -> grid::Pos,event_listener: &mut EL) -> bool
-	where World: WorldTrait,
-	      EL: FnMut(Event<(PlayerId,TmpPtr<Player>),(WorldId,TmpPtr<World>)>)
+pub fn respawn_player<W,EL>((player_id,player): (PlayerId,&mut Player),(world_id,world): (WorldId,&mut W),new_shape: Shape,respawn_pos: fn(&RotatedShape,&W) -> grid::Pos,event_listener: &mut EL) -> bool
+	where W: World,
+	      EL: for<'l> FnMut(Event<PlayerId,WorldId>)
 {
 	//Select a new shape at random, setting its position to the starting position
 	let pos = respawn_pos(&player.shape,world);
 
 	event_listener(Event::PlayerChangeShape{
-		player: (player_id,TmpPtr::new(player as &_)),
-		world: (world_id,TmpPtr::new(world)),
+		player: player_id,
+		world: world_id,
 		shape: new_shape,
 		pos: pos,
 	});
@@ -326,8 +347,8 @@ pub fn respawn_player<World,EL>((player_id,player): (PlayerId,&mut Player),(worl
 }
 
 ///Returns the position of the shape if it were to fast fall downwards in the world at the given position
-pub fn fastfallen_shape_pos<World>(shape: &RotatedShape,world: &World,shape_pos: grid::Pos) -> grid::Pos
-	where World: WorldTrait
+pub fn fastfallen_shape_pos<W>(shape: &RotatedShape,world: &W,shape_pos: grid::Pos) -> grid::Pos
+	where W: World
 {
 	for y in shape_pos.y .. world.height() as grid::PosAxis{
 		match world.shape_intersects(&shape,shape_pos.with_y(y+1)){
@@ -349,8 +370,15 @@ pub struct Data<W>{
 	pub players: VecMap<Player>,
 }
 
+impl<W> Data<W>{
+	pub fn new() -> Self{Data{
+		worlds : VecMap::new(),
+		players: VecMap::new(),
+	}}
+}
+
 impl<W> Serialize for Data<W>
-	where W: WorldTrait,
+	where W: World,
 	      W: Grid,
 	      <W as Grid>::Cell: Cell + Copy
 {
@@ -361,20 +389,20 @@ impl<W> Serialize for Data<W>
 		grid::serde::GridSerializer::<_,W>::new(&self.worlds[0]).visit(serializer)
 	}
 }
-/*impl Deserialize for Data<World>{
+/*impl Deserialize for Data<W>{
 	#[inline]
 	fn deserialize<D>(deserializer: &mut D) -> Result<Self,D::Error>
 		where D: Deserializer
 	{
-		struct V<World>;
-		impl de::Visitor for V<World>{
-			type Value = Data<World>;
+		struct V<W>;
+		impl de::Visitor for V<W>{
+			type Value = Data<W>;
 
 			fn visit_str<E>(&mut self,s: &str) -> Result<Self::Value,E>
 				where E: de::Error,
 			{
 				if s=="TETR"{
-					Ok(Data<World>)
+					Ok(Data<W>)
 				}else{
 					Err(de::Error::syntax("Expected `TETR` as the protocol id"))
 				}
@@ -384,7 +412,7 @@ impl<W> Serialize for Data<W>
 				where E: de::Error,
 			{
 				if s==b"TETR"{
-					Ok(Data<World>)
+					Ok(Data<W>)
 				}else{
 					Err(de::Error::syntax("Expected `TETR` as the protocol id"))
 				}

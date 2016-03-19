@@ -7,11 +7,10 @@ use std::sync;
 
 use super::super::Controller as ControllerTrait;
 use data::grid::{self,translate,RectangularBound};
-use data::shapes::tetromino::Shape;
+use data::shapes::tetromino::{Shape,Rotation};
 use data::{Cell,Input,Grid,Player,Request,World};
 use game::Event;
 use gamestate;
-use tmp_ptr::TmpPtr;
 
 #[derive(Clone)]
 pub struct Controller{
@@ -20,8 +19,7 @@ pub struct Controller{
 	pub settings: Settings,
 	move_time_count: f64,
 	rotate_time_count: f64,
-	target: grid::Pos,
-	target_rotation: u8,
+	target: Option<(grid::Pos,Rotation)>,
 }
 
 #[derive(Copy,Clone,Debug,PartialEq)]
@@ -46,8 +44,7 @@ impl Controller{
 		settings: settings,
 		move_time_count: 0.0,
 		rotate_time_count: 0.0,
-		target: grid::Pos{x: 0,y: 0},
-		target_rotation: 1,
+		target: None,
 	}}
 
 	pub fn recalculate_optimal_target<W>(&mut self,world: &W,shape: Shape,pos: grid::Pos)
@@ -73,8 +70,7 @@ impl Controller{
 						let current_o = world_optimality2(&optimality_test_world);
 						if current_o > greatest_o{
 							greatest_o = current_o;
-							self.target = pos;
-							self.target_rotation = rotated_shape.rotation();
+							self.target = Some((pos,rotated_shape.rotation()));
 						}
 					}
 				}
@@ -83,23 +79,36 @@ impl Controller{
 	}
 }
 
-impl<W> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::WorldId,TmpPtr<W>)>> for Controller
+impl<'l,W> ControllerTrait<W,Event<gamestate::PlayerId,gamestate::WorldId>> for Controller
 	where W: World,
 	      <W as Grid>::Cell: Cell + Copy
 {
-	fn update(&mut self,args: &UpdateArgs,players: &VecMap<Player>,_: &VecMap<W>){
+	fn update(&mut self,args: &UpdateArgs,players: &VecMap<Player>,worlds: &VecMap<W>){
 		if let Some(player) = players.get(self.player_id as usize){
+			let (target_pos,target_rotation) = match self.target{
+				Some(target) => target,
+				None => if let Some(world) = worlds.get(player.world as usize){
+					self.recalculate_optimal_target(world,player.shape.shape(),player.pos);
+					match self.target{
+						Some(target) => target,
+						None => return
+					}
+				}else{
+					return
+				}
+			};
+
 			self.move_time_count-= args.dt;
 			self.rotate_time_count-= args.dt;
 
 			while self.move_time_count <= 0.0{
-				if player.pos.x > self.target.x{
+				if player.pos.x > target_pos.x{
 					let _ = self.request_sender.send(Request::Input{input: Input::MoveLeft,player: self.player_id});
 					self.move_time_count+=self.settings.move_time;
-				}else if player.pos.x < self.target.x{
+				}else if player.pos.x < target_pos.x{
 					let _ = self.request_sender.send(Request::Input{input: Input::MoveRight,player: self.player_id});
 					self.move_time_count+=self.settings.move_time;
-				}else if player.shape.rotation() == self.target_rotation{
+				}else if player.shape.rotation() == target_rotation{
 					let _ = self.request_sender.send(Request::Input{input: Input::SlowFall,player: self.player_id});
 					self.move_time_count+=self.settings.fall_time;
 				}else{
@@ -108,7 +117,7 @@ impl<W> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 			}
 
 			while self.rotate_time_count <= 0.0{
-				if player.shape.rotation() != self.target_rotation{
+				if player.shape.rotation() != target_rotation{
 					let _ = self.request_sender.send(Request::Input{input: Input::RotateAntiClockwise,player: self.player_id});
 					self.rotate_time_count+=self.settings.rotate_time;
 				}else{
@@ -118,22 +127,22 @@ impl<W> ControllerTrait<W,Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate:
 		}
 	}
 
-	fn event(&mut self,event: Event<(gamestate::PlayerId,TmpPtr<Player>),(gamestate::WorldId,TmpPtr<W>)>){
+	fn event(&mut self,event: &Event<gamestate::PlayerId,gamestate::WorldId>){
 		use game::Event::*;
 
 		match event{
-			PlayerAdd{player: (player_id,player),world: (_,world)} if player_id == self.player_id => {
-				self.recalculate_optimal_target(&*world,player.shape.shape(),player.pos);
+			&PlayerAdd{player: player_id,..} if player_id == self.player_id => {
+				self.target = None;
 			},
-			/*TODO: When other players imprints on the world (Problem: Cannot access self's player)
-			WorldImprintShape{cause: Some((player_id,_)),world: (_,world),..} if player_id != self.player_id => {
+			//When other players imprints on the world TODO: CAnnot know which world this controller controls its player
+			/*WorldImprintShape{cause: Some(player_id),world: world_id,..} if player_id != self.player_id && world_id==self.player.world => {
 				self.recalculate_optimal_target(&*world,player.shape.shape(),player.pos);
 			},*/
-			PlayerChangeShape{player: (player_id,_),world: (_,world),shape,pos,..} if player_id == self.player_id => {
+			&PlayerChangeShape{player: player_id,..} if player_id == self.player_id => {
 				self.move_time_count = 0.0;
 				self.rotate_time_count = 0.0;
 
-				self.recalculate_optimal_target(&*world,shape,pos);
+				self.target = None;
 			},
 			_ => ()
 		}
