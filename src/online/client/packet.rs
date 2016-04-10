@@ -1,5 +1,5 @@
 use super::super::packet::*;
-use ::data::{player,Input};
+use ::data::request;
 
 ///Type of packet sent from the clients
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
@@ -21,24 +21,11 @@ pub enum Data{
 		connection: ConnectionId,
 	},
 
-	///Sent when a new local player has been added
-	PlayerCreateRequest{
+	///Sent when something player related is requested to the server
+	PlayerRequest{
 		connection: ConnectionId,
-		settings  : player::Settings,
-	},
-
-	///Sent when a local player has been removed
-	PlayerRemoveRequest{
-		connection: ConnectionId,
-		player    : PlayerNetworkId,
-	},
-
-	///Sent when a input command from a local player is registered
-	PlayerInput{
-		connection: ConnectionId,
-		player    : PlayerNetworkId,
-		input     : Input
-	},
+		request: request::Player<PlayerNetworkId>
+	}
 }
 
 impl Data{

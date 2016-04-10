@@ -6,7 +6,7 @@ use ::data::shapes::tetromino::{Shape,RotatedShape};
 ///Events which can occur ingame.
 ///These should get signaled by the game state and listened to by a event listener.
 #[derive(Clone,Debug,Serialize,Deserialize)]
-pub enum Event<Player,World>{
+pub enum Event<Player,World>{//TODO: Move to ::data:: or keep it here? Also, merge with server packets in online multiplayer?
 	//WorldCreate(World),
 	//WorldUpdate(World),
 	//WorldEnd(World),

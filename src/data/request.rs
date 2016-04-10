@@ -1,58 +1,62 @@
 use ::data::{player,Input};
 use ::game;
 
-pub enum Request{
-	PlayerInput{
-		input: Input,
-		player: game::data::PlayerId
+#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
+pub enum Player<P>{
+	Input{
+		player: P,
+		input: Input
 	},
 
-	PlayerAdd{
+	Add{
 		settings: player::Settings,
 		world: game::data::WorldId
 	},
 
-	PlayerRemove{
-		player: game::data::PlayerId
+	Remove{
+		player: P
 	},
 
 	/*
-	PlayerSet{
-		player: game::data::PlayerId
+	Set{
+		player: P
 		data: Box<Player>
-	},
+	},*/
+}
 
-	WorldAdd{
+#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
+pub enum World<W>{
+	/*Add{
 		settings: world::Settings
+	},*/
+
+	Remove{
+		world: W
 	},
 
-	WorldRemove{
-		world: game::data::WorldId
-	}
-*/
-	WorldRestart{
-		world: game::data::WorldId
-	}
-/*
-	WorldPause{
-		world: game::data::WorldId
-	}
+	Restart{
+		world: W
+	},
 
-	WorldUnpause{
-		world: game::data::WorldId
-	}
+	Pause{
+		world: W
+	},
 
-	WorldSet{
+	Unpause{
+		world: W
+	},
+
+	/*Set{
 		world: game::data::WorldId
 		data: Box<_>
-	}
+	}*/
+}
+
+#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
+pub enum Request<P,W>{//TODO: Merge this somehow with the client packets in online multiplayer
+	Player(Player<P>),
+	World(World<W>),
 
 	GameRestart,
 	GameQuit,
-
-	NetworkConnect{
-		type:,
-		address:,
-	},
-	*/
 }

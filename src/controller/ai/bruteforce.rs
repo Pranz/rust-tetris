@@ -7,12 +7,13 @@ use std::sync;
 use super::super::Controller as ControllerTrait;
 use ::data::grid::{self,translate,RectangularBound};
 use ::data::shapes::tetromino::{Shape,Rotation};
-use ::data::{Cell,Input,Grid,Request,World};
+use ::data::{Cell,Input,Grid,Request,World,request};
 use ::game::{self,Event};
+use ::game::data::{WorldId,PlayerId};
 
 #[derive(Clone)]
 pub struct Controller{
-	pub request_sender: sync::mpsc::Sender<Request>,
+	pub request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>,
 	pub player_id: game::data::PlayerId,
 	pub settings: Settings,
 	move_time_count: f64,
@@ -36,7 +37,7 @@ impl Default for Settings{
 }
 
 impl Controller{
-	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: game::data::PlayerId,settings: Settings) -> Self{Controller{
+	pub fn new(request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>,player_id: game::data::PlayerId,settings: Settings) -> Self{Controller{
 		request_sender: request_sender,
 		player_id: player_id,
 		settings: settings,
@@ -101,13 +102,13 @@ impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> fo
 
 			while self.move_time_count <= 0.0{
 				if player.pos.x > target_pos.x{
-					let _ = self.request_sender.send(Request::PlayerInput{input: Input::MoveLeft,player: self.player_id});
+					let _ = self.request_sender.send(Request::Player(request::Player::Input{input: Input::MoveLeft,player: self.player_id}));
 					self.move_time_count+=self.settings.move_time;
 				}else if player.pos.x < target_pos.x{
-					let _ = self.request_sender.send(Request::PlayerInput{input: Input::MoveRight,player: self.player_id});
+					let _ = self.request_sender.send(Request::Player(request::Player::Input{input: Input::MoveRight,player: self.player_id}));
 					self.move_time_count+=self.settings.move_time;
 				}else if player.shape.rotation() == target_rotation{
-					let _ = self.request_sender.send(Request::PlayerInput{input: Input::SlowFall,player: self.player_id});
+					let _ = self.request_sender.send(Request::Player(request::Player::Input{input: Input::SlowFall,player: self.player_id}));
 					self.move_time_count+=self.settings.fall_time;
 				}else{
 					break
@@ -116,7 +117,7 @@ impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> fo
 
 			while self.rotate_time_count <= 0.0{
 				if player.shape.rotation() != target_rotation{
-					let _ = self.request_sender.send(Request::PlayerInput{input: Input::RotateAntiClockwise,player: self.player_id});
+					let _ = self.request_sender.send(Request::Player(request::Player::Input{input: Input::RotateAntiClockwise,player: self.player_id}));
 					self.rotate_time_count+=self.settings.rotate_time;
 				}else{
 					break;

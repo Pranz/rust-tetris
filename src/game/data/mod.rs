@@ -1,3 +1,4 @@
+//TODO: Maybe move ::data::{player,world,request} here because they are not general data and game specific?
 pub mod mappings;
 
 pub use self::mappings::Mappings;

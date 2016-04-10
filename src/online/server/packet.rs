@@ -15,21 +15,14 @@ pub enum Data{
 	///Sent when connecting and the connection is not OK
 	ConnectionInvalid,
 
-	///Sent when a new player request has been confirmed
-	PlayerCreateResponse{
-		player  : PlayerNetworkId,
-		rng_seed: u32,//TODO: Send the whole RNG world in a packet instead?
-	},
-
 	///Sent when a new player has been added
-	PlayerCreate{
+	PlayerCreated{
 		player  : PlayerNetworkId,
-		rng_seed: u32,
 		settings: player::Settings,
 	},
 
 	///Sent when a player has been removed
-	PlayerRemove{
+	PlayerRemoved{
 		player: PlayerNetworkId,
 	},
 
@@ -40,7 +33,7 @@ pub enum Data{
 	},
 
 	///Sent when a player's shape
-	PlayerQueueShape{
+	PlayerQueuedShape{
 		player: PlayerNetworkId,
 		shape : Shape
 	},

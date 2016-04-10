@@ -2,19 +2,20 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use ::data::{Input,Request,World};
+use ::data::{Input,Request,World,request};
 use ::game::{self,Event};
+use ::game::data::{WorldId,PlayerId};
 
 #[derive(Clone)]
 pub struct Controller{
-	pub request_sender: sync::mpsc::Sender<Request>,
+	pub request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>,
 	pub player_id: game::data::PlayerId,
 	bounce: bool,
 	move_time: f64,
 }
 
 impl Controller{
-	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: game::data::PlayerId) -> Self{Controller{
+	pub fn new(request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>,player_id: game::data::PlayerId) -> Self{Controller{
 		request_sender: request_sender,
 		player_id: player_id,
 		bounce: false,
@@ -29,10 +30,10 @@ impl<W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> for C
 		self.move_time+= args.dt;
 
 		if self.move_time > 0.3{
-			let _ = self.request_sender.send(Request::PlayerInput{
+			let _ = self.request_sender.send(Request::Player(request::Player::Input{
 				input: if self.bounce{Input::MoveLeft}else{Input::MoveRight},
 				player: self.player_id
-			});
+			}));
 			self.move_time -= 0.3;
 		}
 	}
