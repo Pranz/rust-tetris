@@ -60,12 +60,12 @@ pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Req
 									address
 								).unwrap();
 
-								request_sender.send(Request::PlayerAdd{settings: settings}).unwrap();
+								request_sender.send(Request::PlayerAdd{settings: settings,world: 1}).unwrap();
 							},
 
 							//Received player input
 							server::packet::Data::PlayerInput{input,..} if connected => {
-								request_sender.send(Request::Input{input: input,player: 0}).unwrap();
+								request_sender.send(Request::PlayerInput{input: input,player: 0}).unwrap();
 							},
 
 							//Received player add response

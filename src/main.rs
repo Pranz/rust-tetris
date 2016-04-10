@@ -55,20 +55,20 @@ use ::game::Event;
 struct App{
 	gl: GlGraphics,
 	game_state: game::State<World<cell::ShapeCell>,rand::StdRng>,
-	controllers: Vec<Box<for<'l> Controller<World<cell::ShapeCell>,Event<PlayerId,WorldId>>>>,
+	controllers: Vec<Box<Controller<World<cell::ShapeCell>,Event<PlayerId,WorldId>>>>,
 	request_receiver: sync::mpsc::Receiver<data::Request>,
 	connection: online::ConnectionType,
 	paused: bool,
-	key_map: data::input::key::KeyMap,
+	key_map: ::data::input::key::KeyMap,
 	key_down: HashMap<Key,f64>,
 }
 
 impl App{
-	fn update(&mut self, args: &UpdateArgs,request_sender: &sync::mpsc::Sender<data::Request>){
+	fn update(&mut self,args: &UpdateArgs,request_sender: &sync::mpsc::Sender<data::Request>){
 		//Controllers
 		if !self.paused{
 			for mut controller in self.controllers.iter_mut(){
-				controller.update(args,&self.game_state.data.players,&self.game_state.data.worlds);
+				controller.update(args,&self.game_state.data);
 			}
 		}
 
@@ -79,7 +79,7 @@ impl App{
 				*time_left <= 0.0
 			}{
 				*time_left = if let Some(mapping) = self.key_map.get(key){
-					request_sender.send(data::Request::Input{input: mapping.input,player: mapping.player}).unwrap();
+					request_sender.send(data::Request::PlayerInput{input: mapping.input,player: mapping.player}).unwrap();
 					*time_left + mapping.repeat_frequency
 				}else{
 					f64::NAN//TODO: If the mapping doesn't exist, it will never be removed
@@ -89,9 +89,9 @@ impl App{
 
 		//Input
 		while let Ok(request) = self.request_receiver.try_recv(){use data::Request::*;match request{
-			Input{input,player: pid} => {
+			PlayerInput{input,player: pid} => {
 				if let Some(player) = self.game_state.data.players.get_mut(pid as usize){
-					if let Some(world) = self.game_state.data.worlds.get_mut(player.world as usize){
+					if let Some(&mut(ref mut world,false)) = self.game_state.data.worlds.get_mut(player.world as usize){
 						input::perform(input,player,world);
 					}
 				}
@@ -104,9 +104,13 @@ impl App{
 					}.into_packet(0).serialize(),address).unwrap();
 				}}
 			},
-			PlayerAdd{settings} => {
+			PlayerAdd{settings,world: world_id} => {
 				let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
-				game.add_player(0,settings,&mut |e| for c in cs.iter_mut(){c.event(&e);});
+				game.add_player(world_id,settings,&mut |e| for c in cs.iter_mut(){c.event(&e);});
+			},
+			WorldRestart{world: world_id} => {
+				let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
+				game.reset_world(world_id,&mut |e| for c in cs.iter_mut(){c.event(&e);});
 			},
 			_ => ()
 		}}
@@ -135,10 +139,7 @@ impl App{
 			Key::D7 => {if let Some(player) = self.game_state.data.players.get_mut(0 as usize){player.shape = RotatedShape::new(Shape::Z);};},
 			Key::R  => {
 				match self.game_state.data.players.get(0 as usize).map(|player| player.world){//TODO: New seed for rng
-					Some(world_id) => {
-						let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
-						game.reset_world(world_id,&mut |e| for c in cs.iter_mut(){c.event(&e);});
-					},
+					Some(world_id) => {request_sender.send(data::Request::WorldRestart{world: world_id}).unwrap();},
 					None => ()
 				};
 			},
@@ -148,7 +149,7 @@ impl App{
 			key => if let Some(mapping) = self.key_map.get(&key){
 				if let hash_map::Entry::Vacant(entry) = self.key_down.entry(key){
 					entry.insert(mapping.repeat_delay);
-					request_sender.send(data::Request::Input{input: mapping.input,player: mapping.player}).unwrap();
+					request_sender.send(data::Request::PlayerInput{input: mapping.input,player: mapping.player}).unwrap();
 				}
 			}
 		}}
@@ -250,8 +251,8 @@ fn main(){
 	};
 
 	//Create world
-	app.game_state.data.worlds.insert(0,World::new(10,20));
-	app.game_state.data.worlds.insert(1,World::new(10,20));
+	app.game_state.data.worlds.insert(0,(World::new(10,20),false));
+	app.game_state.data.worlds.insert(1,(World::new(10,20),false));
 
 	{let App{game_state: ref mut game,controllers: ref mut cs,..} = app;
 		if let online::ConnectionType::None = app.connection{
@@ -309,7 +310,7 @@ fn main(){
 
 		//Update
 		if let Some(u) = e.update_args(){
-			app.update(&u,&request_sender);//TODO: It "feels" not good having to give the input sender to the update method, where it should be receive input
+			app.update(&u,&request_sender);
 		}
 
 		//Render

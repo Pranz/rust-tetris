@@ -18,7 +18,7 @@ pub type PlayerId = u8;
 #[derive(Clone)]
 pub struct Data<W>{
 	///Mappings of world ids to worlds
-	pub worlds: VecMap<W>,
+	pub worlds: VecMap<(W,bool)>,
 
 	///Mappings of player ids to players
 	pub players: VecMap<Player>,
@@ -40,7 +40,7 @@ impl<W> Serialize for Data<W>
 	fn serialize<S>(&self,serializer: &mut S) -> Result<(),S::Error>
 		where S: Serializer
 	{
-		grid::serde::GridSerializer::<_,W>::new(&self.worlds[0]).visit(serializer)
+		grid::serde::GridSerializer::<_,W>::new(&self.worlds[0].0).visit(serializer)
 	}
 }
 /*impl Deserialize for Data<W>{

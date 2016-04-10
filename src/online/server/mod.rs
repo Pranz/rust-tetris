@@ -56,12 +56,12 @@ pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Reque
 
 							//Received player input
 							client::packet::Data::PlayerInput{input,..} => {
-								request_sender.send(Request::Input{input: input,player: 0}).unwrap();
+								request_sender.send(Request::PlayerInput{input: input,player: 0}).unwrap();
 							},
 
 							//Received player add reqeust
 							client::packet::Data::PlayerCreateRequest{settings,..} => {
-								request_sender.send(Request::PlayerAdd{settings: settings}).unwrap();
+								request_sender.send(Request::PlayerAdd{settings: settings,world: 1}).unwrap();
 
 								socket.send_to(
 									&*packet::Data::PlayerCreateResponse{

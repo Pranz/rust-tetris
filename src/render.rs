@@ -42,7 +42,7 @@ pub mod default{
 			graphics::clear(colors::BLACK,gl);
 
 			//Draw worlds
-			for (world_id,world) in state.data.worlds.iter(){
+			for (world_id,&(ref world,_)) in state.data.worlds.iter(){
 				let transform = {
 					let (x,y) = world_render_pos(world_id);
 					context.transform.trans(x,y)

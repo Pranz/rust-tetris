@@ -32,7 +32,7 @@ impl<W,Rng> State<W,Rng>
 	///A simple constructor
 	pub fn new(
 		rng: Rng,
-		imprint_cell: fn(&RotatedShape) -> <W as Grid>::Cell,
+		imprint_cell: fn(&RotatedShape) -> <W as Grid>::Cell,//TODO: ?? Shape to Grid?
 		respawn_pos : fn(&RotatedShape,&W) -> grid::Pos
 	) -> Self{State{
 		data        : Data::new(),
@@ -46,72 +46,62 @@ impl<W,Rng> State<W,Rng>
 		where W: World,
 		      <W as Grid>::Cell: Cell,
 		      Rng: rand::Rng,
-		      EL: for<'l> FnMut(Event<PlayerId,WorldId>)
+		      EL: FnMut(Event<PlayerId,WorldId>)
 	{
-		//After action
-		enum Action{
-			None,
-			ResetWorld(WorldId)
-		}let mut action = Action::None;
-
 		//Players
 		'player_loop: for (player_id,player) in self.data.players.iter_mut(){
 			let player_id = player_id    as PlayerId;
 			let world_id  = player.world as WorldId;
 
-			if let Some(world) = self.data.worlds.get_mut(player.world as usize){
-				//Add the time since the last update to the time counts
-				player.gravityfall_time_count -= args.dt;
+			if let Some(&mut(ref mut world,ref mut paused)) = self.data.worlds.get_mut(player.world as usize){
+				if !*paused{
+					//Add the time since the last update to the time counts
+					player.gravityfall_time_count -= args.dt;
 
-				//Gravity: If the time count is greater than the shape move frequency, then repeat until it is smaller
-				while player.gravityfall_time_count <= 0.0{
-					//Add one step of frequency
-					player.gravityfall_time_count += player.settings.gravityfall_frequency;
+					//Gravity: If the time count is greater than the shape move frequency, then repeat until it is smaller
+					while player.gravityfall_time_count <= 0.0{
+						//Add one step of frequency
+						player.gravityfall_time_count += player.settings.gravityfall_frequency;
 
-					//If able to move (no collision below)
-					if move_player(player,world,grid::Pos{x: 0,y: 1}){
-						event_listener(Event::PlayerMove{
-							player: player_id,
-							world: world_id,
-							old: player.pos,
-							new: player.pos,
-							cause: Cow::Borrowed(event::move_cause::GRAVITY),
-						});
-					}else{
-						//Imprint the current shape onto the world
-						world.imprint_shape(&player.shape,player.pos,&self.imprint_cell);
-
-						//Handles the filled rows
-						let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
-						let max_y = cmp::min(min_y + player.shape.height(),world.height());
-						let full_rows = if min_y!=max_y{
-							world.handle_full_rows(min_y .. max_y)
+						//If able to move (no collision below)
+						if move_player(player,world,grid::Pos{x: 0,y: 1}){
+							event_listener(Event::PlayerMove{
+								player: player_id,
+								world: world_id,
+								old: player.pos,
+								new: player.pos,
+								cause: Cow::Borrowed(event::move_cause::GRAVITY),
+							});
 						}else{
-							0
-						};
+							//Imprint the current shape onto the world
+							world.imprint_shape(&player.shape,player.pos,&self.imprint_cell);
 
-						event_listener(Event::WorldImprintShape{
-							world: world_id,
-							shape: (player.shape,player.pos),
-							full_rows: full_rows,
-							cause: Some(player_id),
-						});
+							//Handles the filled rows
+							let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
+							let max_y = cmp::min(min_y + player.shape.height(),world.height());
+							let full_rows = if min_y!=max_y{
+								world.handle_full_rows(min_y .. max_y)
+							}else{
+								0
+							};
 
-						//Respawn player and check for collision at spawn position
-						let shape = player.next_shape(<Shape as Rand>::rand(self.rngs.player_get_mut(world_id,player_id)));
-						if !respawn_player((player_id,player),(world_id,world),shape,self.respawn_pos,event_listener){
-							action = Action::ResetWorld(world_id);
-							break 'player_loop;
+							event_listener(Event::WorldImprintShape{
+								world: world_id,
+								shape: (player.shape,player.pos),
+								full_rows: full_rows,
+								cause: Some(player_id),
+							});
+
+							//Respawn player and check for collision at spawn position
+							let shape = player.next_shape(<Shape as Rand>::rand(self.rngs.player_get_mut(world_id,player_id)));
+							if !respawn_player((player_id,player),(world_id,world),shape,self.respawn_pos,event_listener){
+								*paused = true;
+							}
 						}
 					}
 				}
 			}
 		}
-
-		match action{
-			Action::None => (),
-			Action::ResetWorld(world_id) => self.reset_world(world_id,event_listener),
-		};
 	}
 
 	///Adds a player to the specified world and with the specified player settings
@@ -119,9 +109,9 @@ impl<W,Rng> State<W,Rng>
 	pub fn add_player<EL>(&mut self,world_id: WorldId,settings: player::Settings,event_listener: &mut EL) -> Option<PlayerId>
 		where W: World,
 		      Rng: rand::Rng,
-		      EL: for<'l> FnMut(Event<PlayerId,WorldId>)
+		      EL: FnMut(Event<PlayerId,WorldId>)
 	{
-		if let Some(world) = self.data.worlds.get_mut(world_id as usize){
+		if let Some(&mut(ref mut world,_)) = self.data.worlds.get_mut(world_id as usize){
 			let new_id = self.data.players.len();
 			let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.player_get_mut(world_id,new_id as PlayerId)));
 
@@ -152,11 +142,12 @@ impl<W,Rng> State<W,Rng>
 		where W: World,
 		      <W as Grid>::Cell: Cell,
 		      Rng: rand::Rng,
-		      EL: for<'l> FnMut(Event<PlayerId,WorldId>)
+		      EL: FnMut(Event<PlayerId,WorldId>)
 	{
-		if let Some(world) = self.data.worlds.get_mut(world_id as usize){
+		if let Some(&mut(ref mut world,ref mut paused)) = self.data.worlds.get_mut(world_id as usize){
 			//Clear world
 			world.clear();
+			*paused = false;
 
 			for (player_id,player) in self.data.players.iter_mut().filter(|&(_,ref player)| player.world == world_id){
 				//Reset all players in the world
@@ -233,9 +224,9 @@ pub fn resolve_transformed_player<W>(player: &mut Player,shape: RotatedShape,wor
 
 ///Respawns player to its origin position
 ///Returns whether the respawning was successful or not due to collisions.
-pub fn respawn_player<W,EL>((player_id,player): (PlayerId,&mut Player),(world_id,world): (WorldId,&mut W),new_shape: Shape,respawn_pos: fn(&RotatedShape,&W) -> grid::Pos,event_listener: &mut EL) -> bool
+pub fn respawn_player<W,EL>((player_id,player): (PlayerId,&mut Player),(world_id,world): (WorldId,&W),new_shape: Shape,respawn_pos: fn(&RotatedShape,&W) -> grid::Pos,event_listener: &mut EL) -> bool
 	where W: World,
-	      EL: for<'l> FnMut(Event<PlayerId,WorldId>)
+	      EL: FnMut(Event<PlayerId,WorldId>)
 {
 	//Select a new shape at random, setting its position to the starting position
 	let pos = respawn_pos(&player.shape,world);

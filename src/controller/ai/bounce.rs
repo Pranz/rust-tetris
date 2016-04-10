@@ -1,9 +1,8 @@
-use vec_map::VecMap;
 use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use ::data::{Input,Player,Request,World};
+use ::data::{Input,Request,World};
 use ::game::{self,Event};
 
 #[derive(Clone)]
@@ -26,11 +25,11 @@ impl Controller{
 impl<W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> for Controller
 	where W: World
 {
-	fn update(&mut self,args: &UpdateArgs,_: &VecMap<Player>,_: &VecMap<W>){
+	fn update(&mut self,args: &UpdateArgs,_: &game::Data<W>){
 		self.move_time+= args.dt;
 
 		if self.move_time > 0.3{
-			let _ = self.request_sender.send(Request::Input{
+			let _ = self.request_sender.send(Request::PlayerInput{
 				input: if self.bounce{Input::MoveLeft}else{Input::MoveRight},
 				player: self.player_id
 			});
