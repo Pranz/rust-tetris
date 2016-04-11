@@ -38,6 +38,7 @@ Options:
 	flag_gl_version : GlVersion,
 );
 
+///Workaround for the creation of Args because the docopt macro is not making everything public
 #[inline(always)]
 pub fn Args_docopt() -> docopt::Docopt{Args::docopt()}
 
@@ -80,7 +81,6 @@ impl Decodable for WindowSize{
 
 #[derive(Debug,RustcDecodable)]
 pub enum WindowMode{window,fullscreen}
-
 
 #[derive(Debug,RustcDecodable)]
 pub enum GlBackend{sdl2,glfw,glutin}

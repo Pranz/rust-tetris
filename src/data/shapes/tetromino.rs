@@ -131,6 +131,7 @@ impl RotatedShape{
 		grid::Size{x: self.center_x(),y: self.center_y()}
 	}
 
+	//Returns the minimal and maximal horizontal position where that column has a occupied cell
 	pub fn real_bound_x(&self) -> Option<(grid::SizeAxis,grid::SizeAxis)>{
 		match grid::columns_iter::Iter::new(self).position( |col| grid::column::Iter::new(col).any(|(_,cell)| cell.is_occupied())){
 			Some(start) => match grid::columns_iter::Iter::new(self).reversed().rposition(|col| grid::column::Iter::new(col).any(|(_,cell)| cell.is_occupied())){

@@ -11,7 +11,7 @@ pub enum Data{
 		protocol_version: ProtocolVersion,
 	},
 
-	///Sent when a ConnectionEstablished from the server is received with the same id
+	///Sent when a ConnectionEstablished from the server is received with the same id (making sure that the id is the same)
 	ConnectionEstablishedResponse{
 		connection: ConnectionId,
 	},
@@ -21,11 +21,16 @@ pub enum Data{
 		connection: ConnectionId,
 	},
 
+	///Sent when a packet received from the server is not understood
+	UnknownPacketResponse{
+		packet: Id
+	},
+
 	///Sent when something player related is requested to the server
 	Request{
 		connection: ConnectionId,
 		request: Request<PlayerNetworkId,WorldNetworkId>
-	}
+	},
 }
 
 impl Data{

@@ -15,6 +15,16 @@ pub enum Data{
 	///Sent when connecting and the connection is not OK
 	ConnectionInvalid,
 
+	///Sent when a client request (or packet) was received and denied or unable to fulfill
+	RequestDeniedReponse{
+		packet: Id
+	},
+
+	///Sent when a packet received from the client is not understood
+	UnknownPacketResponse{
+		packet: Id
+	},
+
 	///Sent when a new player has been added
 	PlayerCreated{
 		player  : PlayerNetworkId,

@@ -8,6 +8,7 @@ pub trait Cell: Sized{
 	///Returns whether this cell is non-empty
 	fn is_occupied(self) -> bool;
 
+	///Returns whether this cell is empty
 	fn is_empty(self) -> bool{!self.is_occupied()}
 }
 
