@@ -4,6 +4,7 @@ pub mod cell;
 pub mod colors;
 pub mod grid;
 pub mod map;
+pub mod pair_map;
 pub mod player;
 pub mod request;
 pub mod shapes;

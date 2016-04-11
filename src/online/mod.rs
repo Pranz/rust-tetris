@@ -13,9 +13,13 @@ pub use self::packet::Packet;
 
 use std::net;
 
+use data::pair_map::PairMap;
+use gamestate::PlayerId;
+use self::packet::{ConnectionId,PlayerNetworkId};
+
 pub enum ConnectionType{
-	Server,
-	Client(net::UdpSocket,net::SocketAddr),
+	Server(PairMap<PlayerNetworkId,PlayerId>),
+	Client(ConnectionId,PairMap<PlayerNetworkId,PlayerId>,net::UdpSocket,net::SocketAddr),
 	//TODO: PeerToPeer
 	None
 }

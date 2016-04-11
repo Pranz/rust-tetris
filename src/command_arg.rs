@@ -1,5 +1,5 @@
 //! Command argument types
-//! The deserialized structures of input.
+//! The deserialized structures of the command args.
 
 #![allow(non_camel_case_types)]
 
