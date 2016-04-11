@@ -46,11 +46,11 @@ use std::collections::hash_map::{self,HashMap};
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
 use ::controller::{ai,Controller};
-use ::data::{cell,grid,player,Grid,Input,Request};
+use ::data::{cell,grid,Grid};
 use ::data::shapes::tetromino::{Shape,RotatedShape};
-use ::data::world::dynamic::World;
-use ::game::data::{WorldId,PlayerId};
-use ::game::Event;
+use ::game::data::world::dynamic::World;
+use ::game::data::{player,Input,PlayerId,WorldId};
+use ::game::{Event,Request};
 
 struct App{
 	gl: GlGraphics,
@@ -59,7 +59,7 @@ struct App{
 	request_receiver: sync::mpsc::Receiver<Request<PlayerId,WorldId>>,
 	connection: online::ConnectionType,
 	paused: bool,
-	key_map: ::data::input::key::KeyMap,
+	key_map: ::game::data::input::key::KeyMap,
 	key_down: HashMap<Key,f64>,
 }
 
@@ -280,7 +280,7 @@ fn main(){
 	}
 
 	{//Key mappings
-		use data::input::key::Mapping;
+		use ::game::data::input::key::Mapping;
 
 		//Player 0
 		app.key_map.insert(Key::Left   ,Mapping{input: Input::MoveLeft,           player: 0,repeat_delay: 0.2,repeat_frequency: 0.125});

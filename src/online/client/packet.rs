@@ -1,5 +1,5 @@
 use super::super::packet::*;
-use ::data::Request;
+use ::game::Request;
 
 ///Type of packet sent from the clients
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]

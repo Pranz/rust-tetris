@@ -9,7 +9,7 @@ use std::{net,sync,thread};
 use std::error::Error;
 
 use super::{client,Packet};
-use ::data::Request;
+use ::game::Request;
 use ::game::data::{WorldId,PlayerId};
 
 pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>) -> Result<(),()>{

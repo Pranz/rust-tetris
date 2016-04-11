@@ -6,8 +6,9 @@ pub mod default{
 	use opengl_graphics::GlGraphics;
 	use piston::input::RenderArgs;
 
-	use ::data::{cell,colors,grid,World};
+	use ::data::{cell,colors,grid};
 	use ::data::shapes::tetromino::Shape;
+	use ::game::data::World;
 	use ::game;
 
 	///Renders the pause state

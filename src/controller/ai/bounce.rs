@@ -2,9 +2,8 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use ::data::{Input,Request,World};
-use ::game::{self,Event};
-use ::game::data::{WorldId,PlayerId};
+use ::game::{self,Event,Request};
+use ::game::data::{Input,PlayerId,World,WorldId};
 
 #[derive(Clone)]
 pub struct Controller{

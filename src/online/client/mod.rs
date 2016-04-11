@@ -8,8 +8,8 @@ use std::{net,sync,thread};
 use std::error::Error;
 
 use super::{server,Packet};
-use ::data::{player,Request};
-use ::game::data::{WorldId,PlayerId};
+use ::game::data::{player,PlayerId,WorldId};
+use ::game::Request;
 
 pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>) -> Result<net::UdpSocket,()>{
 	match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),0)){

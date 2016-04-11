@@ -1,14 +1,19 @@
-//TODO: Maybe move ::data::{player,world,request} here because they are not general data and game specific?
+pub mod input;
 pub mod mappings;
+pub mod player;
+pub mod world;
 
+pub use self::input::Input;
 pub use self::mappings::Mappings;
+pub use self::player::Player;
+pub use self::world::World;
 
 
 
 use serde::{Serialize,Serializer};
 use vec_map::VecMap;
 
-use ::data::{grid,Cell,Grid,Player,World};
+use ::data::{grid,Cell,Grid};
 
 ///Type of the world id
 pub type WorldId = u8;

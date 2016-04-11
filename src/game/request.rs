@@ -1,4 +1,4 @@
-use ::data::{player,Input};
+use ::game::data::{player,Input};
 
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
 pub enum Request<P,W>{

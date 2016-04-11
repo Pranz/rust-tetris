@@ -3,11 +3,11 @@ use core::cmp;
 use piston::input::UpdateArgs;
 use rand::{self,Rand};
 
-use ::data::{grid,world,player,Cell,Grid,Player,World};
+use ::data::{grid,Cell,Grid};
 use ::data::grid::RectangularBound;
 use ::data::shapes::tetromino::{Shape,RotatedShape};
 use ::game::{data,event,Data,Event};
-use ::game::data::{PlayerId,WorldId};
+use ::game::data::{world,player,Player,PlayerId,World,WorldId};
 
 ///The ingame game state
 pub struct State<W,Rng>

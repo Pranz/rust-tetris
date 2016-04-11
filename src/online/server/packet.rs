@@ -1,6 +1,6 @@
 use super::super::packet::*;
-use ::data::{player,Input};
 use ::data::shapes::tetromino::Shape;
+use ::game::data::{player,Input};
 
 ///Type of packet sent from the server
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]

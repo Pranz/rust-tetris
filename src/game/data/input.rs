@@ -13,7 +13,7 @@ pub mod key{
 	use piston::input::Key;
 	use std::collections::hash_map::HashMap;
 
-	use ::data::Input;
+	use ::game::data::Input;
 	use ::game::data::PlayerId;
 
 	pub type KeyMap = HashMap<Key,Mapping>;

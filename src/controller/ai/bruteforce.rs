@@ -7,9 +7,9 @@ use std::sync;
 use super::super::Controller as ControllerTrait;
 use ::data::grid::{self,translate,RectangularBound};
 use ::data::shapes::tetromino::{Shape,Rotation};
-use ::data::{Cell,Input,Grid,Request,World};
-use ::game::{self,Event};
-use ::game::data::{WorldId,PlayerId};
+use ::data::{Cell,Grid};
+use ::game::{self,Event,Request};
+use ::game::data::{Input,PlayerId,World,WorldId};
 
 #[derive(Clone)]
 pub struct Controller{
