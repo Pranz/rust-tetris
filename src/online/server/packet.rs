@@ -40,6 +40,7 @@ pub enum Data{
 }
 
 impl Data{
+	#[inline(always)]
 	pub fn into_packet(self,id: Id) -> Packet<Self>{
 		Packet{
 			protocol: ProtocolId,

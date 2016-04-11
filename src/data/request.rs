@@ -1,61 +1,51 @@
 use ::data::{player,Input};
-use ::game;
 
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
-pub enum Player<P>{
-	Input{
+pub enum Request<P,W>{
+	PlayerInput{
 		player: P,
 		input: Input
 	},
 
-	Add{
+	PlayerAdd{
 		settings: player::Settings,
-		world: game::data::WorldId
+		world: W
 	},
 
-	Remove{
+	PlayerRemove{
 		player: P
 	},
 
 	/*
-	Set{
+	PlayerSet{
 		player: P
 		data: Box<Player>
 	},*/
-}
 
-#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
-pub enum World<W>{
-	/*Add{
+	/*WorldAdd{
 		settings: world::Settings
 	},*/
 
-	Remove{
+	WorldRemove{
 		world: W
 	},
 
-	Restart{
+	WorldRestart{
 		world: W
 	},
 
-	Pause{
+	WorldPause{
 		world: W
 	},
 
-	Unpause{
+	WorldUnpause{
 		world: W
 	},
 
-	/*Set{
+	/*WorldSet{
 		world: game::data::WorldId
 		data: Box<_>
 	}*/
-}
-
-#[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
-pub enum Request<P,W>{//TODO: Merge this somehow with the client packets in online multiplayer
-	Player(Player<P>),
-	World(World<W>),
 
 	GameRestart,
 	GameQuit,

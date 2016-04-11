@@ -6,35 +6,38 @@ use ::data::shapes::tetromino::{Shape,RotatedShape};
 ///Events which can occur ingame.
 ///These should get signaled by the game state and listened to by a event listener.
 #[derive(Clone,Debug,Serialize,Deserialize)]
-pub enum Event<Player,World>{//TODO: Move to ::data:: or keep it here? Also, merge with server packets in online multiplayer?
-	//WorldCreate(World),
-	//WorldUpdate(World),
-	//WorldEnd(World),
-	PlayerAdd{
-		player: Player,
-		world: World
+pub enum Event<P,W>{//TODO: Move to ::data:: or keep it here? Also, merge with server packets in online multiplayer?
+	//WorldAdded(W),
+	//WorldUpdated(W),
+	//WorldRemoved(W),
+	PlayerAdded{
+		player: P,
+		world: W
 	},
-	//PlayerRemove(PlayerId,World),
-	//PlayerWorldMove(PlayerId,World,World),
-	//PlayerRotate(PlayerId),
-	//PlayerRotateCollide(PlayerId,World),
-	//PlayerMoveCollide(PlayerId,World,grid::PosAxis,grid::PosAxis),
-	PlayerMove{
-		player: Player,
-		world: World,
+	PlayerRemoved{
+		player: P,
+		world: W
+	},
+	//PlayerWorldMoved(P,W,W),
+	//PlayerRotated(P),
+	//PlayerRotatedCollide(P,W),
+	//PlayerMovedCollide(P,W,grid::PosAxis,grid::PosAxis),
+	PlayerMoved{
+		player: P,
+		world: W,
 		old: grid::Pos,
 		new: grid::Pos,
 		cause: Cow<'static,str>,
 	},
-	WorldImprintShape{
-		world: World,
+	WorldImprintedShape{
+		world: W,
 		shape: (RotatedShape,grid::Pos),
 		full_rows: grid::SizeAxis,
-		cause: Option<Player>,
+		cause: Option<P>,
 	},
-	PlayerChangeShape{
-		player: Player,
-		world: World,
+	PlayerChangedShape{
+		player: P,
+		world: W,
 		shape: Shape,
 		pos: grid::Pos
 	},

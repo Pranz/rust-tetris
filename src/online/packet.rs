@@ -69,3 +69,4 @@ impl<Data> Packet<Data>
 pub type ProtocolVersion = u16;
 pub type ConnectionId = u32;
 pub type PlayerNetworkId = u32;
+pub type WorldNetworkId = u32;

@@ -2,7 +2,7 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use ::data::{Input,Request,World,request};
+use ::data::{Input,Request,World};
 use ::game::{self,Event};
 use ::game::data::{WorldId,PlayerId};
 
@@ -30,10 +30,10 @@ impl<W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> for C
 		self.move_time+= args.dt;
 
 		if self.move_time > 0.3{
-			let _ = self.request_sender.send(Request::Player(request::Player::Input{
+			let _ = self.request_sender.send(Request::PlayerInput{
 				input: if self.bounce{Input::MoveLeft}else{Input::MoveRight},
 				player: self.player_id
-			}));
+			});
 			self.move_time -= 0.3;
 		}
 	}

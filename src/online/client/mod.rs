@@ -8,7 +8,7 @@ use std::{net,sync,thread};
 use std::error::Error;
 
 use super::{server,Packet};
-use ::data::{player,request,Request};
+use ::data::{player,Request};
 use ::game::data::{WorldId,PlayerId};
 
 pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>) -> Result<net::UdpSocket,()>{
@@ -54,9 +54,9 @@ pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Req
 									fastfall_shadow      : true,
 								};
 								socket.send_to(
-									&*packet::Data::PlayerRequest{
+									&*packet::Data::Request{
 										connection: connection_id,
-										request: request::Player::Add{
+										request: Request::PlayerAdd{
 											settings: settings,
 											world: 1
 										}
@@ -64,12 +64,12 @@ pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Req
 									address
 								).unwrap();
 
-								request_sender.send(Request::Player(request::Player::Add{settings: settings,world: 1})).unwrap();
+								request_sender.send(Request::PlayerAdd{settings: settings,world: 1}).unwrap();
 							},
 
 							//Received player input
 							server::packet::Data::PlayerInput{input,..} if connected => {
-								request_sender.send(Request::Player(request::Player::Input{input: input,player: 0})).unwrap();
+								request_sender.send(Request::PlayerInput{input: input,player: 0}).unwrap();
 							},
 
 							//Received player add response

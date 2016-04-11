@@ -65,7 +65,7 @@ impl<W,Rng> State<W,Rng>
 
 						//If able to move (no collision below)
 						if move_player(player,world,grid::Pos{x: 0,y: 1}){
-							event_listener(Event::PlayerMove{
+							event_listener(Event::PlayerMoved{
 								player: player_id,
 								world: world_id,
 								old: player.pos,
@@ -85,7 +85,7 @@ impl<W,Rng> State<W,Rng>
 								0
 							};
 
-							event_listener(Event::WorldImprintShape{
+							event_listener(Event::WorldImprintedShape{
 								world: world_id,
 								shape: (player.shape,player.pos),
 								full_rows: full_rows,
@@ -126,7 +126,7 @@ impl<W,Rng> State<W,Rng>
 				settings              : settings
 			});
 
-			event_listener(Event::PlayerAdd{
+			event_listener(Event::PlayerAdded{
 				player: new_id as PlayerId,
 				world: world_id,
 			});
@@ -231,7 +231,7 @@ pub fn respawn_player<W,EL>((player_id,player): (PlayerId,&mut Player),(world_id
 	//Select a new shape at random, setting its position to the starting position
 	let pos = respawn_pos(&player.shape,world);
 
-	event_listener(Event::PlayerChangeShape{
+	event_listener(Event::PlayerChangedShape{
 		player: player_id,
 		world: world_id,
 		shape: new_shape,

@@ -1,5 +1,5 @@
 use super::super::packet::*;
-use ::data::request;
+use ::data::Request;
 
 ///Type of packet sent from the clients
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
@@ -22,13 +22,14 @@ pub enum Data{
 	},
 
 	///Sent when something player related is requested to the server
-	PlayerRequest{
+	Request{
 		connection: ConnectionId,
-		request: request::Player<PlayerNetworkId>
+		request: Request<PlayerNetworkId,WorldNetworkId>
 	}
 }
 
 impl Data{
+	#[inline(always)]
 	pub fn into_packet(self,id: Id) -> Packet<Self>{
 		Packet{
 			protocol: ProtocolId,

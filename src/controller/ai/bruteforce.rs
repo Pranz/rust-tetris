@@ -7,7 +7,7 @@ use std::sync;
 use super::super::Controller as ControllerTrait;
 use ::data::grid::{self,translate,RectangularBound};
 use ::data::shapes::tetromino::{Shape,Rotation};
-use ::data::{Cell,Input,Grid,Request,World,request};
+use ::data::{Cell,Input,Grid,Request,World};
 use ::game::{self,Event};
 use ::game::data::{WorldId,PlayerId};
 
@@ -102,13 +102,13 @@ impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> fo
 
 			while self.move_time_count <= 0.0{
 				if player.pos.x > target_pos.x{
-					let _ = self.request_sender.send(Request::Player(request::Player::Input{input: Input::MoveLeft,player: self.player_id}));
+					let _ = self.request_sender.send(Request::PlayerInput{input: Input::MoveLeft,player: self.player_id});
 					self.move_time_count+=self.settings.move_time;
 				}else if player.pos.x < target_pos.x{
-					let _ = self.request_sender.send(Request::Player(request::Player::Input{input: Input::MoveRight,player: self.player_id}));
+					let _ = self.request_sender.send(Request::PlayerInput{input: Input::MoveRight,player: self.player_id});
 					self.move_time_count+=self.settings.move_time;
 				}else if player.shape.rotation() == target_rotation{
-					let _ = self.request_sender.send(Request::Player(request::Player::Input{input: Input::SlowFall,player: self.player_id}));
+					let _ = self.request_sender.send(Request::PlayerInput{input: Input::SlowFall,player: self.player_id});
 					self.move_time_count+=self.settings.fall_time;
 				}else{
 					break
@@ -117,7 +117,7 @@ impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> fo
 
 			while self.rotate_time_count <= 0.0{
 				if player.shape.rotation() != target_rotation{
-					let _ = self.request_sender.send(Request::Player(request::Player::Input{input: Input::RotateAntiClockwise,player: self.player_id}));
+					let _ = self.request_sender.send(Request::PlayerInput{input: Input::RotateAntiClockwise,player: self.player_id});
 					self.rotate_time_count+=self.settings.rotate_time;
 				}else{
 					break;
@@ -130,14 +130,14 @@ impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> fo
 		use game::Event::*;
 
 		match event{
-			&PlayerAdd{player: player_id,..} if player_id == self.player_id => {
+			&PlayerAdded{player: player_id,..} if player_id == self.player_id => {
 				self.target = None;
 			},
 			//When other players imprints on the world TODO: CAnnot know which world this controller controls its player
 			/*WorldImprintShape{cause: Some(player_id),world: world_id,..} if player_id != self.player_id && world_id==self.player.world => {
 				self.recalculate_optimal_target(&*world,player.shape.shape(),player.pos);
 			},*/
-			&PlayerChangeShape{player: player_id,..} if player_id == self.player_id => {
+			&PlayerChangedShape{player: player_id,..} if player_id == self.player_id => {
 				self.move_time_count = 0.0;
 				self.rotate_time_count = 0.0;
 

@@ -9,7 +9,7 @@ use std::{net,sync,thread};
 use std::error::Error;
 
 use super::{client,Packet};
-use ::data::{request,Request};
+use ::data::Request;
 use ::game::data::{WorldId,PlayerId};
 
 pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>) -> Result<(),()>{
@@ -56,13 +56,13 @@ pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Reque
 							},
 
 							//Received player input
-							client::packet::Data::PlayerRequest{request: request::Player::Input{input,..},..} => {//TODO: request::Player.map_player
-								request_sender.send(Request::Player(request::Player::Input{input: input,player: 0})).unwrap();
+							client::packet::Data::Request{request: Request::PlayerInput{input,..},..} => {//TODO: request::Player.map_player
+								request_sender.send(Request::PlayerInput{input: input,player: 0}).unwrap();
 							},
 
 							//Received player add reqeust
-							client::packet::Data::PlayerRequest{request: request::Player::Add{settings,..},..} => {
-								request_sender.send(Request::Player(request::Player::Add{settings: settings,world: 1})).unwrap();
+							client::packet::Data::Request{request: Request::PlayerAdd{settings,..},..} => {
+								request_sender.send(Request::PlayerAdd{settings: settings,world: 1}).unwrap();
 
 								socket.send_to(
 									&*packet::Data::PlayerCreated{
