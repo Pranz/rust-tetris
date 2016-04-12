@@ -1,6 +1,6 @@
 use super::{Grid as GridTrait,SizeAxis,Pos,RectangularBound};
 
-///Translates `grid`
+///Translates `grid` by a position offset
 #[derive(Copy,Clone,Eq,PartialEq)]
 pub struct Grid<'g,G: 'g>{
 	pub grid: &'g G,

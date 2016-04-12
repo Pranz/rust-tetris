@@ -7,12 +7,13 @@ use std::sync;
 use super::super::Controller as ControllerTrait;
 use ::data::grid::{self,translate,RectangularBound};
 use ::data::shapes::tetromino::{Shape,Rotation};
-use ::data::{Cell,Input,Grid,Request,World};
-use ::game::{self,Event};
+use ::data::{Cell,Grid};
+use ::game::{self,Event,Request};
+use ::game::data::{Input,PlayerId,World,WorldId};
 
 #[derive(Clone)]
 pub struct Controller{
-	pub request_sender: sync::mpsc::Sender<Request>,
+	pub request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>,
 	pub player_id: game::data::PlayerId,
 	pub settings: Settings,
 	move_time_count: f64,
@@ -36,7 +37,7 @@ impl Default for Settings{
 }
 
 impl Controller{
-	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: game::data::PlayerId,settings: Settings) -> Self{Controller{
+	pub fn new(request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>,player_id: game::data::PlayerId,settings: Settings) -> Self{Controller{
 		request_sender: request_sender,
 		player_id: player_id,
 		settings: settings,
@@ -129,14 +130,14 @@ impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> fo
 		use game::Event::*;
 
 		match event{
-			&PlayerAdd{player: player_id,..} if player_id == self.player_id => {
+			&PlayerAdded{player: player_id,..} if player_id == self.player_id => {
 				self.target = None;
 			},
 			//When other players imprints on the world TODO: CAnnot know which world this controller controls its player
 			/*WorldImprintShape{cause: Some(player_id),world: world_id,..} if player_id != self.player_id && world_id==self.player.world => {
 				self.recalculate_optimal_target(&*world,player.shape.shape(),player.pos);
 			},*/
-			&PlayerChangeShape{player: player_id,..} if player_id == self.player_id => {
+			&PlayerChangedShape{player: player_id,..} if player_id == self.player_id => {
 				self.move_time_count = 0.0;
 				self.rotate_time_count = 0.0;
 

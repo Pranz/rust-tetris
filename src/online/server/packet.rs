@@ -1,6 +1,6 @@
 use super::super::packet::*;
-use ::data::{player,Input};
 use ::data::shapes::tetromino::Shape;
+use ::game::data::{player,Input};
 
 ///Type of packet sent from the server
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
@@ -15,19 +15,24 @@ pub enum Data{
 	///Sent when connecting and the connection is not OK
 	ConnectionInvalid,
 
-	///Sent when a new player request has been confirmed
-	PlayerCreateResponse{
-		player  : PlayerNetworkId,
+	///Sent when a client request (or packet) was received and denied or unable to fulfill
+	RequestDeniedReponse{
+		packet: Id
+	},
+
+	///Sent when a packet received from the client is not understood
+	UnknownPacketResponse{
+		packet: Id
 	},
 
 	///Sent when a new player has been added
-	PlayerCreate{
+	PlayerCreated{
 		player  : PlayerNetworkId,
 		settings: player::Settings,
 	},
 
 	///Sent when a player has been removed
-	PlayerRemove{
+	PlayerRemoved{
 		player: PlayerNetworkId,
 	},
 
@@ -38,13 +43,14 @@ pub enum Data{
 	},
 
 	///Sent when a player's shape
-	PlayerQueueShape{
+	PlayerQueuedShape{
 		player: PlayerNetworkId,
 		shape : Shape
 	},
 }
 
 impl Data{
+	#[inline(always)]
 	pub fn into_packet(self,id: Id) -> Packet<Self>{
 		Packet{
 			protocol: ProtocolId,

@@ -8,9 +8,10 @@ use std::{net,sync,thread};
 use std::error::Error;
 
 use super::{server,Packet};
-use ::data::{player,Request};
+use ::game::data::{player,PlayerId,WorldId};
+use ::game::Request;
 
-pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request>) -> Result<net::UdpSocket,()>{
+pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>) -> Result<net::UdpSocket,()>{
 	match net::UdpSocket::bind((net::Ipv4Addr::new(0,0,0,0),0)){
 		Ok(socket) => {
 			println!("Client: Connecting to {}...",server_addr);
@@ -53,9 +54,12 @@ pub fn start(server_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Req
 									fastfall_shadow      : true,
 								};
 								socket.send_to(
-									&*packet::Data::PlayerCreateRequest{
+									&*packet::Data::Request{
 										connection: connection_id,
-										settings: settings
+										request: Request::PlayerAdd{
+											settings: settings,
+											world: 1
+										}
 									}.into_packet(0).serialize(),//TODO: Packet id and all other `into_packet`s
 									address
 								).unwrap();

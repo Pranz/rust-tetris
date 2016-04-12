@@ -1,13 +1,12 @@
-use collections::borrow::Cow;
 use core::cmp;
 use piston::input::UpdateArgs;
 use rand::{self,Rand};
 
-use ::data::{grid,world,player,Cell,Grid,Player,World};
+use ::data::{grid,Cell,Grid};
 use ::data::grid::RectangularBound;
 use ::data::shapes::tetromino::{Shape,RotatedShape};
 use ::game::{data,event,Data,Event};
-use ::game::data::{PlayerId,WorldId};
+use ::game::data::{world,player,Player,PlayerId,World,WorldId};
 
 ///The ingame game state
 pub struct State<W,Rng>
@@ -65,18 +64,18 @@ impl<W,Rng> State<W,Rng>
 
 						//If able to move (no collision below)
 						if move_player(player,world,grid::Pos{x: 0,y: 1}){
-							event_listener(Event::PlayerMove{
+							event_listener(Event::PlayerMoved{
 								player: player_id,
 								world: world_id,
 								old: player.pos,
 								new: player.pos,
-								cause: Cow::Borrowed(event::move_cause::GRAVITY),
+								cause: event::MovementCause::Gravity,
 							});
 						}else{
 							//Imprint the current shape onto the world
 							world.imprint_shape(&player.shape,player.pos,&self.imprint_cell);
 
-							//Handles the filled rows
+							//Handles the filled rows (Optimization: Only the rows the imprinted shape occupies needs to be checked)
 							let min_y = cmp::max(0,player.pos.y) as grid::SizeAxis;
 							let max_y = cmp::min(min_y + player.shape.height(),world.height());
 							let full_rows = if min_y!=max_y{
@@ -85,11 +84,11 @@ impl<W,Rng> State<W,Rng>
 								0
 							};
 
-							event_listener(Event::WorldImprintShape{
+							event_listener(Event::WorldImprintedShape{
 								world: world_id,
 								shape: (player.shape,player.pos),
 								full_rows: full_rows,
-								cause: Some(player_id),
+								cause: event::ShapeImprintCause::PlayerInflicted(player_id),
 							});
 
 							//Respawn player and check for collision at spawn position
@@ -111,8 +110,11 @@ impl<W,Rng> State<W,Rng>
 		      Rng: rand::Rng,
 		      EL: FnMut(Event<PlayerId,WorldId>)
 	{
+		//If the world exists
 		if let Some(&mut(ref mut world,_)) = self.data.worlds.get_mut(world_id as usize){
+			//Id is incremental
 			let new_id = self.data.players.len();
+			//Use a random shape with a random rotation
 			let shape = RotatedShape::new(<Shape as rand::Rand>::rand(self.rngs.player_get_mut(world_id,new_id as PlayerId)));
 
 			self.data.players.insert(new_id,Player{
@@ -126,7 +128,7 @@ impl<W,Rng> State<W,Rng>
 				settings              : settings
 			});
 
-			event_listener(Event::PlayerAdd{
+			event_listener(Event::PlayerAdded{
 				player: new_id as PlayerId,
 				world: world_id,
 			});
@@ -149,10 +151,18 @@ impl<W,Rng> State<W,Rng>
 			world.clear();
 			*paused = false;
 
+			//Reset all players in the world
 			for (player_id,player) in self.data.players.iter_mut().filter(|&(_,ref player)| player.world == world_id){
-				//Reset all players in the world
 				let shape = player.next_shape(<Shape as Rand>::rand(self.rngs.player_get_mut(world_id,player_id as PlayerId)));
-				respawn_player((player_id as PlayerId,player),(world_id,world),shape,self.respawn_pos,event_listener);
+				//Respawns player with a new random shape
+				respawn_player(
+					(player_id as PlayerId,player),
+					(world_id,world),
+					shape,
+					self.respawn_pos,
+					event_listener
+				);
+				//Resets the gravity trigger time counter
 				player.gravityfall_time_count = player.settings.gravityfall_frequency;
 			}
 		};
@@ -231,16 +241,18 @@ pub fn respawn_player<W,EL>((player_id,player): (PlayerId,&mut Player),(world_id
 	//Select a new shape at random, setting its position to the starting position
 	let pos = respawn_pos(&player.shape,world);
 
-	event_listener(Event::PlayerChangeShape{
+	event_listener(Event::PlayerChangedShape{
 		player: player_id,
 		world: world_id,
 		shape: new_shape,
 		pos: pos,
+		cause: event::ShapeChangeCause::NewAfterImprint,
 	});
 
 	player.shape = RotatedShape::new(new_shape);
 	player.pos = pos;
 
+	//Updates the shadow position
 	if player.settings.fastfall_shadow{
 		player.shadow_pos = Some(fastfallen_shape_pos(&player.shape,world,player.pos));
 	}
@@ -253,6 +265,7 @@ pub fn respawn_player<W,EL>((player_id,player): (PlayerId,&mut Player),(world_id
 }
 
 ///Returns the position of the shape if it were to fast fall downwards in the world at the given position
+///The position of the projected shape on the ground
 pub fn fastfallen_shape_pos<W>(shape: &RotatedShape,world: &W,shape_pos: grid::Pos) -> grid::Pos
 	where W: World
 {

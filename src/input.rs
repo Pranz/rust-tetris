@@ -1,6 +1,7 @@
 //! Input code
 
-use ::data::{grid,Input,Player,World};
+use ::data::grid;
+use ::game::data::{Input,Player,World};
 use ::game;
 
 ///Performs an action based on the given input on a player in a world

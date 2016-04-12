@@ -1,5 +1,5 @@
 use super::super::packet::*;
-use ::data::{player,Input};
+use ::game::Request;
 
 ///Type of packet sent from the clients
 #[derive(Copy,Clone,Debug,PartialEq,Serialize,Deserialize)]
@@ -11,7 +11,7 @@ pub enum Data{
 		protocol_version: ProtocolVersion,
 	},
 
-	///Sent when a ConnectionEstablished from the server is received with the same id
+	///Sent when a ConnectionEstablished from the server is received with the same id (making sure that the id is the same)
 	ConnectionEstablishedResponse{
 		connection: ConnectionId,
 	},
@@ -21,27 +21,20 @@ pub enum Data{
 		connection: ConnectionId,
 	},
 
-	///Sent when a new local player has been added
-	PlayerCreateRequest{
-		connection: ConnectionId,
-		settings  : player::Settings,
+	///Sent when a packet received from the server is not understood
+	UnknownPacketResponse{
+		packet: Id
 	},
 
-	///Sent when a local player has been removed
-	PlayerRemoveRequest{
+	///Sent when something player related is requested to the server
+	Request{
 		connection: ConnectionId,
-		player    : PlayerNetworkId,
-	},
-
-	///Sent when a input command from a local player is registered
-	PlayerInput{
-		connection: ConnectionId,
-		player    : PlayerNetworkId,
-		input     : Input
+		request: Request<PlayerNetworkId,WorldNetworkId>
 	},
 }
 
 impl Data{
+	#[inline(always)]
 	pub fn into_packet(self,id: Id) -> Packet<Self>{
 		Packet{
 			protocol: ProtocolId,

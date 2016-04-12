@@ -9,9 +9,10 @@ use std::{net,sync,thread};
 use std::error::Error;
 
 use super::{client,Packet};
-use ::data::Request;
+use ::game::Request;
+use ::game::data::{WorldId,PlayerId};
 
-pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request>) -> Result<(),()>{
+pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>) -> Result<(),()>{
 	match net::UdpSocket::bind(host_addr){
 		Ok(socket) => {
 			println!("Server: Listening on {}...",host_addr);
@@ -55,17 +56,18 @@ pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Reque
 							},
 
 							//Received player input
-							client::packet::Data::PlayerInput{input,..} => {
+							client::packet::Data::Request{request: Request::PlayerInput{input,..},..} => {//TODO: request::Player.map_player
 								request_sender.send(Request::PlayerInput{input: input,player: 0}).unwrap();
 							},
 
 							//Received player add reqeust
-							client::packet::Data::PlayerCreateRequest{settings,..} => {
+							client::packet::Data::Request{request: Request::PlayerAdd{settings,..},..} => {
 								request_sender.send(Request::PlayerAdd{settings: settings,world: 1}).unwrap();
 
 								socket.send_to(
-									&*packet::Data::PlayerCreateResponse{
+									&*packet::Data::PlayerCreated{
 										player: 0,
+										settings: settings,
 									}.into_packet(0).serialize(),
 									address
 								).unwrap();

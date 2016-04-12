@@ -2,19 +2,19 @@ use piston::input::UpdateArgs;
 use std::sync;
 
 use super::super::Controller as ControllerTrait;
-use ::data::{Input,Request,World};
-use ::game::{self,Event};
+use ::game::{self,Event,Request};
+use ::game::data::{Input,PlayerId,World,WorldId};
 
 #[derive(Clone)]
 pub struct Controller{
-	pub request_sender: sync::mpsc::Sender<Request>,
+	pub request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>,
 	pub player_id: game::data::PlayerId,
 	bounce: bool,
 	move_time: f64,
 }
 
 impl Controller{
-	pub fn new(request_sender: sync::mpsc::Sender<Request>,player_id: game::data::PlayerId) -> Self{Controller{
+	pub fn new(request_sender: sync::mpsc::Sender<Request<PlayerId,WorldId>>,player_id: game::data::PlayerId) -> Self{Controller{
 		request_sender: request_sender,
 		player_id: player_id,
 		bounce: false,
