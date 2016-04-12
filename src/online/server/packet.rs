@@ -18,13 +18,11 @@ pub enum Data{
 	///Sent when a new player request has been confirmed
 	PlayerCreateResponse{
 		player  : PlayerNetworkId,
-		rng_seed: u32,//TODO: Send the whole RNG world in a packet instead?
 	},
 
 	///Sent when a new player has been added
 	PlayerCreate{
 		player  : PlayerNetworkId,
-		rng_seed: u32,
 		settings: player::Settings,
 	},
 

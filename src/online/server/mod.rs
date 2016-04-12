@@ -66,7 +66,6 @@ pub fn start(host_addr: net::SocketAddr,request_sender: sync::mpsc::Sender<Reque
 								socket.send_to(
 									&*packet::Data::PlayerCreateResponse{
 										player: 0,
-										rng_seed: 0,
 									}.into_packet(0).serialize(),
 									address
 								).unwrap();

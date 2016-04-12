@@ -46,7 +46,7 @@ use std::collections::hash_map::{self,HashMap};
 #[cfg(feature = "include_glutin")]use glutin_window::GlutinWindow as Window;
 
 use ::controller::{ai,Controller};
-use ::data::{cell,grid,player,Grid,Input};
+use ::data::{cell,grid,player,Grid,Input,PairMap};
 use ::data::shapes::tetromino::{Shape,RotatedShape};
 use ::data::world::dynamic::World;
 use ::game::data::{WorldId,PlayerId};
@@ -96,17 +96,23 @@ impl App{
 					}
 				}
 
-				if let online::ConnectionType::Client(ref socket,ref address) = self.connection{if pid==0{
+				if let online::ConnectionType::Client(ref player_ids,Some(connection_id),ref socket,ref address) = self.connection{if let Some(player_network_id) = player_ids.get2(pid){
 					socket.send_to(&*online::client::packet::Data::PlayerInput{
-						connection: 0,
-						player: 0,
+						connection: connection_id,//TODO: Maybe this should not send directly to the socket. The connection id is not received until the connection has began
+						player: player_network_id,
 						input: input
 					}.into_packet(0).serialize(),address).unwrap();
 				}}
 			},
 			PlayerAdd{settings,world: world_id} => {
-				let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
-				game.add_player(world_id,settings,&mut |e| for c in cs.iter_mut(){c.event(&e);});
+				let &mut App{game_state: ref mut game,controllers: ref mut cs,ref mut connection,..} = self;
+
+				if let &mut online::ConnectionType::Client(ref mut player_ids,_,_,_) = connection{
+					player_ids.insert(
+						0,//TODO: Where to get this value from
+						game.add_player(world_id,settings,&mut |e| for c in cs.iter_mut(){c.event(&e);}).unwrap()
+					);
+				}
 			},
 			WorldRestart{world: world_id} => {
 				let &mut App{game_state: ref mut game,controllers: ref mut cs,..} = self;
@@ -233,7 +239,7 @@ fn main(){
 				);
 
 				match online::client::start(server_addr,request_sender.clone()){
-					Ok(socket) => online::ConnectionType::Client(socket,server_addr),
+					Ok(socket) => online::ConnectionType::Client(PairMap::new(),None,socket,server_addr),
 					Err(_)     => online::ConnectionType::None
 				}
 			},
@@ -243,7 +249,7 @@ fn main(){
 				let server_addr = net::SocketAddr::new(args.flag_host.0,args.flag_port);
 
 				match online::server::start(server_addr,request_sender.clone()){
-					Ok(_)  => online::ConnectionType::Server,
+					Ok(_)  => online::ConnectionType::Server(PairMap::new()),
 					Err(_) => online::ConnectionType::None
 				}
 			}
