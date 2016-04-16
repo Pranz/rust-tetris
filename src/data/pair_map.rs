@@ -1,6 +1,7 @@
 use std::hash::Hash;
 use std::collections::HashMap;
 
+///A naive and probably inefficient implementation of a bijective map (list of pairs/bidirectional map/bag) using two HashMaps
 pub struct PairMap<A: Copy + Hash,B: Copy + Hash>(HashMap<A,B>,HashMap<B,A>);
 impl<A,B> PairMap<A,B>
 	where A: Copy + Hash + Eq,
@@ -81,15 +82,5 @@ impl<A,B> Map<B,A> for PairMap<A,B>
 		}else{
 			None
 		}
-	}
-	pub fn clear2(&mut self){
-		self.0.clear();
-		self.1.clear();
-	}
-	pub fn is_empty2(&self) -> bool{
-		self.1.is_empty()
-	}
-	pub fn len2(&self) -> usize{
-		self.1.len()
 	}
 }

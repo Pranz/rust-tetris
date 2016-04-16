@@ -45,7 +45,7 @@ impl<W,Rng> State<W,Rng>
 		where W: World,
 		      <W as Grid>::Cell: Cell,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<PlayerId,WorldId>)
+		      EL: FnMut(Event<(PlayerId,WorldId),WorldId>)
 	{
 		//Players
 		'player_loop: for (player_id,player) in self.data.players.iter_mut(){
@@ -65,8 +65,7 @@ impl<W,Rng> State<W,Rng>
 						//If able to move (no collision below)
 						if move_player(player,world,grid::Pos{x: 0,y: 1}){
 							event_listener(Event::PlayerMoved{
-								player: player_id,
-								world: world_id,
+								player: (player_id,world_id),
 								old: player.pos,
 								new: player.pos,
 								cause: event::MovementCause::Gravity,
@@ -88,7 +87,7 @@ impl<W,Rng> State<W,Rng>
 								world: world_id,
 								shape: (player.shape,player.pos),
 								full_rows: full_rows,
-								cause: event::ShapeImprintCause::PlayerInflicted(player_id),
+								cause: event::ShapeImprintCause::PlayerInflicted((player_id,world_id)),
 							});
 
 							//Respawn player and check for collision at spawn position
@@ -108,7 +107,7 @@ impl<W,Rng> State<W,Rng>
 	pub fn add_player<EL>(&mut self,world_id: WorldId,settings: player::Settings,event_listener: &mut EL) -> Option<PlayerId>
 		where W: World,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<PlayerId,WorldId>)
+		      EL: FnMut(Event<(PlayerId,WorldId),WorldId>)
 	{
 		//If the world exists
 		if let Some(&mut(ref mut world,_)) = self.data.worlds.get_mut(world_id as usize){
@@ -129,8 +128,7 @@ impl<W,Rng> State<W,Rng>
 			});
 
 			event_listener(Event::PlayerAdded{
-				player: new_id as PlayerId,
-				world: world_id,
+				player: (new_id as PlayerId,world_id),
 			});
 
 			Some(new_id as PlayerId)
@@ -144,7 +142,7 @@ impl<W,Rng> State<W,Rng>
 		where W: World,
 		      <W as Grid>::Cell: Cell,
 		      Rng: rand::Rng,
-		      EL: FnMut(Event<PlayerId,WorldId>)
+		      EL: FnMut(Event<(PlayerId,WorldId),WorldId>)
 	{
 		if let Some(&mut(ref mut world,ref mut paused)) = self.data.worlds.get_mut(world_id as usize){
 			//Clear world
@@ -236,14 +234,13 @@ pub fn resolve_transformed_player<W>(player: &mut Player,shape: RotatedShape,wor
 ///Returns whether the respawning was successful or not due to collisions.
 pub fn respawn_player<W,EL>((player_id,player): (PlayerId,&mut Player),(world_id,world): (WorldId,&W),new_shape: Shape,respawn_pos: fn(&RotatedShape,&W) -> grid::Pos,event_listener: &mut EL) -> bool
 	where W: World,
-	      EL: FnMut(Event<PlayerId,WorldId>)
+	      EL: FnMut(Event<(PlayerId,WorldId),WorldId>)
 {
 	//Select a new shape at random, setting its position to the starting position
 	let pos = respawn_pos(&player.shape,world);
 
 	event_listener(Event::PlayerChangedShape{
-		player: player_id,
-		world: world_id,
+		player: (player_id,world_id),
 		shape: new_shape,
 		pos: pos,
 		cause: event::ShapeChangeCause::NewAfterImprint,

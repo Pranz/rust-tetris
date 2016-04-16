@@ -55,7 +55,7 @@ use ::game::{Event,Request};
 struct App{
 	gl: GlGraphics,
 	game_state: game::State<World<cell::ShapeCell>,rand::StdRng>,
-	controllers: Vec<Box<Controller<World<cell::ShapeCell>,Event<PlayerId,WorldId>>>>,
+	controllers: Vec<Box<Controller<World<cell::ShapeCell>,Event<(PlayerId,WorldId),WorldId>>>>,
 	request_receiver: sync::mpsc::Receiver<Request<PlayerId,WorldId>>,
 	connection: online::ConnectionType,
 	paused: bool,

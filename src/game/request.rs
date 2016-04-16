@@ -49,6 +49,8 @@ pub enum Request<P,W>{
 		data: Box<_>
 	}*/
 
+	GamePause,
+	GameUnpause,
 	GameRestart,
 	GameQuit,
 }

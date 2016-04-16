@@ -21,6 +21,8 @@ vec_map = "0.6"
 piston = "0.18"
 piston2d-graphics = "0.13.1"
 piston2d-opengl_graphics = "0.23"
+#piston2d-gfx_graphics = "0.26"
+#piston-gfx_texture = "0.13"
 
 [dependencies.pistoncore-sdl2_window]
 version = "0.25"

@@ -45,7 +45,7 @@ pub enum Data{
 	///Sent when a player's shape
 	PlayerQueuedShape{
 		player: PlayerNetworkId,
-		shape : Shape
+		shape : Shape//TODO: Rotation?
 	},
 }
 

@@ -78,7 +78,7 @@ impl Controller{
 	}
 }
 
-impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> for Controller
+impl<'l,W> ControllerTrait<W,Event<(PlayerId,WorldId),WorldId>> for Controller
 	where W: World,
 	      <W as Grid>::Cell: Cell + Copy
 {
@@ -126,18 +126,18 @@ impl<'l,W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> fo
 		}
 	}
 
-	fn event(&mut self,event: &Event<game::data::PlayerId,game::data::WorldId>){
+	fn event(&mut self,event: &Event<(game::data::PlayerId,game::data::WorldId),game::data::WorldId>){
 		use game::Event::*;
 
 		match event{
-			&PlayerAdded{player: player_id,..} if player_id == self.player_id => {
+			&PlayerAdded{player: (player_id,_),..} if player_id == self.player_id => {
 				self.target = None;
 			},
 			//When other players imprints on the world TODO: CAnnot know which world this controller controls its player
 			/*WorldImprintShape{cause: Some(player_id),world: world_id,..} if player_id != self.player_id && world_id==self.player.world => {
 				self.recalculate_optimal_target(&*world,player.shape.shape(),player.pos);
 			},*/
-			&PlayerChangedShape{player: player_id,..} if player_id == self.player_id => {
+			&PlayerChangedShape{player: (player_id,_),..} if player_id == self.player_id => {
 				self.move_time_count = 0.0;
 				self.rotate_time_count = 0.0;
 

@@ -22,7 +22,7 @@ impl Controller{
 	}}
 }
 
-impl<W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> for Controller
+impl<W> ControllerTrait<W,Event<(PlayerId,WorldId),WorldId>> for Controller
 	where W: World
 {
 	fn update(&mut self,args: &UpdateArgs,_: &game::Data<W>){
@@ -37,7 +37,7 @@ impl<W> ControllerTrait<W,Event<game::data::PlayerId,game::data::WorldId>> for C
 		}
 	}
 
-	fn event<'l>(&mut self,_: &Event<game::data::PlayerId,game::data::WorldId>){/*
+	fn event<'l>(&mut self,_: &Event<(game::data::PlayerId,game::data::WorldId),game::data::WorldId>){/*
 		use game::Event::*;
 
 		match event{

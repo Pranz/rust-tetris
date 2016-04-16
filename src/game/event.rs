@@ -4,38 +4,49 @@ use ::data::grid;
 use ::data::shapes::tetromino::{Shape,RotatedShape,Rotation};
 use ::game::data::Input;
 
+//TODO: Document when the events triggers. If one triggers before or after mutation of the structure
+
 ///Events which can occur ingame.
 ///These should get signaled by the game state and listened to by a event listener.
 #[derive(Clone,Debug,Serialize,Deserialize)]
 pub enum Event<P,W>{//TODO: Merge with server packets in online multiplayer if possible and practical?
 	PlayerAdded{
 		player: P,
-		world: W
 	},
-	PlayerRemoved{
+	PlayerRemoved{//TODO: Implement
 		player: P,
-		world: W
 	},
-	//PlayerWorldMoved(P,W,W),
-	//PlayerRotatedCollide(P,W),
-	//PlayerMovedCollide(P,W,grid::PosAxis,grid::PosAxis),
-	PlayerRotated{//TODO: Implement and check if all the current ones are implemented in all cases
+	PlayerMovedWorld{//TODO: Implement
 		player: P,
-		world: W,
+		old: W,
+		new: W
+	},
+	PlayerCollidedOnRotation{//TODO: Implement
+		player: P,
+		current: Rotation,
+		target: Rotation,
+		cause: RotationCause,
+	},
+	PlayerCollidedOnMovement{//TODO: Implement
+		player: P,
+		current: grid::PosAxis,
+		target: grid::PosAxis,
+		cause: RotationCause,
+	},
+	PlayerRotated{//TODO: Implement
+		player: P,
 		old: Rotation,
 		new: Rotation,
 		cause: RotationCause,
 	},
 	PlayerMoved{
 		player: P,
-		world: W,
 		old: grid::Pos,
 		new: grid::Pos,
 		cause: MovementCause,
 	},
 	PlayerChangedShape{
 		player: P,
-		world: W,
 		shape: Shape,
 		pos: grid::Pos,
 		cause: ShapeChangeCause,
@@ -46,9 +57,23 @@ pub enum Event<P,W>{//TODO: Merge with server packets in online multiplayer if p
 		full_rows: grid::SizeAxis,
 		cause: ShapeImprintCause<P>,
 	},
-	//WorldAdded(W),
-	//WorldUpdated(W),
-	//WorldRemoved(W),
+	WorldAdded{//TODO: Implement
+		world: W,
+	},
+	WorldUpdated{//TODO: Implement
+		world: W,
+	},
+	WorldRemoved{//TODO: Implement
+		world: W,
+	},
+	WorldPaused{//TODO: Implement
+		world: W,
+	},
+	WorldUnpaused{//TODO: Implement
+		world: W,
+	},
+	GamePaused,//TODO: Implement
+	GameUnpaused,//TODO: Implement
 }
 
 #[derive(Clone,Debug,Serialize,Deserialize)]
