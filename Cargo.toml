@@ -12,28 +12,28 @@ docopt_macros = "0.6"
 fixed_circular_buffer = "0.2"
 num = "0.1"
 rand = "0.3"
-rand_macros = {path = "rand_macros"}#"0.1"
+rand_macros = {path = "rand_macros"}#"0.3"
 rustc-serialize = "0.3"
 serde = "0.7"
 serde_macros = "0.7"
 vec_map = "0.6"
 
-piston = "0.18"
-piston2d-graphics = "0.13.1"
-piston2d-opengl_graphics = "0.23"
+piston = "0.19"
+piston2d-graphics = "0.16"
+piston2d-opengl_graphics = "0.26"
 #piston2d-gfx_graphics = "0.26"
 #piston-gfx_texture = "0.13"
 
 [dependencies.pistoncore-sdl2_window]
-version = "0.25"
+version = "0.27"
 optional = true
 
 [dependencies.pistoncore-glfw_window]
-version = "0.18"
+version = "0.19"
 optional = true
 
 [dependencies.pistoncore-glutin_window]
-version = "0.21"
+version = "0.23"
 optional = true
 
 [features]
